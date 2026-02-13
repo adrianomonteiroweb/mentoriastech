@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
+import nodemailer from "nodemailer"
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY
 const TO_EMAIL = "adrianomonteiroweb@gmail.com"
 
 export async function POST(request: Request) {
@@ -14,80 +14,96 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!RESEND_API_KEY) {
-      console.error("RESEND_API_KEY is not set")
+    const smtpHost = process.env.SMTP_HOST
+    const smtpPort = Number(process.env.SMTP_PORT || "587")
+    const smtpUser = process.env.SMTP_USER
+    const smtpPass = process.env.SMTP_PASS
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      console.error("SMTP environment variables are not set")
       return NextResponse.json(
         { error: "Configuração de email ausente. Contate o administrador." },
         { status: 500 }
       )
     }
 
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    })
+
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #2dd4bf; border-bottom: 2px solid #2dd4bf; padding-bottom: 10px;">
-          Nova Solicitação de Agendamento
-        </h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f8fafb; border-radius: 12px;">
+        <div style="background: #0d1117; border-radius: 10px; padding: 24px; margin-bottom: 24px;">
+          <h2 style="color: #2dd4bf; margin: 0 0 4px 0; font-size: 20px;">
+            Nova Solicitacao de Agendamento
+          </h2>
+          <p style="color: #8b949e; margin: 0; font-size: 13px;">
+            Recebida em ${new Date().toLocaleDateString("pt-BR")} as ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
           <tr>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: bold; color: #555;">Nome</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee;">${name}</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; width: 120px; font-size: 14px;">Nome</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">${name}</td>
           </tr>
           <tr>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: bold; color: #555;">E-mail</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee;">
-              <a href="mailto:${email}" style="color: #2dd4bf;">${email}</a>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">E-mail</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
+              <a href="mailto:${email}" style="color: #0d9488; text-decoration: none;">${email}</a>
             </td>
           </tr>
           <tr>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: bold; color: #555;">WhatsApp</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee;">
-              <a href="https://wa.me/${whatsapp.replace(/\D/g, "")}" style="color: #2dd4bf;">${whatsapp}</a>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">WhatsApp</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
+              <a href="https://wa.me/${whatsapp.replace(/\D/g, "")}" style="color: #0d9488; text-decoration: none;">${whatsapp}</a>
             </td>
           </tr>
           <tr>
-            <td style="padding: 12px; border-bottom: 1px solid #eee; font-weight: bold; color: #555;">Data</td>
-            <td style="padding: 12px; border-bottom: 1px solid #eee;">${date}</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Data</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                📅 ${date}
+              </span>
+            </td>
           </tr>
           <tr>
-            <td style="padding: 12px; font-weight: bold; color: #555;">Horário</td>
-            <td style="padding: 12px;">${time}</td>
+            <td style="padding: 16px 20px; font-weight: 600; color: #374151; font-size: 14px;">Horario</td>
+            <td style="padding: 16px 20px; color: #1f2937; font-size: 14px;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;">
+                🕐 ${time}
+              </span>
+            </td>
           </tr>
         </table>
-        <p style="margin-top: 20px; padding: 15px; background: #f0fdf4; border-radius: 8px; color: #166534;">
-          Responda este email ou entre em contato pelo WhatsApp para confirmar.
-        </p>
+
+        <div style="margin-top: 20px; padding: 16px 20px; background: #ecfdf5; border-radius: 10px; border-left: 4px solid #2dd4bf;">
+          <p style="margin: 0; color: #065f46; font-size: 13px; line-height: 1.5;">
+            <strong>Acao recomendada:</strong> Responda este email ou entre em contato pelo WhatsApp para confirmar o agendamento.
+          </p>
+        </div>
       </div>
     `
 
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "Agendamento <onboarding@resend.dev>",
-        to: [TO_EMAIL],
-        subject: `Nova solicitação de agendamento - ${name}`,
-        html: htmlContent,
-        reply_to: email,
-      }),
+    await transporter.sendMail({
+      from: `"Agendamento - Site" <${smtpUser}>`,
+      to: TO_EMAIL,
+      subject: `Nova solicitacao de agendamento - ${name}`,
+      html: htmlContent,
+      replyTo: email,
     })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error("Resend API error:", errorData)
-      return NextResponse.json(
-        { error: "Falha ao enviar email. Tente novamente." },
-        { status: 500 }
-      )
-    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Booking API error:", error)
     return NextResponse.json(
-      { error: "Erro interno do servidor" },
+      { error: "Falha ao enviar email. Tente novamente." },
       { status: 500 }
     )
   }
