@@ -18,8 +18,10 @@ export function ProfileHeader() {
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Adriano Monteiro
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Desenvolvedor Web &middot; Mentor
+        <p className="mt-1.5 text-center text-sm leading-relaxed text-muted-foreground">
+          Desenvolvedor de Software e Automacoes RPA
+          <br />
+          Pessoa Mentora de Programacao | Freelancer
         </p>
       </div>
     </div>
