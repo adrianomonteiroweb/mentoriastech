@@ -5,9 +5,9 @@ const TO_EMAIL = "adrianomonteiroweb@gmail.com"
 
 export async function POST(request: Request) {
   try {
-    const { name, email, whatsapp, date, time } = await request.json()
+    const { name, email, whatsapp, day, time, topic } = await request.json()
 
-    if (!name || !email || !whatsapp || !date || !time) {
+    if (!name || !email || !whatsapp || !day || !time || !topic) {
       return NextResponse.json(
         { error: "Todos os campos são obrigatórios" },
         { status: 400 }
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f8fafb; border-radius: 12px;">
         <div style="background: #0d1117; border-radius: 10px; padding: 24px; margin-bottom: 24px;">
           <h2 style="color: #2dd4bf; margin: 0 0 4px 0; font-size: 20px;">
-            Nova Solicitacao de Agendamento
+            Nova Solicitacao de Mentoria Gratuita
           </h2>
           <p style="color: #8b949e; margin: 0; font-size: 13px;">
             Recebida em ${new Date().toLocaleDateString("pt-BR")} as ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -66,20 +66,18 @@ export async function POST(request: Request) {
             </td>
           </tr>
           <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Data</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Tema</td>
             <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">
-              <span style="display: inline-flex; align-items: center; gap: 6px;">
-                📅 ${date}
-              </span>
+              <span style="display: inline-block; background: #ecfdf5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${topic}</span>
             </td>
           </tr>
           <tr>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Dia</td>
+            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">${day}</td>
+          </tr>
+          <tr>
             <td style="padding: 16px 20px; font-weight: 600; color: #374151; font-size: 14px;">Horario</td>
-            <td style="padding: 16px 20px; color: #1f2937; font-size: 14px;">
-              <span style="display: inline-flex; align-items: center; gap: 6px;">
-                🕐 ${time}
-              </span>
-            </td>
+            <td style="padding: 16px 20px; color: #1f2937; font-size: 14px;">${time}</td>
           </tr>
         </table>
 
@@ -94,7 +92,7 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from: `"Agendamento - Site" <${smtpUser}>`,
       to: TO_EMAIL,
-      subject: `Nova solicitacao de agendamento - ${name}`,
+      subject: `Nova solicitacao de mentoria - ${name} - ${topic}`,
       html: htmlContent,
       replyTo: email,
     })

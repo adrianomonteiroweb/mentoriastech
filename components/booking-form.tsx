@@ -4,33 +4,33 @@ import { useState } from "react"
 import { CalendarDays, Clock, Send, CheckCircle2, Loader2 } from "lucide-react"
 
 const AVAILABLE_SLOTS = [
-  { date: "2026-02-16", day: "Seg", time: "09:00" },
-  { date: "2026-02-16", day: "Seg", time: "14:00" },
-  { date: "2026-02-17", day: "Ter", time: "10:00" },
-  { date: "2026-02-17", day: "Ter", time: "15:00" },
-  { date: "2026-02-18", day: "Qua", time: "09:00" },
-  { date: "2026-02-18", day: "Qua", time: "11:00" },
-  { date: "2026-02-19", day: "Qui", time: "14:00" },
-  { date: "2026-02-20", day: "Sex", time: "10:00" },
-  { date: "2026-02-20", day: "Sex", time: "16:00" },
+  { day: "Sexta-feira", time: "20:00" },
+  { day: "Sabado", time: "09:00" },
+  { day: "Sabado", time: "14:00" },
+  { day: "Domingo", time: "09:00" },
+  { day: "Domingo", time: "14:00" },
 ]
 
-function formatDate(dateStr: string) {
-  const [year, month, day] = dateStr.split("-")
-  return `${day}/${month}/${year}`
-}
+const TOPICS = [
+  "Carreira em programacao",
+  "Preparacao para entrevistas",
+  "Busca de oportunidades",
+  "Desenvolvimento Web",
+  "Automacoes RPA",
+]
 
 export function BookingForm() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [selectedTopic, setSelectedTopic] = useState<string>("")
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState("")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (selectedSlot === null) return
+    if (selectedSlot === null || !selectedTopic) return
 
     setStatus("loading")
     setErrorMsg("")
@@ -45,8 +45,9 @@ export function BookingForm() {
           name,
           email,
           whatsapp,
-          date: formatDate(slot.date),
+          day: slot.day,
           time: slot.time,
+          topic: selectedTopic,
         }),
       })
 
@@ -57,7 +58,7 @@ export function BookingForm() {
 
       setStatus("success")
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Erro ao enviar solicitação")
+      setErrorMsg(err instanceof Error ? err.message : "Erro ao enviar solicitacao")
       setStatus("error")
     }
   }
@@ -68,9 +69,9 @@ export function BookingForm() {
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
           <CheckCircle2 className="h-7 w-7 text-primary" />
         </div>
-        <h3 className="text-lg font-semibold text-foreground">Solicitação enviada!</h3>
+        <h3 className="text-lg font-semibold text-foreground">{"Solicitacao enviada!"}</h3>
         <p className="text-sm text-muted-foreground">
-          Obrigado pelo interesse. Entrarei em contato em breve para confirmar o agendamento.
+          {"Obrigado pelo interesse na mentoria! Entrarei em contato em breve para confirmar o agendamento."}
         </p>
         <button
           onClick={() => {
@@ -79,6 +80,7 @@ export function BookingForm() {
             setEmail("")
             setWhatsapp("")
             setSelectedSlot(null)
+            setSelectedTopic("")
           }}
           className="mt-2 text-sm font-medium text-primary hover:underline"
         >
@@ -137,9 +139,31 @@ export function BookingForm() {
 
       <div className="flex flex-col gap-2">
         <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Escolha uma data e horário
+          Tema de interesse
         </label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="flex flex-wrap gap-2">
+          {TOPICS.map((topic) => (
+            <button
+              key={topic}
+              type="button"
+              onClick={() => setSelectedTopic(topic)}
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all duration-200 ${
+                selectedTopic === topic
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-secondary text-secondary-foreground hover:border-muted-foreground/30"
+              }`}
+            >
+              {topic}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {"Dia e horario disponivel"}
+        </label>
+        <div className="grid grid-cols-1 gap-2">
           {AVAILABLE_SLOTS.map((slot, i) => (
             <button
               key={i}
@@ -152,7 +176,7 @@ export function BookingForm() {
               }`}
             >
               <CalendarDays className="h-4 w-4 shrink-0" />
-              <span className="font-medium">{slot.day} {formatDate(slot.date)}</span>
+              <span className="font-medium">{slot.day}</span>
               <span className="ml-auto flex items-center gap-1 text-xs">
                 <Clock className="h-3 w-3" />
                 {slot.time}
@@ -168,7 +192,7 @@ export function BookingForm() {
 
       <button
         type="submit"
-        disabled={selectedSlot === null || status === "loading"}
+        disabled={selectedSlot === null || !selectedTopic || status === "loading"}
         className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {status === "loading" ? (
@@ -176,7 +200,7 @@ export function BookingForm() {
         ) : (
           <Send className="h-4 w-4" />
         )}
-        {status === "loading" ? "Enviando..." : "Enviar solicitação"}
+        {status === "loading" ? "Enviando..." : "Solicitar mentoria"}
       </button>
     </form>
   )

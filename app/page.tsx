@@ -1,6 +1,7 @@
 import { ProfileHeader } from "@/components/profile-header"
 import { SocialLinks } from "@/components/social-links"
 import { BookingForm } from "@/components/booking-form"
+import { MentoringInfo } from "@/components/mentoring-info"
 import { CalendarDays } from "lucide-react"
 
 export default function Page() {
@@ -11,12 +12,14 @@ export default function Page() {
 
         <SocialLinks />
 
+        <MentoringInfo />
+
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-border" />
             <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              Agendar conversa
+              Agendar mentoria gratuita
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
