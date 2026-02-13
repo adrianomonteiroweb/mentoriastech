@@ -11,6 +11,7 @@ export function ProfileHeader() {
           width={120}
           height={120}
           className="relative rounded-full border-2 border-primary/50 object-cover"
+          priority
         />
       </div>
       <div className="text-center">
