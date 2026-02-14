@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     if (!name || !email || !whatsapp || !day || !time || !topic) {
       return NextResponse.json(
-        { error: "Todos os campos são obrigatórios" },
+        { error: "Todos os campos sao obrigatorios" },
         { status: 400 }
       )
     }
@@ -19,10 +19,24 @@ export async function POST(request: Request) {
     const smtpUser = process.env.SMTP_USER
     const smtpPass = process.env.SMTP_PASS
 
+    console.log("[v0] SMTP config check:", {
+      hasHost: !!smtpHost,
+      hostValue: smtpHost ? smtpHost.substring(0, 10) + "..." : "MISSING",
+      port: smtpPort,
+      hasUser: !!smtpUser,
+      userValue: smtpUser ? smtpUser.substring(0, 5) + "..." : "MISSING",
+      hasPass: !!smtpPass,
+      passLength: smtpPass ? smtpPass.length : 0,
+    })
+
     if (!smtpHost || !smtpUser || !smtpPass) {
-      console.error("SMTP environment variables are not set")
+      console.error("[v0] Missing SMTP env vars:", {
+        SMTP_HOST: smtpHost || "NOT SET",
+        SMTP_USER: smtpUser || "NOT SET",
+        SMTP_PASS: smtpPass ? "SET (length: " + smtpPass.length + ")" : "NOT SET",
+      })
       return NextResponse.json(
-        { error: "Configuração de email ausente. Contate o administrador." },
+        { error: "Configuracao de email ausente. Contate o administrador." },
         { status: 500 }
       )
     }
@@ -35,7 +49,14 @@ export async function POST(request: Request) {
         user: smtpUser,
         pass: smtpPass,
       },
+      tls: {
+        rejectUnauthorized: false,
+      },
     })
+
+    console.log("[v0] Verifying SMTP connection...")
+    await transporter.verify()
+    console.log("[v0] SMTP connection verified successfully")
 
     const htmlContent = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f8fafb; border-radius: 12px;">
@@ -89,19 +110,31 @@ export async function POST(request: Request) {
       </div>
     `
 
+    console.log("[v0] Sending email...")
     await transporter.sendMail({
-      from: `"Agendamento - Site" <${smtpUser}>`,
+      from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
       to: TO_EMAIL,
       subject: `Nova solicitacao de mentoria - ${name} - ${topic}`,
       html: htmlContent,
       replyTo: email,
     })
 
+    console.log("[v0] Email sent successfully!")
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Booking API error:", error)
+    const err = error instanceof Error ? error : new Error(String(error))
+    console.error("[v0] Booking API error:", err.message)
+    console.error("[v0] Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err)))
+
+    let userMessage = "Falha ao enviar email. Tente novamente."
+    if (err.message.includes("Invalid login") || err.message.includes("auth")) {
+      userMessage = "Erro de autenticacao SMTP. Contate o administrador."
+    } else if (err.message.includes("ECONNREFUSED") || err.message.includes("ETIMEDOUT")) {
+      userMessage = "Servidor de email indisponivel. Tente novamente mais tarde."
+    }
+
     return NextResponse.json(
-      { error: "Falha ao enviar email. Tente novamente." },
+      { error: userMessage },
       { status: 500 }
     )
   }
