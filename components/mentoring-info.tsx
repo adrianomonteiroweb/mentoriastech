@@ -1,22 +1,30 @@
-import { GraduationCap, Briefcase, MessageSquare, Globe, Bot } from "lucide-react"
+import {
+  GraduationCap,
+  Briefcase,
+  MessageSquare,
+  Globe,
+  Bot,
+} from "lucide-react";
 
 const TOPICS = [
-  { icon: Briefcase, label: "Carreira em programacao" },
-  { icon: MessageSquare, label: "Preparacao para entrevistas" },
+  { icon: Briefcase, label: "Carreira em programação" },
+  { icon: MessageSquare, label: "Preparação para entrevistas" },
   { icon: GraduationCap, label: "Busca de oportunidades" },
   { icon: Globe, label: "Desenvolvimento Web" },
-  { icon: Bot, label: "Automacoes RPA" },
-]
+  { icon: Bot, label: "Automações RPA" },
+];
 
 export function MentoringInfo() {
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-primary/20 bg-primary/5 p-5">
       <div className="flex flex-col gap-1.5">
         <h2 className="text-base font-semibold text-foreground">
-          Mentoria Gratuita de Programacao
+          Mentoria Gratuita de Programação
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          {"Ofereco mentorias gratuitas para iniciantes na programacao e para quem deseja migrar de carreira para a area de tecnologia. Agende uma conversa comigo!"}
+          {
+            "Ofereço mentorias gratuitas para iniciantes na programação e para quem deseja migrar de carreira para a área de tecnologia. Agende uma conversa comigo!"
+          }
         </p>
       </div>
 
@@ -37,5 +45,5 @@ export function MentoringInfo() {
         </div>
       </div>
     </div>
-  )
+  );
 }
