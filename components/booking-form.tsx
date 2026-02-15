@@ -12,6 +12,7 @@ const AVAILABLE_SLOTS = [
 ];
 
 const TOPICS = [
+  "Programação para outras profissões",
   "Carreira em programação",
   "Preparação para entrevistas",
   "Busca de oportunidades",
@@ -61,7 +62,7 @@ export function BookingForm() {
       setStatus("success");
     } catch (err) {
       setErrorMsg(
-        err instanceof Error ? err.message : "Erro ao enviar solicitacao",
+        err instanceof Error ? err.message : "Erro ao enviar solicitação",
       );
       setStatus("error");
     }
@@ -74,7 +75,7 @@ export function BookingForm() {
           <CheckCircle2 className="h-7 w-7 text-primary" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">
-          {"Solicitacao enviada!"}
+          {"Solicitação enviada!"}
         </h3>
         <p className="text-sm text-muted-foreground">
           {
@@ -92,7 +93,7 @@ export function BookingForm() {
           }}
           className="mt-2 text-sm font-medium text-primary hover:underline"
         >
-          Fazer novo agendamento
+          Solicitar nova mentoria
         </button>
       </div>
     );
