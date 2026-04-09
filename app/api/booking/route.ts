@@ -1,17 +1,42 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
+import { formatWhatsAppNumber } from "@/lib/whatsapp"
+import { createClient } from "@/lib/supabase/server"
 
 const TO_EMAIL = "adrianomonteiroweb@gmail.com"
 
 export async function POST(request: Request) {
   try {
-    const { name, email, whatsapp, day, time, topic } = await request.json()
+    const { name, email, whatsapp, day, time, topic, slotId, topicId, sessionDate } = await request.json()
 
     if (!name || !email || !whatsapp || !day || !time || !topic) {
       return NextResponse.json(
         { error: "Todos os campos sao obrigatorios" },
         { status: 400 }
       )
+    }
+
+    // Salvar booking no Supabase
+    try {
+      const supabase = await createClient()
+      const bookingData: Record<string, string> = {
+        guest_name: name,
+        guest_email: email,
+        guest_whatsapp: whatsapp,
+        booking_type: "free",
+        status: "pending",
+        notes: `Tema: ${topic} | Dia: ${day} | Horário: ${time}`,
+      }
+
+      // Dados enriquecidos quando vêm do banco
+      if (slotId) bookingData.slot_id = slotId
+      if (topicId) bookingData.topic_id = topicId
+      if (sessionDate) bookingData.session_date = sessionDate
+      if (time) bookingData.start_time = time
+
+      await supabase.from("bookings").insert(bookingData)
+    } catch (dbError) {
+      console.error("[v0] Database save error (non-blocking):", dbError)
     }
 
     const smtpHost = process.env.SMTP_HOST
@@ -83,7 +108,7 @@ export async function POST(request: Request) {
           <tr>
             <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">WhatsApp</td>
             <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
-              <a href="https://wa.me/${whatsapp.replace(/\D/g, "")}" style="color: #0d9488; text-decoration: none;">${whatsapp}</a>
+              <a href="https://wa.me/${formatWhatsAppNumber(whatsapp)}" style="color: #0d9488; text-decoration: none;">${whatsapp}</a>
             </td>
           </tr>
           <tr>
