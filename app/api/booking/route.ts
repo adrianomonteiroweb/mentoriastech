@@ -3,7 +3,7 @@ import nodemailer from "nodemailer"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { createClient } from "@/lib/supabase/server"
 
-const TO_EMAIL = "adrianomonteiroweb@gmail.com"
+const TO_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
 
 export async function POST(request: Request) {
   try {

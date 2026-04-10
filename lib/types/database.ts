@@ -40,10 +40,13 @@ export interface Profile {
 // -----------------------------------------------------------------------------
 export interface MentoringSlot {
   id: string
-  day_of_week: number // 0=Domingo, 6=Sábado
+  day_of_week: number | null // 0=Domingo, 6=Sábado — nullable para slots com rrule
   start_time: string // "HH:MM:SS"
   slot_type: SlotType
   is_active: boolean
+  rrule: string | null // Ex: "FREQ=WEEKLY;BYDAY=MO,WE"
+  recurrence_start: string | null // "YYYY-MM-DD"
+  recurrence_end: string | null // "YYYY-MM-DD"
   created_at: string
 }
 

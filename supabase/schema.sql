@@ -99,10 +99,13 @@ CREATE TRIGGER profiles_updated_at
 -- -----------------------------------------------------------------------------
 CREATE TABLE public.mentoring_slots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Domingo
+  day_of_week INTEGER CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Domingo, nullable para slots com rrule
   start_time TIME NOT NULL,
   slot_type TEXT NOT NULL DEFAULT 'free' CHECK (slot_type IN ('free', 'paid', 'private')),
   is_active BOOLEAN NOT NULL DEFAULT true,
+  rrule TEXT,                    -- Ex: "FREQ=WEEKLY;BYDAY=MO,WE"
+  recurrence_start DATE,         -- Data de início da recorrência
+  recurrence_end DATE,           -- Data de fim da recorrência (opcional)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

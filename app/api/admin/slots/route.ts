@@ -3,12 +3,25 @@ import { requireRole } from "@/lib/utils/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { z } from "zod"
 
-const createSchema = z.object({
+// Slot simples (gratuito) — usa day_of_week
+const freeSlotSchema = z.object({
   day_of_week: z.number().min(0).max(6),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
-  slot_type: z.enum(["free", "paid", "private"]),
+  slot_type: z.literal("free"),
   is_active: z.boolean().default(true),
 })
+
+// Slot com RRule (pago/privado) — usa rrule + recurrence dates
+const paidSlotSchema = z.object({
+  rrule: z.string().min(1),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/),
+  slot_type: z.enum(["paid", "private"]),
+  recurrence_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  recurrence_end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  is_active: z.boolean().default(true),
+})
+
+const createSchema = z.union([freeSlotSchema, paidSlotSchema])
 
 export async function GET() {
   try {
@@ -41,9 +54,24 @@ export async function POST(request: Request) {
     }
 
     const supabase = createAdminClient()
+    const insertData: Record<string, unknown> = {
+      start_time: parsed.data.start_time + ":00",
+      slot_type: parsed.data.slot_type,
+      is_active: parsed.data.is_active,
+    }
+
+    if ("day_of_week" in parsed.data) {
+      insertData.day_of_week = parsed.data.day_of_week
+    }
+    if ("rrule" in parsed.data) {
+      insertData.rrule = parsed.data.rrule
+      insertData.recurrence_start = parsed.data.recurrence_start
+      insertData.recurrence_end = parsed.data.recurrence_end || null
+    }
+
     const { data, error } = await supabase
       .from("mentoring_slots")
-      .insert({ ...parsed.data, start_time: parsed.data.start_time + ":00" })
+      .insert(insertData)
       .select()
       .single()
 

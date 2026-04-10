@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { createClient as createPublicClient } from "@supabase/supabase-js"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth } from "@/lib/utils/auth"
 import { createClient } from "@/lib/supabase/server"
@@ -17,7 +18,10 @@ const createSchema = z.object({
 // GET: listar vagas aprovadas (público)
 export async function GET() {
   try {
-    const supabase = createAdminClient()
+    const supabase = createPublicClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
 
     const { data, error } = await supabase
       .from("jobs")

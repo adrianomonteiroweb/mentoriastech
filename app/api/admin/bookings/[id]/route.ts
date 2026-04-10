@@ -2,6 +2,14 @@ import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { z } from "zod"
+import nodemailer from "nodemailer"
+import {
+  bookingConfirmedEmail,
+  bookingPaymentPendingEmail,
+  bookingScheduledEmail,
+  bookingCompletedEmail,
+  bookingCancelledEmail,
+} from "@/lib/email-templates"
 
 const updateSchema = z.object({
   status: z
@@ -86,6 +94,86 @@ export async function PUT(
       .single()
 
     if (error) throw error
+
+    // Send email notification to mentee on status change (non-blocking)
+    if (parsed.data.status) {
+      try {
+        const menteeEmail = booking.profiles?.email || booking.guest_email
+        const menteeName = booking.profiles?.full_name || booking.guest_name || "Mentorado"
+        const topicName = booking.mentoring_topics?.name || "Mentoria"
+
+        if (menteeEmail) {
+          const smtpHost = process.env.SMTP_HOST
+          const smtpUser = process.env.SMTP_USER
+          const smtpPass = process.env.SMTP_PASS
+          const smtpPort = Number(process.env.SMTP_PORT || "587")
+
+          if (smtpHost && smtpUser && smtpPass) {
+            const statusParams = {
+              menteeName,
+              topicName,
+              sessionDate: booking.session_date || undefined,
+              startTime: booking.start_time || undefined,
+              bookingType: booking.booking_type,
+              googleEventId: data?.google_event_id || booking.google_event_id,
+            }
+
+            let emailContent: { subject: string; html: string } | null = null
+
+            switch (parsed.data.status) {
+              case "confirmed":
+                emailContent = bookingConfirmedEmail(statusParams)
+                break
+              case "payment_pending": {
+                // Fetch PIX config for payment email
+                const { data: pixSetting } = await supabase
+                  .from("site_settings")
+                  .select("value")
+                  .eq("key", "pix_config")
+                  .single()
+                const pixConfig = pixSetting?.value as { key?: string; name?: string; city?: string } | null
+                emailContent = bookingPaymentPendingEmail({
+                  ...statusParams,
+                  pixKey: pixConfig?.key,
+                  pixName: pixConfig?.name,
+                  pixCity: pixConfig?.city,
+                })
+                break
+              }
+              case "scheduled":
+                emailContent = bookingScheduledEmail(statusParams)
+                break
+              case "completed":
+                emailContent = bookingCompletedEmail(statusParams)
+                break
+              case "cancelled":
+                emailContent = bookingCancelledEmail(statusParams)
+                break
+            }
+
+            if (emailContent) {
+              const transporter = nodemailer.createTransport({
+                host: smtpHost,
+                port: smtpPort,
+                secure: smtpPort === 465,
+                auth: { user: smtpUser, pass: smtpPass },
+                tls: { rejectUnauthorized: false },
+              })
+
+              await transporter.sendMail({
+                from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
+                to: menteeEmail,
+                subject: emailContent.subject,
+                html: emailContent.html,
+              })
+            }
+          }
+        }
+      } catch (emailError) {
+        console.error("[bookings] Email notification error (non-blocking):", emailError)
+      }
+    }
+
     return NextResponse.json({ data })
   } catch (error) {
     const status = (error as { status?: number }).status || 500

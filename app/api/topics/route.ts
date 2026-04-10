@@ -10,7 +10,7 @@ export async function GET() {
 
     const { data: topics, error } = await supabase
       .from("mentoring_topics")
-      .select("id, name, category")
+      .select("id, name, category, description")
       .eq("is_active", true)
       .order("sort_order")
 

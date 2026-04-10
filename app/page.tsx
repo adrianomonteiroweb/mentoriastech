@@ -1,6 +1,6 @@
 import { ProfileHeader } from "@/components/profile-header"
 import { SocialLinks } from "@/components/social-links"
-import { BookingForm } from "@/components/booking-form"
+import { UnifiedBookingForm } from "@/components/booking/unified-booking-form"
 import { MentoringInfo } from "@/components/mentoring-info"
 import { CalendarDays } from "lucide-react"
 
@@ -19,13 +19,13 @@ export default function Page() {
             <div className="h-px flex-1 bg-border" />
             <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
-              Agendar mentoria gratuita
+              Agendar mentoria
             </span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="rounded-xl border border-border bg-card p-6">
-            <BookingForm />
+          <div className="rounded-xl border border-border bg-card p-6" id="booking">
+            <UnifiedBookingForm />
           </div>
         </div>
 

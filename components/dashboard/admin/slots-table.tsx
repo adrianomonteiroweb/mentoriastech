@@ -7,14 +7,35 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog"
 import { Plus, Trash2 } from "lucide-react"
 import type { MentoringSlot } from "@/lib/types/database"
+import { buildRRule, describeRRule } from "@/lib/rrule-utils"
 
-const DAY_NAMES = ["Domingo", "Segunda", "Terca", "Quarta", "Quinta", "Sexta", "Sabado"]
+const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
+const DAY_ABBR = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
 
 export function SlotsTable() {
   const [slots, setSlots] = useState<MentoringSlot[]>([])
   const [loading, setLoading] = useState(true)
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  // Form state
+  const [slotType, setSlotType] = useState<"free" | "paid" | "private">("free")
+  const [time, setTime] = useState("09:00")
+  const [dayOfWeek, setDayOfWeek] = useState("1")
+  const [selectedDays, setSelectedDays] = useState<number[]>([])
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
   function loadSlots() {
     setLoading(true)
@@ -37,47 +58,173 @@ export function SlotsTable() {
   }
 
   async function deleteSlot(id: string) {
-    if (!confirm("Remover este horario?")) return
+    if (!confirm("Remover este horário?")) return
     await fetch(`/api/admin/slots/${id}`, { method: "DELETE" })
     loadSlots()
   }
 
-  async function addSlot() {
-    const day = prompt("Dia da semana (0=Dom, 1=Seg, ..., 6=Sab):")
-    const time = prompt("Horario (ex: 20:00):")
-    const type = prompt("Tipo (free/paid/private):") || "free"
-    if (!day || !time) return
-
-    await fetch("/api/admin/slots", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        day_of_week: parseInt(day),
-        start_time: time,
-        slot_type: type,
-      }),
-    })
-    loadSlots()
+  function resetForm() {
+    setSlotType("free")
+    setTime("09:00")
+    setDayOfWeek("1")
+    setSelectedDays([])
+    setStartDate("")
+    setEndDate("")
   }
+
+  async function handleSubmit() {
+    setSubmitting(true)
+    try {
+      let body: Record<string, unknown>
+
+      if (slotType === "free") {
+        body = {
+          day_of_week: parseInt(dayOfWeek),
+          start_time: time,
+          slot_type: "free",
+        }
+      } else {
+        if (selectedDays.length === 0 || !startDate) return
+        body = {
+          rrule: buildRRule(selectedDays),
+          start_time: time,
+          slot_type: slotType,
+          recurrence_start: startDate,
+          recurrence_end: endDate || undefined,
+        }
+      }
+
+      await fetch("/api/admin/slots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+      loadSlots()
+      setDialogOpen(false)
+      resetForm()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function toggleDay(day: number) {
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+    )
+  }
+
+  const isPaid = slotType === "paid" || slotType === "private"
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium">Horarios de Mentoria</h3>
-        <Button size="sm" onClick={addSlot}>
-          <Plus className="h-4 w-4 mr-1" /> Adicionar
-        </Button>
+        <h3 className="text-sm font-medium">Horários de Mentoria</h3>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm() }}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Adicionar
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Novo horário de mentoria</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 pt-2">
+              {/* Tipo */}
+              <div className="flex flex-col gap-1.5">
+                <Label>Tipo</Label>
+                <Select value={slotType} onValueChange={(v) => setSlotType(v as "free" | "paid" | "private")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Gratuito</SelectItem>
+                    <SelectItem value="paid">Pago</SelectItem>
+                    <SelectItem value="private">Particular</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Horário */}
+              <div className="flex flex-col gap-1.5">
+                <Label>Horário</Label>
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              </div>
+
+              {/* Gratuito: dia da semana */}
+              {!isPaid && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Dia da semana</Label>
+                  <Select value={dayOfWeek} onValueChange={setDayOfWeek}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {DAY_NAMES.map((name, i) => (
+                        <SelectItem key={i} value={String(i)}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Pago: dias da semana (checkboxes) */}
+              {isPaid && (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label>Dias da semana</Label>
+                    <div className="flex flex-wrap gap-3">
+                      {DAY_ABBR.map((abbr, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <Checkbox
+                            id={`day-${i}`}
+                            checked={selectedDays.includes(i)}
+                            onCheckedChange={() => toggleDay(i)}
+                          />
+                          <Label htmlFor={`day-${i}`} className="text-xs cursor-pointer">
+                            {abbr}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Data início</Label>
+                      <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Data fim (opcional)</Label>
+                      <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {selectedDays.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Recorrência: {describeRRule(buildRRule(selectedDays))}
+                    </p>
+                  )}
+                </>
+              )}
+
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting || (isPaid && (selectedDays.length === 0 || !startDate))}
+              >
+                {submitting ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Dia</TableHead>
-              <TableHead>Horario</TableHead>
+              <TableHead>Dia / Recorrência</TableHead>
+              <TableHead>Horário</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Acoes</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -92,7 +239,14 @@ export function SlotsTable() {
             ) : (
               slots.map((slot) => (
                 <TableRow key={slot.id}>
-                  <TableCell>{DAY_NAMES[slot.day_of_week]}</TableCell>
+                  <TableCell>
+                    {slot.rrule
+                      ? describeRRule(slot.rrule)
+                      : slot.day_of_week !== null
+                        ? DAY_NAMES[slot.day_of_week]
+                        : "—"
+                    }
+                  </TableCell>
                   <TableCell>{slot.start_time.substring(0, 5)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize text-xs">{slot.slot_type}</Badge>
