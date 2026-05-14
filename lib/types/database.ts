@@ -177,14 +177,6 @@ export interface SiteSetting {
   updated_at: string
 }
 
-// PIX config stored in site_settings
-export interface PixConfig {
-  key: string // CPF, email, telefone ou chave aleatória
-  name: string
-  city: string
-  type: "cpf" | "email" | "phone" | "random"
-}
-
 // Google Calendar config stored in site_settings
 export interface GoogleCalendarConfig {
   refresh_token: string

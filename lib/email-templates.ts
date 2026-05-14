@@ -151,14 +151,14 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
       actionBox(
         params.bookingType === "free"
           ? `<strong>Próximo passo:</strong> Aguarde o link da reunião que será enviado em breve.`
-          : `<strong>Próximo passo:</strong> Aguarde as informações de pagamento que serão enviadas em breve.`,
+          : `<strong>Próximo passo:</strong> Aguarde a confirmação do agendamento e os detalhes da sessão.`,
       ),
   )
 
   return { subject, html }
 }
 
-export function bookingPaymentPendingEmail(params: StatusChangeParams & { pixKey?: string; pixName?: string; pixCity?: string }) {
+export function bookingPaymentPendingEmail(params: StatusChangeParams) {
   const subject = `Pagamento pendente - Mentoria: ${params.topicName}`
 
   const rows = [
@@ -167,16 +167,11 @@ export function bookingPaymentPendingEmail(params: StatusChangeParams & { pixKey
     { label: "Horário", value: formatTimeBR(params.startTime) },
   ]
 
-  if (params.pixKey) {
-    rows.push({ label: "Chave PIX", value: `<strong>${params.pixKey}</strong>` })
-    if (params.pixName) rows.push({ label: "Titular", value: params.pixName })
-  }
-
   const html = baseLayout(
     "Pagamento pendente",
     `Olá, ${params.menteeName}!`,
     `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
-      Sua mentoria foi confirmada e está aguardando pagamento via PIX.
+      Sua mentoria foi confirmada e está aguardando pagamento.
     </p>` +
       infoTable(rows) +
       actionBox(

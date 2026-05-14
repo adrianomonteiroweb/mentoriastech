@@ -10,15 +10,12 @@ import {
   type ScheduleSlot,
   type TopicItem,
 } from "@/lib/types/booking"
-import type { BookingType } from "@/lib/types/database"
 import { BookingStepper } from "./booking-stepper"
 import { BookingSuccess } from "./booking-success"
-import { TypeStep } from "./steps/type-step"
 import { TopicStep } from "./steps/topic-step"
 import { DateTimeStep } from "./steps/datetime-step"
 import { ContactStep } from "./steps/contact-step"
 import { ReviewStep } from "./steps/review-step"
-import { PaymentStep } from "./steps/payment-step"
 
 // Fallback data when API fails
 const FALLBACK_TOPICS: TopicItem[] = [
@@ -30,15 +27,8 @@ const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f6", name: "Automações RPA", category: "free", description: null },
 ]
 
-interface UnifiedBookingFormProps {
-  defaultType?: BookingType
-}
-
-export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
-  const [state, dispatch] = useReducer(bookingReducer, {
-    ...initialBookingState,
-    mentoringType: defaultType || "free",
-  })
+export function UnifiedBookingForm() {
+  const [state, dispatch] = useReducer(bookingReducer, initialBookingState)
 
   // API data
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
@@ -48,7 +38,6 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
 
   // Load schedule + topics + auth
   useEffect(() => {
-    // Fetch API data
     Promise.all([
       fetch("/api/schedule").then((r) => r.json()),
       fetch("/api/topics").then((r) => r.json()),
@@ -90,18 +79,12 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
     })
   }, [])
 
-  // Filter topics by selected mentoring type
-  const filteredTopics = topics.filter((t) => {
-    if (state.mentoringType === "free") return t.category === "free"
-    return t.category === "paid"
-  })
+  // Only free topics
+  const filteredTopics = topics.filter((t) => t.category === "free")
 
-  // Dynamic step config based on mentoring type
-  const stepLabels = getStepLabels(state.mentoringType)
-  const totalSteps = getTotalSteps(state.mentoringType)
-  const isPaid = state.mentoringType !== "free"
+  const stepLabels = getStepLabels()
+  const totalSteps = getTotalSteps()
 
-  // Navigation helpers
   const goToStep = useCallback(
     (step: number) => {
       const direction = step > state.step ? "forward" : "backward"
@@ -122,7 +105,6 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
     }
   }, [state.step, goToStep])
 
-  // Submit booking (free only — paid bookings go through Stripe payment step)
   async function handleSubmit() {
     dispatch({ type: "SET_STATUS", status: "loading" })
 
@@ -163,28 +145,13 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
     }
   }
 
-  // Success screen
   if (state.status === "success") {
-    return (
-      <BookingSuccess
-        bookingType={state.mentoringType}
-        onReset={() => dispatch({ type: "RESET" })}
-      />
-    )
+    return <BookingSuccess onReset={() => dispatch({ type: "RESET" })} />
   }
 
-  // Render current step
   function renderStep() {
     switch (state.step) {
       case 0:
-        return (
-          <TypeStep
-            mentoringType={state.mentoringType}
-            onSelect={(type) => dispatch({ type: "SET_MENTORING_TYPE", mentoringType: type })}
-            onNext={goNext}
-          />
-        )
-      case 1:
         return (
           <TopicStep
             topics={filteredTopics}
@@ -192,13 +159,12 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
             loading={dataLoading}
             onSelect={(id, name) => dispatch({ type: "SET_TOPIC", topicId: id, topicName: name })}
             onNext={goNext}
-            onBack={goBack}
+            onBack={() => {}}
           />
         )
-      case 2:
+      case 1:
         return (
           <DateTimeStep
-            mentoringType={state.mentoringType}
             slots={slots}
             slotsLoading={dataLoading}
             selectedSlotId={state.slotId}
@@ -209,7 +175,7 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
             onBack={goBack}
           />
         )
-      case 3:
+      case 2:
         return (
           <ContactStep
             name={state.name}
@@ -217,7 +183,6 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
             whatsapp={state.whatsapp}
             notes={state.notes}
             isAuthenticated={state.isAuthenticated}
-            mentoringType={state.mentoringType}
             onChangeName={(v) => dispatch({ type: "SET_CONTACT", name: v, email: state.email, whatsapp: state.whatsapp })}
             onChangeEmail={(v) => dispatch({ type: "SET_CONTACT", name: state.name, email: v, whatsapp: state.whatsapp })}
             onChangeWhatsapp={(v) => dispatch({ type: "SET_CONTACT", name: state.name, email: state.email, whatsapp: v })}
@@ -226,35 +191,12 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
             onBack={goBack}
           />
         )
-      case 4:
+      case 3:
         return (
           <ReviewStep
             state={state}
             onGoToStep={goToStep}
             onSubmit={handleSubmit}
-            onNext={isPaid ? goNext : undefined}
-          />
-        )
-      case 5:
-        // Payment step — only for paid bookings
-        if (!isPaid) return null
-        return (
-          <PaymentStep
-            bookingData={{
-              name: state.name,
-              email: state.email,
-              whatsapp: state.whatsapp,
-              topicId: state.topicId,
-              topicName: state.topicName,
-              bookingType: state.mentoringType as "paid" | "private",
-              sessionDate: state.sessionDate,
-              startTime: state.startTime,
-              slotId: state.slotId,
-              notes: state.notes,
-              menteeId: state.menteeId,
-            }}
-            onSuccess={() => dispatch({ type: "SET_STATUS", status: "success" })}
-            onBack={goBack}
           />
         )
       default:
@@ -272,4 +214,3 @@ export function UnifiedBookingForm({ defaultType }: UnifiedBookingFormProps) {
     </BookingStepper>
   )
 }
-

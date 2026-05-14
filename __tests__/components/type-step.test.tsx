@@ -22,7 +22,7 @@ describe("TypeStep", () => {
     render(<TypeStep {...defaultProps} />)
 
     expect(screen.getByText("Grátis")).toBeInTheDocument()
-    expect(screen.getAllByText("PIX")).toHaveLength(2)
+    expect(screen.getAllByText("R$ 50")).toHaveLength(2)
   })
 
   it("should call onSelect when clicking a type", async () => {

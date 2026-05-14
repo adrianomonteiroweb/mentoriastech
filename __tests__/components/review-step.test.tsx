@@ -4,11 +4,6 @@ import userEvent from "@testing-library/user-event"
 import { ReviewStep } from "@/components/booking/steps/review-step"
 import { initialBookingState } from "@/lib/types/booking"
 
-// Mock the PixQrCode component to avoid canvas/QR dependencies
-vi.mock("@/components/pix-qrcode", () => ({
-  PixQrCode: () => <div data-testid="pix-qrcode">PIX QR Code Mock</div>,
-}))
-
 describe("ReviewStep — free booking", () => {
   const freeState = {
     ...initialBookingState,
@@ -36,18 +31,6 @@ describe("ReviewStep — free booking", () => {
     expect(screen.getByText(/Sexta-feira.*10\/04\/2026/)).toBeInTheDocument()
     expect(screen.getByText("20:00")).toBeInTheDocument()
     expect(screen.getByText("Maria Teste")).toBeInTheDocument()
-  })
-
-  it("should show PIX donation QR code for free booking", () => {
-    render(
-      <ReviewStep
-        state={freeState}
-        onGoToStep={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByTestId("pix-qrcode")).toBeInTheDocument()
   })
 
   it("should show 'Solicitar mentoria' as submit button", () => {
@@ -125,61 +108,31 @@ describe("ReviewStep — paid booking", () => {
     whatsapp: "5585999990002",
   }
 
-  it("should NOT show PIX QR code for paid booking", () => {
+  it("should show 'Solicitar mentoria' button for paid booking", () => {
     render(
       <ReviewStep
         state={paidState}
         onGoToStep={vi.fn()}
         onSubmit={vi.fn()}
-        onNext={vi.fn()}
       />,
     )
 
-    expect(screen.queryByTestId("pix-qrcode")).not.toBeInTheDocument()
+    expect(screen.getByText("Solicitar mentoria")).toBeInTheDocument()
   })
 
-  it("should show R$50 payment info for paid booking", () => {
-    render(
-      <ReviewStep
-        state={paidState}
-        onGoToStep={vi.fn()}
-        onSubmit={vi.fn()}
-        onNext={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByText("R$ 50,00")).toBeInTheDocument()
-  })
-
-  it("should show 'Ir para pagamento' button for paid booking", () => {
-    render(
-      <ReviewStep
-        state={paidState}
-        onGoToStep={vi.fn()}
-        onSubmit={vi.fn()}
-        onNext={vi.fn()}
-      />,
-    )
-
-    expect(screen.getByText("Ir para pagamento")).toBeInTheDocument()
-  })
-
-  it("should call onNext (not onSubmit) when clicking payment button", async () => {
+  it("should call onSubmit when clicking submit button for paid booking", async () => {
     const onSubmit = vi.fn()
-    const onNext = vi.fn()
     const user = userEvent.setup()
     render(
       <ReviewStep
         state={paidState}
         onGoToStep={vi.fn()}
         onSubmit={onSubmit}
-        onNext={onNext}
       />,
     )
 
-    await user.click(screen.getByText("Ir para pagamento"))
-    expect(onNext).toHaveBeenCalled()
-    expect(onSubmit).not.toHaveBeenCalled()
+    await user.click(screen.getByText("Solicitar mentoria"))
+    expect(onSubmit).toHaveBeenCalled()
   })
 
   it("should show notes when present", () => {
@@ -189,7 +142,6 @@ describe("ReviewStep — paid booking", () => {
         state={stateWithNotes}
         onGoToStep={vi.fn()}
         onSubmit={vi.fn()}
-        onNext={vi.fn()}
       />,
     )
 

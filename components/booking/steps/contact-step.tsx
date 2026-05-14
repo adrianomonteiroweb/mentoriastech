@@ -1,6 +1,5 @@
 "use client"
 
-import { Textarea } from "@/components/ui/textarea"
 import { User, Mail, Phone } from "lucide-react"
 import { StepNavigation } from "../step-navigation"
 
@@ -10,7 +9,6 @@ interface ContactStepProps {
   whatsapp: string
   notes: string
   isAuthenticated: boolean
-  mentoringType: "free" | "paid" | "private"
   onChangeName: (v: string) => void
   onChangeEmail: (v: string) => void
   onChangeWhatsapp: (v: string) => void
@@ -23,13 +21,10 @@ export function ContactStep({
   name,
   email,
   whatsapp,
-  notes,
   isAuthenticated,
-  mentoringType,
   onChangeName,
   onChangeEmail,
   onChangeWhatsapp,
-  onChangeNotes,
   onNext,
   onBack,
 }: ContactStepProps) {
@@ -99,25 +94,6 @@ export function ContactStep({
           className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
         />
       </div>
-
-      {mentoringType !== "free" && (
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="booking-notes"
-            className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            Observações (opcional)
-          </label>
-          <Textarea
-            id="booking-notes"
-            value={notes}
-            onChange={(e) => onChangeNotes(e.target.value)}
-            rows={3}
-            placeholder="Descreva o que gostaria de abordar na mentoria..."
-            className="resize-none"
-          />
-        </div>
-      )}
 
       <StepNavigation
         onBack={onBack}

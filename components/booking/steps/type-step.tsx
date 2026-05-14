@@ -35,7 +35,7 @@ const TYPE_OPTIONS: {
     description:
       "Sessão aprofundada com foco em desafios técnicos, revisão de código ou preparação para entrevistas.",
     icon: CreditCard,
-    badge: "PIX",
+    badge: "R$ 50",
     badgeVariant: "secondary",
   },
   {
@@ -44,7 +44,7 @@ const TYPE_OPTIONS: {
     description:
       "Acompanhamento personalizado com agenda flexível e foco em objetivos específicos.",
     icon: Lock,
-    badge: "PIX",
+    badge: "R$ 50",
     badgeVariant: "secondary",
   },
 ]

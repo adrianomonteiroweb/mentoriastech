@@ -4,8 +4,7 @@ import {
   initialBookingState,
   getStepLabels,
   getTotalSteps,
-  FREE_STEP_LABELS,
-  PAID_STEP_LABELS,
+  STEP_LABELS,
 } from "@/lib/types/booking"
 
 describe("bookingReducer", () => {
@@ -177,26 +176,19 @@ describe("bookingReducer", () => {
 })
 
 describe("step config helpers", () => {
-  it("free mentoring should have 5 steps", () => {
+  it("all mentoring types should have 5 steps", () => {
     expect(getTotalSteps("free")).toBe(5)
-    expect(getStepLabels("free")).toEqual(FREE_STEP_LABELS)
+    expect(getTotalSteps("paid")).toBe(5)
+    expect(getTotalSteps("private")).toBe(5)
   })
 
-  it("paid mentoring should have 6 steps", () => {
-    expect(getTotalSteps("paid")).toBe(6)
-    expect(getStepLabels("paid")).toEqual(PAID_STEP_LABELS)
+  it("all mentoring types should return same step labels", () => {
+    expect(getStepLabels("free")).toEqual(STEP_LABELS)
+    expect(getStepLabels("paid")).toEqual(STEP_LABELS)
+    expect(getStepLabels("private")).toEqual(STEP_LABELS)
   })
 
-  it("private mentoring should have 6 steps", () => {
-    expect(getTotalSteps("private")).toBe(6)
-    expect(getStepLabels("private")).toEqual(PAID_STEP_LABELS)
-  })
-
-  it("FREE_STEP_LABELS should end with Confirmação", () => {
-    expect(FREE_STEP_LABELS[FREE_STEP_LABELS.length - 1]).toBe("Confirmação")
-  })
-
-  it("PAID_STEP_LABELS should end with Pagamento", () => {
-    expect(PAID_STEP_LABELS[PAID_STEP_LABELS.length - 1]).toBe("Pagamento")
+  it("STEP_LABELS should end with Confirmação", () => {
+    expect(STEP_LABELS[STEP_LABELS.length - 1]).toBe("Confirmação")
   })
 })

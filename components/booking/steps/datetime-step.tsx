@@ -7,19 +7,15 @@ import { cn } from "@/lib/utils"
 import { StepNavigation } from "../step-navigation"
 
 interface DateTimeStepProps {
-  mentoringType: "free" | "paid" | "private"
-  // Shared
   slots: ScheduleSlot[]
   slotsLoading: boolean
   selectedSlotId: string
   onSelectSlot: (slotId: string, sessionDate: string, startTime: string, dayName: string) => void
-  // Navigation
   onNext: () => void
   onBack: () => void
 }
 
 export function DateTimeStep({
-  mentoringType,
   slots,
   slotsLoading,
   selectedSlotId,
@@ -27,48 +23,7 @@ export function DateTimeStep({
   onNext,
   onBack,
 }: DateTimeStepProps) {
-  const slotTypeFilter = mentoringType === "free" ? "free" : mentoringType
-
-  return <SlotList
-    slots={slots}
-    slotsLoading={slotsLoading}
-    selectedSlotId={selectedSlotId}
-    onSelectSlot={onSelectSlot}
-    slotTypeFilter={slotTypeFilter}
-    emptyMessage={
-      mentoringType === "free"
-        ? "Todos os horários desta semana já foram preenchidos. Volte na próxima semana!"
-        : "Nenhum horário disponível nas próximas semanas. Novos horários serão publicados em breve!"
-    }
-    onNext={onNext}
-    onBack={onBack}
-  />
-}
-
-// ---------------------------------------------------------------------------
-// Unified slot list — works for both free and paid slots
-// ---------------------------------------------------------------------------
-
-function SlotList({
-  slots,
-  slotsLoading,
-  selectedSlotId,
-  onSelectSlot,
-  slotTypeFilter,
-  emptyMessage,
-  onNext,
-  onBack,
-}: {
-  slots: ScheduleSlot[]
-  slotsLoading: boolean
-  selectedSlotId: string
-  onSelectSlot: (slotId: string, sessionDate: string, startTime: string, dayName: string) => void
-  slotTypeFilter: string
-  emptyMessage: string
-  onNext: () => void
-  onBack: () => void
-}) {
-  const availableSlots = slots.filter((s) => s.isAvailable && s.slotType === slotTypeFilter)
+  const availableSlots = slots.filter((s) => s.isAvailable && s.slotType === "free")
   const availableCount = availableSlots.length
 
   if (slotsLoading) {
@@ -102,7 +57,9 @@ function SlotList({
       {availableCount === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center">
           <CalendarDays className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          <p className="text-sm text-muted-foreground">
+            Todos os horários desta semana já foram preenchidos. Volte na próxima semana!
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1">

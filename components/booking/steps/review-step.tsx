@@ -1,22 +1,13 @@
 "use client"
 
 import type { UnifiedBookingState } from "@/lib/types/booking"
-import { Badge } from "@/components/ui/badge"
-import { PixQrCode } from "@/components/pix-qrcode"
-import { Pencil, CalendarDays, User, BookOpen, Clock, MessageSquare } from "lucide-react"
+import { Pencil, CalendarDays, User, BookOpen, Clock } from "lucide-react"
 import { StepNavigation } from "../step-navigation"
 
 interface ReviewStepProps {
   state: UnifiedBookingState
   onGoToStep: (step: number) => void
   onSubmit: () => void
-  onNext?: () => void
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  free: "Mentoria Gratuita",
-  paid: "Mentoria Paga",
-  private: "Mentoria Particular",
 }
 
 function formatDateBR(dateStr: string) {
@@ -38,8 +29,7 @@ function EditButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepProps) {
-  const isFree = state.mentoringType === "free"
+export function ReviewStep({ state, onGoToStep, onSubmit }: ReviewStepProps) {
   const date = state.sessionDate
   const time = state.startTime
 
@@ -50,29 +40,15 @@ export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepPr
       </p>
 
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* Tipo */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Tipo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={isFree ? "default" : "secondary"} className="text-xs">
-              {TYPE_LABELS[state.mentoringType]}
-            </Badge>
-            <EditButton onClick={() => onGoToStep(0)} />
-          </div>
-        </div>
-
         {/* Tema */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Tema</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground">{state.topicName}</span>
-            <EditButton onClick={() => onGoToStep(1)} />
+            <EditButton onClick={() => onGoToStep(0)} />
           </div>
         </div>
 
@@ -86,7 +62,7 @@ export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepPr
             <span className="text-sm font-medium text-foreground">
               {state.dayName ? `${state.dayName}, ${formatDateBR(date)}` : formatDateBR(date)}
             </span>
-            <EditButton onClick={() => onGoToStep(2)} />
+            <EditButton onClick={() => onGoToStep(1)} />
           </div>
         </div>
 
@@ -98,7 +74,7 @@ export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepPr
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground">{time}</span>
-            <EditButton onClick={() => onGoToStep(2)} />
+            <EditButton onClick={() => onGoToStep(1)} />
           </div>
         </div>
 
@@ -110,7 +86,7 @@ export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepPr
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-foreground">{state.name}</span>
-            <EditButton onClick={() => onGoToStep(3)} />
+            <EditButton onClick={() => onGoToStep(2)} />
           </div>
         </div>
 
@@ -123,41 +99,18 @@ export function ReviewStep({ state, onGoToStep, onSubmit, onNext }: ReviewStepPr
         )}
       </div>
 
-      {/* PIX donation suggestion for free bookings */}
-      {isFree && (
-        <div className="animate-in fade-in duration-300">
-          <PixQrCode
-            pixKey="03440795381"
-            merchantName="Adriano Monteiro"
-            merchantCity="Fortaleza"
-          />
-        </div>
-      )}
-
-      {/* Paid: info about next step */}
-      {!isFree && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Ao prosseguir, você será direcionado para o pagamento de{" "}
-            <span className="font-bold text-foreground">R$ 50,00</span> via PIX.
-            Sua mentoria só será confirmada após o pagamento.
-          </p>
-        </div>
-      )}
-
       {state.status === "error" && (
         <p className="text-sm text-destructive">{state.errorMsg}</p>
       )}
 
       <StepNavigation
-        onBack={() => onGoToStep(3)}
-        onNext={isFree ? onSubmit : (onNext || onSubmit)}
+        onBack={() => onGoToStep(2)}
+        onNext={onSubmit}
         canGoNext={true}
         isFirst={false}
-        isLast={isFree}
+        isLast={true}
         loading={state.status === "loading"}
         submitLabel="Solicitar mentoria"
-        nextLabel={!isFree ? "Ir para pagamento" : undefined}
       />
     </div>
   )

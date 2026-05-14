@@ -169,3 +169,110 @@ Plataforma de mentoria de programacao criada por Adriano Monteiro. Permite agend
 | Nodemailer (SMTP) | Envio de emails de notificacao | Implementado |
 | Google Calendar API | Agendamento automatico de mentorias pagas | Implementado |
 | PIX (Banco Central) | QR Code para doacoes e pagamentos manuais | Implementado |
+| Stripe (PIX) | Pagamento de mentorias pagas via PIX (PaymentIntent) | Implementado |
+
+---
+
+## Testes
+
+### Infraestrutura
+
+- **Framework**: Vitest v2.1.9 com ambiente jsdom
+- **Bibliotecas**: @testing-library/react, @testing-library/user-event, @testing-library/jest-dom
+- **Diretorio**: `__tests__/` (components, api, integration, lib)
+- **Comandos**:
+  - `pnpm test` — executa todos os testes (single run)
+  - `pnpm run test:watch` — modo watch
+
+### Cobertura de Testes
+
+| Arquivo | Escopo | Testes |
+|---------|--------|--------|
+| **Componentes** | | |
+| `components/type-step.test.tsx` | Selecao de tipo de mentoria (free/paid/private) | 6 |
+| `components/topic-step.test.tsx` | Filtragem e selecao de temas | 9 |
+| `components/datetime-step.test.tsx` | Slots free/paid, disponibilidade, scarcity badge | 10 |
+| `components/contact-step.test.tsx` | Campos obrigatorios, banner autenticado, notes paid-only | 13 |
+| `components/review-step.test.tsx` | Revisao free (PIX doacao) e paid (R$50, pagamento) | 11 |
+| `components/payment-step.test.tsx` | Estados: creating, awaiting (QR/timer), succeeded, failed, expired | 13 |
+| `components/booking-success.test.tsx` | Mensagem free vs paid, reset | 6 |
+| `components/booking-stepper.test.tsx` | Barra de progresso, step indicators | 5 |
+| `components/step-navigation.test.tsx` | Botoes Voltar/Proximo, estados disabled | 8 |
+| **API Routes** | | |
+| `api/booking.test.ts` | POST /api/booking: validacao, Supabase insert, email SMTP | 13 |
+| `api/payment-create-intent.test.ts` | POST /api/payment/create-intent: validacao Zod, Stripe PaymentIntent | 9 |
+| `api/payment-webhook.test.ts` | POST /api/payment/webhook: assinatura, booking+payment insert, email [PAGO] | 11 |
+| `api/admin-bookings.test.ts` | PUT /api/admin/bookings/[id]: auth, status flow, Google Calendar, emails por status | 18 |
+| `api/admin-calendar.test.ts` | Calendar auth (OAuth consent/tokens), criar evento, validacao | 14 |
+| **Integracao** | | |
+| `integration/unified-booking-form.test.tsx` | Fluxo completo: free (5 steps) e paid (6 steps), fallback, erro | 8 |
+| `integration/booking-lifecycle.test.ts` | Ciclo de vida completo: free e paid (booking → confirm → schedule → complete) | 8 |
+| **Lib** | | |
+| `lib/booking-reducer.test.ts` | Reducer: todas as actions, step config, reset | 19 |
+| `lib/rrule-utils.test.ts` | RRule: construcao e expansao de datas recorrentes | 15 |
+| `lib/email-templates.test.ts` | Todos os templates: mentor, confirmed, payment, scheduled, completed, cancelled | 33 |
+| `lib/google-calendar.test.ts` | OAuth, createCalendarEvent (attendees, timezone, Meet), deleteCalendarEvent | 22 |
+| **Total** | | **251** |
+
+### Estrategia de Mocking
+
+| Dependencia | Abordagem |
+|---|---|
+| Supabase (server/admin/client) | `vi.mock` com fake `from().insert()`, `auth.getUser()`, chains encadeados |
+| Stripe (`@/lib/stripe`) | `vi.hoisted` + `vi.mock` para `paymentIntents.create`, `webhooks.constructEvent` |
+| Stripe JS (`@stripe/stripe-js`) | Mock de `loadStripe` com `confirmPixPayment`, `retrievePaymentIntent` |
+| Nodemailer | Mock de `createTransport` → `{ verify, sendMail }` |
+| Email templates | Mock de todas as funcoes: `newBookingToMentorEmail`, `bookingConfirmedEmail`, etc. |
+| Google Calendar (`googleapis`) | Mock de `google.auth.OAuth2`, `google.calendar` → `events.insert/delete` |
+| Google Calendar (`@/lib/google-calendar`) | Mock de `createCalendarEvent`, `getConsentUrl`, `exchangeCodeForTokens` |
+| Auth (`@/lib/utils/auth`) | Mock de `requireRole` para simular admin/nao-autenticado/forbidden |
+| PixQrCode | Mock de componente para evitar dependencia de canvas |
+| fetch (global) | Mock por URL para schedule, topics, booking, payment APIs |
+
+### Fluxo de Agendamento Gratuito (Testado)
+
+```
+Passo 1: Tipo → Seleciona "Mentoria Gratuita"
+Passo 2: Tema → Seleciona topic (category: free), auto-avanca
+Passo 3: Data e horario → Seleciona slot disponivel (slotType: free)
+Passo 4: Seus dados → Preenche nome, email, WhatsApp
+Passo 5: Confirmacao → Revisao + QR PIX doacao + "Solicitar mentoria"
+         → POST /api/booking (guest_name, guest_email, booking_type: free)
+         → Email SMTP para mentor
+         → Tela de sucesso
+
+Ciclo de vida (admin):
+  → PUT status=confirmed → Email confirmacao para mentorado
+  → PUT status=scheduled → Google Calendar event criado + email agendamento
+  → PUT status=completed → Email conclusao
+```
+
+### Fluxo de Agendamento Pago (Testado)
+
+```
+Passo 1: Tipo → Seleciona "Mentoria Paga"
+Passo 2: Tema → Seleciona topic (category: paid), auto-avanca
+Passo 3: Data e horario → Seleciona slot disponivel (slotType: paid)
+Passo 4: Seus dados → Preenche nome, email, WhatsApp, observacoes (opcional)
+Passo 5: Revisao → Mostra R$50,00 + "Ir para pagamento"
+Passo 6: Pagamento → POST /api/payment/create-intent (Stripe PIX)
+         → Stripe confirmPixPayment → QR Code PIX (30min timeout)
+         → Polling a cada 5s para confirmacao
+         → Webhook /api/payment/webhook cria booking (status: paid) + payment
+         → Email [PAGO] para mentor
+         → Tela de sucesso
+
+Ciclo de vida (admin):
+  → PUT status=scheduled → Google Calendar event criado (com Google Meet)
+  → PUT status=completed → Email conclusao
+  → PUT status=cancelled → Email cancelamento
+```
+
+### Integracoes Externas Testadas
+
+| Integracao | O que e testado |
+|---|---|
+| **Google Calendar** | OAuth consent URL, troca de code por tokens, criacao de evento (timezone America/Fortaleza, Google Meet, attendees, reminders), delecao de evento, fallback sem refresh_token |
+| **Stripe (PIX)** | Criacao de PaymentIntent (R$50, currency brl, metodo pix, 30min expiracao), validacao de webhook signature, criacao de booking+payment no succeeded, tratamento de payment_failed |
+| **SMTP (Nodemailer)** | Envio de email ao mentor (nova solicitacao), emails de status ao mentorado (confirmado, pagamento pendente com PIX, agendado, concluido, cancelado), fallback quando SMTP nao configurado |
+| **Supabase** | Insert de bookings (free/paid), insert de payments, update de status, upsert de site_settings, queries com joins (profiles, mentoring_topics) |

@@ -10,7 +10,6 @@ import {
   Tag,
 } from "lucide-react"
 import Link from "next/link"
-import { PixQrCode } from "@/components/pix-qrcode"
 
 interface ContentCategory {
   id: string
@@ -173,11 +172,6 @@ export default function ContentPage() {
           )}
         </div>
 
-        <PixQrCode
-          pixKey="03440795381"
-          merchantName="Adriano Monteiro"
-          merchantCity="Fortaleza"
-        />
       </div>
     </main>
   )

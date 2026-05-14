@@ -124,22 +124,9 @@ export async function PUT(
               case "confirmed":
                 emailContent = bookingConfirmedEmail(statusParams)
                 break
-              case "payment_pending": {
-                // Fetch PIX config for payment email
-                const { data: pixSetting } = await supabase
-                  .from("site_settings")
-                  .select("value")
-                  .eq("key", "pix_config")
-                  .single()
-                const pixConfig = pixSetting?.value as { key?: string; name?: string; city?: string } | null
-                emailContent = bookingPaymentPendingEmail({
-                  ...statusParams,
-                  pixKey: pixConfig?.key,
-                  pixName: pixConfig?.name,
-                  pixCity: pixConfig?.city,
-                })
+              case "payment_pending":
+                emailContent = bookingPaymentPendingEmail(statusParams)
                 break
-              }
               case "scheduled":
                 emailContent = bookingScheduledEmail(statusParams)
                 break

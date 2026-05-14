@@ -77,7 +77,7 @@ export function PaidBookingForm() {
         <CheckCircle2 className="h-12 w-12 text-green-500" />
         <h3 className="text-lg font-semibold">Solicitacao enviada!</h3>
         <p className="text-sm text-muted-foreground text-center">
-          Sua solicitacao de mentoria foi registrada. O mentor vai analisar e entrar em contato para confirmar o agendamento e informar os dados para pagamento via PIX.
+          Sua solicitacao de mentoria foi registrada. O mentor vai analisar e entrar em contato para confirmar o agendamento e combinar os detalhes do pagamento.
         </p>
         <Button variant="outline" onClick={() => setSuccess(false)}>
           Nova solicitacao
