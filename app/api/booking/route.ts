@@ -1,166 +1,134 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
-import { formatWhatsAppNumber } from "@/lib/whatsapp"
-import { createClient } from "@/lib/supabase/server"
+import { z } from "zod"
+import { bookings, db } from "@/lib/db"
+import { ensureMenteeProfile } from "@/lib/db/mentees"
+import { newBookingToMentorEmail } from "@/lib/email-templates"
 
 const TO_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
 
+const schema = z.object({
+  name: z.string().min(1, "Nome e obrigatorio"),
+  email: z.string().email("Email invalido"),
+  whatsapp: z.string().min(1, "WhatsApp e obrigatorio"),
+  day: z.string().min(1, "Dia e obrigatorio"),
+  time: z.string().min(1, "Horario e obrigatorio"),
+  topic: z.string().min(1, "Tema e obrigatorio"),
+  slotId: z.string().optional(),
+  topicId: z.string().optional(),
+  sessionDate: z.string().optional(),
+})
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+function normalizeTime(time: string) {
+  return time.length === 5 ? `${time}:00` : time
+}
+
+function isPersistedId(id: string | undefined) {
+  return Boolean(id && UUID_PATTERN.test(id))
+}
+
 export async function POST(request: Request) {
   try {
-    const { name, email, whatsapp, day, time, topic, slotId, topicId, sessionDate } = await request.json()
+    const body = await request.json()
+    const parsed = schema.safeParse(body)
 
-    if (!name || !email || !whatsapp || !day || !time || !topic) {
-      return NextResponse.json(
-        { error: "Todos os campos sao obrigatorios" },
-        { status: 400 }
-      )
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message || "Dados invalidos"
+      return NextResponse.json({ error: firstError }, { status: 400 })
     }
 
-    // Salvar booking no Supabase
+    const data = parsed.data
+
     try {
-      const supabase = await createClient()
-      const bookingData: Record<string, string> = {
-        guest_name: name,
-        guest_email: email,
-        guest_whatsapp: whatsapp,
-        booking_type: "free",
+      const mentee = await ensureMenteeProfile({
+        email: data.email,
+        fullName: data.name,
+        whatsapp: data.whatsapp,
+      })
+
+      const bookingData: typeof bookings.$inferInsert = {
+        menteeId: mentee.id,
+        guestName: data.name,
+        guestEmail: data.email.trim().toLowerCase(),
+        guestWhatsapp: data.whatsapp,
+        bookingType: "free",
         status: "pending",
-        notes: `Tema: ${topic} | Dia: ${day} | Horário: ${time}`,
+        notes: `Tema: ${data.topic} | Dia: ${data.day} | Horario: ${data.time}`,
       }
 
-      // Dados enriquecidos quando vêm do banco
-      if (slotId) bookingData.slot_id = slotId
-      if (topicId) bookingData.topic_id = topicId
-      if (sessionDate) bookingData.session_date = sessionDate
-      if (time) bookingData.start_time = time
+      if (isPersistedId(data.slotId)) {
+        bookingData.slotId = data.slotId
+      }
 
-      await supabase.from("bookings").insert(bookingData)
+      if (isPersistedId(data.topicId)) {
+        bookingData.topicId = data.topicId
+      }
+
+      if (data.sessionDate) {
+        bookingData.sessionDate = data.sessionDate
+      }
+
+      if (data.time) {
+        bookingData.startTime = normalizeTime(data.time)
+      }
+
+      await db.insert(bookings).values(bookingData)
     } catch (dbError) {
-      console.error("[v0] Database save error (non-blocking):", dbError)
-    }
-
-    const smtpHost = process.env.SMTP_HOST
-    const smtpPort = Number(process.env.SMTP_PORT || "587")
-    const smtpUser = process.env.SMTP_USER
-    const smtpPass = process.env.SMTP_PASS
-
-    console.log("[v0] SMTP config check:", {
-      hasHost: !!smtpHost,
-      hostValue: smtpHost ? smtpHost.substring(0, 10) + "..." : "MISSING",
-      port: smtpPort,
-      hasUser: !!smtpUser,
-      userValue: smtpUser ? smtpUser.substring(0, 5) + "..." : "MISSING",
-      hasPass: !!smtpPass,
-      passLength: smtpPass ? smtpPass.length : 0,
-    })
-
-    if (!smtpHost || !smtpUser || !smtpPass) {
-      console.error("[v0] Missing SMTP env vars:", {
-        SMTP_HOST: smtpHost || "NOT SET",
-        SMTP_USER: smtpUser || "NOT SET",
-        SMTP_PASS: smtpPass ? "SET (length: " + smtpPass.length + ")" : "NOT SET",
-      })
+      console.error("[booking] Insert error:", dbError)
       return NextResponse.json(
-        { error: "Configuracao de email ausente. Contate o administrador." },
-        { status: 500 }
+        { error: "Erro ao salvar solicitacao de mentoria" },
+        { status: 500 },
       )
     }
 
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    })
+    try {
+      const smtpHost = process.env.SMTP_HOST
+      const smtpPort = Number(process.env.SMTP_PORT || "587")
+      const smtpUser = process.env.SMTP_USER
+      const smtpPass = process.env.SMTP_PASS
 
-    console.log("[v0] Verifying SMTP connection...")
-    await transporter.verify()
-    console.log("[v0] SMTP connection verified successfully")
+      if (smtpHost && smtpUser && smtpPass) {
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: { user: smtpUser, pass: smtpPass },
+          tls: { rejectUnauthorized: false },
+        })
 
-    const htmlContent = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #f8fafb; border-radius: 12px;">
-        <div style="background: #0d1117; border-radius: 10px; padding: 24px; margin-bottom: 24px;">
-          <h2 style="color: #2dd4bf; margin: 0 0 4px 0; font-size: 20px;">
-            Nova Solicitacao de Mentoria Gratuita
-          </h2>
-          <p style="color: #8b949e; margin: 0; font-size: 13px;">
-            Recebida em ${new Date().toLocaleDateString("pt-BR")} as ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        </div>
+        const { subject, html } = newBookingToMentorEmail({
+          name: data.name,
+          email: data.email,
+          whatsapp: data.whatsapp,
+          topic: data.topic,
+          day: data.day,
+          time: data.time,
+          bookingType: "free",
+        })
 
-        <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-          <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; width: 120px; font-size: 14px;">Nome</td>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">${name}</td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">E-mail</td>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
-              <a href="mailto:${email}" style="color: #0d9488; text-decoration: none;">${email}</a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">WhatsApp</td>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-size: 14px;">
-              <a href="https://wa.me/${formatWhatsAppNumber(whatsapp)}" style="color: #0d9488; text-decoration: none;">${whatsapp}</a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Tema</td>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">
-              <span style="display: inline-block; background: #ecfdf5; color: #065f46; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${topic}</span>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #374151; font-size: 14px;">Dia</td>
-            <td style="padding: 16px 20px; border-bottom: 1px solid #f0f0f0; color: #1f2937; font-size: 14px;">${day}</td>
-          </tr>
-          <tr>
-            <td style="padding: 16px 20px; font-weight: 600; color: #374151; font-size: 14px;">Horario</td>
-            <td style="padding: 16px 20px; color: #1f2937; font-size: 14px;">${time}</td>
-          </tr>
-        </table>
-
-        <div style="margin-top: 20px; padding: 16px 20px; background: #ecfdf5; border-radius: 10px; border-left: 4px solid #2dd4bf;">
-          <p style="margin: 0; color: #065f46; font-size: 13px; line-height: 1.5;">
-            <strong>Acao recomendada:</strong> Responda este email ou entre em contato pelo WhatsApp para confirmar o agendamento.
-          </p>
-        </div>
-      </div>
-    `
-
-    console.log("[v0] Sending email...")
-    await transporter.sendMail({
-      from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
-      to: TO_EMAIL,
-      subject: `Nova solicitacao de mentoria - ${name} - ${topic}`,
-      html: htmlContent,
-      replyTo: email,
-    })
-
-    console.log("[v0] Email sent successfully!")
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error))
-    console.error("[v0] Booking API error:", err.message)
-    console.error("[v0] Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err)))
-
-    let userMessage = "Falha ao enviar email. Tente novamente."
-    if (err.message.includes("Invalid login") || err.message.includes("auth")) {
-      userMessage = "Erro de autenticacao SMTP. Contate o administrador."
-    } else if (err.message.includes("ECONNREFUSED") || err.message.includes("ETIMEDOUT")) {
-      userMessage = "Servidor de email indisponivel. Tente novamente mais tarde."
+        await transporter.sendMail({
+          from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
+          to: TO_EMAIL,
+          subject,
+          html,
+          replyTo: data.email,
+        })
+      } else {
+        console.warn("[booking] SMTP not configured; email notification skipped")
+      }
+    } catch (emailError) {
+      console.error("[booking] Email error (non-blocking):", emailError)
     }
 
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("[booking] Error:", error)
     return NextResponse.json(
-      { error: userMessage },
-      { status: 500 }
+      { error: "Erro ao processar solicitacao" },
+      { status: 500 },
     )
   }
 }

@@ -7,11 +7,13 @@ import {
   BookOpen,
   Briefcase,
   CalendarDays,
+  Clock,
   FileText,
   Home,
   LogOut,
   PlusCircle,
   Settings,
+  Tags,
   User,
   Users,
 } from "lucide-react"
@@ -30,7 +32,6 @@ import {
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { UserRole } from "@/lib/types/database"
-import { createBrowserClient } from "@supabase/ssr"
 import { useRouter } from "next/navigation"
 
 interface NavItem {
@@ -41,25 +42,27 @@ interface NavItem {
 
 const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   admin: [
-    { label: "Visao Geral", href: "/dashboard/admin", icon: BarChart3 },
-    { label: "Agenda", href: "/dashboard/admin/schedule", icon: CalendarDays },
-    { label: "Agendamentos", href: "/dashboard/admin/bookings", icon: BookOpen },
-    { label: "Conteudos", href: "/dashboard/admin/content", icon: FileText },
-    { label: "Vagas", href: "/dashboard/admin/jobs", icon: Briefcase },
-    { label: "Mentorados", href: "/dashboard/admin/mentees", icon: Users },
-    { label: "Configuracoes", href: "/dashboard/admin/settings", icon: Settings },
+    { label: "Visao Geral", href: "/admin", icon: BarChart3 },
+    { label: "Agenda", href: "/admin/schedule", icon: CalendarDays },
+    { label: "Horarios", href: "/admin/slots", icon: Clock },
+    { label: "Temas", href: "/admin/topics", icon: Tags },
+    { label: "Agendamentos", href: "/admin/bookings", icon: BookOpen },
+    { label: "Conteudos", href: "/admin/content", icon: FileText },
+    { label: "Vagas", href: "/admin/jobs", icon: Briefcase },
+    { label: "Mentorados", href: "/admin/mentees", icon: Users },
+    { label: "Configuracoes", href: "/admin/settings", icon: Settings },
   ],
   mentee: [
-    { label: "Visao Geral", href: "/dashboard/mentee", icon: Home },
-    { label: "Perfil", href: "/dashboard/mentee/profile", icon: User },
-    { label: "Agendamentos", href: "/dashboard/mentee/bookings", icon: BookOpen },
-    { label: "Nova Mentoria", href: "/dashboard/mentee/bookings/new", icon: PlusCircle },
+    { label: "Visao Geral", href: "/mentee", icon: Home },
+    { label: "Perfil", href: "/mentee/profile", icon: User },
+    { label: "Agendamentos", href: "/mentee/bookings", icon: BookOpen },
+    { label: "Nova Mentoria", href: "/mentee/bookings/new", icon: PlusCircle },
   ],
   hr: [
-    { label: "Visao Geral", href: "/dashboard/hr", icon: Home },
-    { label: "Vagas", href: "/dashboard/hr/jobs", icon: Briefcase },
-    { label: "Nova Vaga", href: "/dashboard/hr/jobs/new", icon: PlusCircle },
-    { label: "Mentorados", href: "/dashboard/hr/mentees", icon: Users },
+    { label: "Visao Geral", href: "/hr", icon: Home },
+    { label: "Vagas", href: "/hr/jobs", icon: Briefcase },
+    { label: "Nova Vaga", href: "/hr/jobs/new", icon: PlusCircle },
+    { label: "Mentorados", href: "/hr/mentees", icon: Users },
   ],
 }
 
@@ -83,12 +86,9 @@ export function SidebarNav({ role, userName }: SidebarNavProps) {
     : "U"
 
   async function handleLogout() {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
-    await supabase.auth.signOut()
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/login")
+    router.refresh()
   }
 
   return (
@@ -113,7 +113,7 @@ export function SidebarNav({ role, userName }: SidebarNavProps) {
               {items.map((item) => {
                 const isActive =
                   pathname === item.href ||
-                  (item.href !== `/dashboard/${role}` &&
+                  (item.href !== `/${role}` &&
                     pathname.startsWith(item.href))
                 return (
                   <SidebarMenuItem key={item.href}>

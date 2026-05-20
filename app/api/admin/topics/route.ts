@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, mentoringTopics } from "@/lib/db"
+import { toMentoringTopic } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -14,15 +15,13 @@ const createSchema = z.object({
 export async function GET() {
   try {
     await requireRole("admin")
-    const supabase = createAdminClient()
 
-    const { data, error } = await supabase
-      .from("mentoring_topics")
-      .select("*")
-      .order("sort_order")
+    const data = await db
+      .select()
+      .from(mentoringTopics)
+      .orderBy(mentoringTopics.sortOrder)
 
-    if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: data.map(toMentoringTopic) })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -40,15 +39,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("mentoring_topics")
-      .insert(parsed.data)
-      .select()
-      .single()
+    const [data] = await db
+      .insert(mentoringTopics)
+      .values({
+        name: parsed.data.name,
+        category: parsed.data.category,
+        description: parsed.data.description,
+        isActive: parsed.data.is_active,
+        sortOrder: parsed.data.sort_order,
+      })
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: toMentoringTopic(data) }, { status: 201 })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

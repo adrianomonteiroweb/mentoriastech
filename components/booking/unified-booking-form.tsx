@@ -27,6 +27,56 @@ const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f6", name: "Automações RPA", category: "free", description: null },
 ]
 
+const DAY_NAMES = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
+
+const SCHEDULE_TEMPLATE = [
+  { day: 1, times: ["21:00"] },
+  { day: 2, times: ["21:00"] },
+  { day: 3, times: ["21:00"] },
+  { day: 4, times: ["21:00"] },
+  { day: 5, times: ["21:00"] },
+  { day: 6, times: ["10:00", "14:00"] },
+  { day: 0, times: ["10:00", "14:00"] },
+]
+
+function generateFallbackSlots(): ScheduleSlot[] {
+  const now = new Date()
+  const currentDay = now.getDay()
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+  const result: ScheduleSlot[] = []
+
+  for (const entry of SCHEDULE_TEMPLATE) {
+    let diff = entry.day - currentDay
+    if (diff < 0) diff += 7
+
+    const date = new Date(now)
+    date.setDate(now.getDate() + diff)
+    const dateStr = date.toISOString().split("T")[0]
+
+    for (const time of entry.times) {
+      const [h, m] = time.split(":").map(Number)
+      const isToday = diff === 0
+      const isPast = isToday && (currentHour > h || (currentHour === h && currentMinute >= m))
+      if (isPast) continue
+
+      result.push({
+        id: `fallback-${entry.day}-${time}`,
+        dayOfWeek: entry.day,
+        dayName: DAY_NAMES[entry.day],
+        startTime: time,
+        slotType: "free",
+        date: dateStr,
+        bookings: [],
+        isAvailable: true,
+      })
+    }
+  }
+
+  result.sort((a, b) => a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date))
+  return result
+}
+
 export function UnifiedBookingForm() {
   const [state, dispatch] = useReducer(bookingReducer, initialBookingState)
 
@@ -49,11 +99,13 @@ export function UnifiedBookingForm() {
         } else {
           setUsingFallback(true)
           setTopics(FALLBACK_TOPICS)
+          setSlots(generateFallbackSlots())
         }
       })
       .catch(() => {
         setUsingFallback(true)
         setTopics(FALLBACK_TOPICS)
+        setSlots(generateFallbackSlots())
       })
       .finally(() => setDataLoading(false))
 

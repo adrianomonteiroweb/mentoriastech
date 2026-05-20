@@ -29,29 +29,95 @@ interface ContentItem {
 
 const TYPE_CONFIG = {
   pdf: { icon: FileText, label: "PDF", color: "text-red-400" },
-  video: { icon: Youtube, label: "Video", color: "text-red-500" },
+  video: { icon: Youtube, label: "Vídeo", color: "text-red-500" },
   article: { icon: BookOpen, label: "Artigo", color: "text-blue-400" },
 }
+
+const FALLBACK_CATEGORIES: ContentCategory[] = [
+  { id: "c1", name: "Carreira", slug: "carreira" },
+  { id: "c2", name: "Programação", slug: "programacao" },
+  { id: "c3", name: "Entrevistas", slug: "entrevistas" },
+]
+
+const FALLBACK_ITEMS: ContentItem[] = [
+  {
+    id: "f1",
+    title: "Como iniciar na programação em 2025",
+    description: "Guia completo para quem quer começar a programar do zero, com dicas de linguagens, recursos gratuitos e plano de estudos.",
+    content_type: "article",
+    url: null,
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Programação", slug: "programacao" },
+  },
+  {
+    id: "f2",
+    title: "Preparação para entrevistas técnicas",
+    description: "Vídeo com as principais perguntas de entrevistas para desenvolvedores júnior e como se preparar para cada uma delas.",
+    content_type: "video",
+    url: "https://youtube.com",
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Entrevistas", slug: "entrevistas" },
+  },
+  {
+    id: "f3",
+    title: "Roadmap de carreira em tecnologia",
+    description: "PDF com o mapa de carreira desde estágio até sênior, com habilidades esperadas em cada nível.",
+    content_type: "pdf",
+    url: null,
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Carreira", slug: "carreira" },
+  },
+  {
+    id: "f4",
+    title: "Introdução ao Next.js com App Router",
+    description: "Tutorial passo a passo para criar sua primeira aplicação com Next.js, React e TypeScript.",
+    content_type: "video",
+    url: "https://youtube.com",
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Programação", slug: "programacao" },
+  },
+  {
+    id: "f5",
+    title: "Como montar um portfólio que se destaca",
+    description: "Dicas práticas para criar um portfólio de desenvolvedor que chama atenção dos recrutadores.",
+    content_type: "article",
+    url: null,
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Carreira", slug: "carreira" },
+  },
+  {
+    id: "f6",
+    title: "Guia de automações com RPA",
+    description: "Material em PDF sobre como automatizar processos repetitivos usando ferramentas de RPA.",
+    content_type: "pdf",
+    url: null,
+    created_at: new Date().toISOString(),
+    content_categories: { name: "Programação", slug: "programacao" },
+  },
+]
 
 export default function ContentPage() {
   const [items, setItems] = useState<ContentItem[]>([])
   const [categories, setCategories] = useState<ContentCategory[]>([])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
 
   useEffect(() => {
     fetch("/api/content")
       .then((res) => res.json())
       .then((json) => {
-        if (json.error) {
-          setError(json.error)
+        if (json.error || !json.data) {
+          setItems(FALLBACK_ITEMS)
+          setCategories(FALLBACK_CATEGORIES)
         } else {
           setItems(json.data || [])
           setCategories(json.categories || [])
         }
       })
-      .catch(() => setError("Erro ao carregar conteudos"))
+      .catch(() => {
+        setItems(FALLBACK_ITEMS)
+        setCategories(FALLBACK_CATEGORIES)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -69,14 +135,6 @@ export default function ContentPage() {
     )
   }
 
-  if (error) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-sm text-destructive">{error}</p>
-      </main>
-    )
-  }
-
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-12 md:py-20">
       <div className="w-full max-w-lg flex flex-col gap-8">
@@ -89,10 +147,10 @@ export default function ContentPage() {
             Voltar
           </Link>
           <h1 className="text-xl font-semibold text-foreground">
-            Biblioteca de Conteudos
+            Biblioteca de Conteúdos
           </h1>
           <p className="text-sm text-muted-foreground">
-            PDFs, artigos e videos sobre programacao e carreira em tech.
+            PDFs, artigos e vídeos sobre programação e carreira em tech.
           </p>
         </div>
 
@@ -166,7 +224,7 @@ export default function ContentPage() {
 
           {filtered.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum conteudo disponivel
+              Nenhum conteúdo disponível
               {activeCategory ? " nesta categoria" : ""}.
             </p>
           )}

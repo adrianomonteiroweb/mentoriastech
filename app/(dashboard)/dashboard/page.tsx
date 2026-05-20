@@ -11,10 +11,10 @@ export default async function DashboardPage() {
   // Redirecionar para o dashboard da role do usuário
   switch (profile.role) {
     case "admin":
-      redirect("/dashboard/admin")
+      redirect("/admin")
     case "hr":
-      redirect("/dashboard/hr")
+      redirect("/hr")
     default:
-      redirect("/dashboard/mentee")
+      redirect("/mentee")
   }
 }

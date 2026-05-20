@@ -16,6 +16,7 @@ export type BookingStatus =
 export type PaymentStatus = "pending" | "confirmed" | "failed" | "refunded"
 export type ContentType = "pdf" | "article" | "video"
 export type JobType = "remote" | "hybrid" | "onsite"
+export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 
 // -----------------------------------------------------------------------------
@@ -154,6 +155,7 @@ export interface Job {
   description: string | null
   location: string | null
   job_type: JobType
+  level: JobLevel
   salary_range: string | null
   application_url: string | null
   status: JobStatus

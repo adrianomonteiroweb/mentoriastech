@@ -1,0 +1,37 @@
+{
+  "name": "Adriano Monteiro - Mentoria",
+  "short_name": "Adriano Mentoria",
+  "description": "Plataforma de mentoria gratuita em programação e carreira em tech",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "lang": "pt-BR",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agendar mentoria",
+      "short_name": "Agendar",
+      "url": "/#booking"
+    },
+    {
+      "name": "Conteúdos",
+      "short_name": "Conteúdos",
+      "url": "/content"
+    },
+    {
+      "name": "Vagas",
+      "short_name": "Vagas",
+      "url": "/jobs"
+    }
+  ]
+}

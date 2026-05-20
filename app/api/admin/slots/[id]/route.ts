@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
+import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, mentoringSlots } from "@/lib/db"
+import { toMentoringSlot } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -24,21 +26,24 @@ export async function PUT(
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const updateData = { ...parsed.data }
-    if (updateData.start_time) {
-      updateData.start_time = updateData.start_time + ":00"
+    const updateData: Partial<typeof mentoringSlots.$inferInsert> = {}
+
+    if (parsed.data.day_of_week !== undefined) updateData.dayOfWeek = parsed.data.day_of_week
+    if (parsed.data.start_time !== undefined) updateData.startTime = parsed.data.start_time + ":00"
+    if (parsed.data.slot_type !== undefined) updateData.slotType = parsed.data.slot_type
+    if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
+
+    const [data] = await db
+      .update(mentoringSlots)
+      .set(updateData)
+      .where(eq(mentoringSlots.id, id))
+      .returning()
+
+    if (!data) {
+      return NextResponse.json({ error: "Horario nao encontrado" }, { status: 404 })
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("mentoring_slots")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: toMentoringSlot(data) })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -53,10 +58,8 @@ export async function DELETE(
   try {
     await requireRole("admin")
     const { id } = await params
-    const supabase = createAdminClient()
 
-    const { error } = await supabase.from("mentoring_slots").delete().eq("id", id)
-    if (error) throw error
+    await db.delete(mentoringSlots).where(eq(mentoringSlots.id, id))
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
+import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, mentoringTopics } from "@/lib/db"
+import { toMentoringTopic } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -25,16 +27,25 @@ export async function PUT(
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("mentoring_topics")
-      .update(parsed.data)
-      .eq("id", id)
-      .select()
-      .single()
+    const updateData: Partial<typeof mentoringTopics.$inferInsert> = {}
 
-    if (error) throw error
-    return NextResponse.json({ data })
+    if (parsed.data.name !== undefined) updateData.name = parsed.data.name
+    if (parsed.data.category !== undefined) updateData.category = parsed.data.category
+    if (parsed.data.description !== undefined) updateData.description = parsed.data.description
+    if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
+    if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
+
+    const [data] = await db
+      .update(mentoringTopics)
+      .set(updateData)
+      .where(eq(mentoringTopics.id, id))
+      .returning()
+
+    if (!data) {
+      return NextResponse.json({ error: "Tema nao encontrado" }, { status: 404 })
+    }
+
+    return NextResponse.json({ data: toMentoringTopic(data) })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -49,10 +60,8 @@ export async function DELETE(
   try {
     await requireRole("admin")
     const { id } = await params
-    const supabase = createAdminClient()
 
-    const { error } = await supabase.from("mentoring_topics").delete().eq("id", id)
-    if (error) throw error
+    await db.delete(mentoringTopics).where(eq(mentoringTopics.id, id))
 
     return NextResponse.json({ success: true })
   } catch (error) {

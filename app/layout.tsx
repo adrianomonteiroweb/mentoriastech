@@ -2,17 +2,38 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 
 import './globals.css'
+import { PWARegister } from '@/components/pwa-register'
+import { InstallPrompt } from '@/components/install-prompt'
 
 const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'Adriano Monteiro | Desenvolvedor Web',
-  description: 'Perfil de Adriano Monteiro - Desenvolvedor Web. Agende uma conversa comigo.',
+  title: 'Adriano Monteiro | Mentoria em Programação',
+  description: 'Plataforma de mentoria gratuita em programação e carreira em tech.',
+  manifest: '/manifest.json',
+  applicationName: 'Adriano Mentoria',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Adriano Mentoria',
+  },
+  icons: {
+    icon: '/icons/icon.svg',
+    apple: '/icons/icon.svg',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export const viewport: Viewport = {
   themeColor: '#0d1117',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -22,7 +43,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${_inter.variable} ${_jetbrains.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${_inter.variable} ${_jetbrains.variable} font-sans antialiased`}>
+        {children}
+        <PWARegister />
+        <InstallPrompt />
+      </body>
     </html>
   )
 }

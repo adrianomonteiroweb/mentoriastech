@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, contentItems } from "@/lib/db"
+import { toContentItem } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -27,15 +28,22 @@ export async function POST(request: Request) {
       )
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("content_items")
-      .insert({ ...parsed.data, created_by: admin.id })
-      .select()
-      .single()
+    const [data] = await db
+      .insert(contentItems)
+      .values({
+        categoryId: parsed.data.category_id,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        contentType: parsed.data.content_type,
+        url: parsed.data.url,
+        articleBody: parsed.data.article_body,
+        fileSizeBytes: parsed.data.file_size_bytes,
+        isPublished: parsed.data.is_published,
+        createdBy: admin.id,
+      })
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: toContentItem(data) }, { status: 201 })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

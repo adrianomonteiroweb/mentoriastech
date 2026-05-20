@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { createClient as createPublicClient } from "@supabase/supabase-js"
-import { createAdminClient } from "@/lib/supabase/admin"
-import { requireAuth } from "@/lib/utils/auth"
-import { createClient } from "@/lib/supabase/server"
+import { desc, eq } from "drizzle-orm"
+import { db, jobs, profiles } from "@/lib/db"
+import { toJob, toProfile } from "@/lib/db/mappers"
+import { requireAuth, requireRole } from "@/lib/utils/auth"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -11,26 +11,27 @@ const createSchema = z.object({
   description: z.string().min(10),
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).default("remote"),
+  level: z.enum(["internship", "junior", "mid", "senior"]).default("junior"),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional(),
 })
 
-// GET: listar vagas aprovadas (público)
+// GET: listar vagas aprovadas (publico)
 export async function GET() {
   try {
-    const supabase = createPublicClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
+    const rows = await db
+      .select({ job: jobs, profile: profiles })
+      .from(jobs)
+      .leftJoin(profiles, eq(jobs.postedBy, profiles.id))
+      .where(eq(jobs.status, "approved"))
+      .orderBy(desc(jobs.createdAt))
 
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("*, profiles(full_name)")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false })
-
-    if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: rows.map((row) => ({
+        ...toJob(row.job),
+        profiles: row.profile ? toProfile(row.profile) : null,
+      })),
+    })
   } catch (error) {
     console.error("[jobs] Error:", error)
     return NextResponse.json({ error: "Erro ao carregar vagas" }, { status: 500 })
@@ -41,6 +42,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireAuth()
+    const profile = await requireRole("admin", "hr", "mentee")
     const body = await request.json()
 
     const parsed = createSchema.safeParse(body)
@@ -51,32 +53,28 @@ export async function POST(request: Request) {
       )
     }
 
-    // Buscar role do usuário
-    const supabase = await createClient()
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single()
-
     // HR e admin: vaga auto-aprovada. Mentee: pendente
-    const autoApprove = profile?.role === "hr" || profile?.role === "admin"
+    const autoApprove = profile.role === "hr" || profile.role === "admin"
 
-    const adminClient = createAdminClient()
-    const { data, error } = await adminClient
-      .from("jobs")
-      .insert({
-        ...parsed.data,
-        posted_by: user.id,
+    const [data] = await db
+      .insert(jobs)
+      .values({
+        title: parsed.data.title,
+        company: parsed.data.company,
+        description: parsed.data.description,
+        location: parsed.data.location,
+        jobType: parsed.data.job_type,
+        level: parsed.data.level,
+        salaryRange: parsed.data.salary_range,
+        applicationUrl: parsed.data.application_url,
+        postedBy: user.id,
         status: autoApprove ? "approved" : "pending",
-        approved_by: autoApprove ? user.id : null,
-        approved_at: autoApprove ? new Date().toISOString() : null,
+        approvedBy: autoApprove ? user.id : null,
+        approvedAt: autoApprove ? new Date() : null,
       })
-      .select()
-      .single()
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: toJob(data) }, { status: 201 })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

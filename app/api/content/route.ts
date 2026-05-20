@@ -1,36 +1,44 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { and, desc, eq } from "drizzle-orm"
+import { db, contentCategories, contentItems } from "@/lib/db"
+import { toContentCategory, toContentItem } from "@/lib/db/mappers"
 
 export async function GET(request: Request) {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
     const { searchParams } = new URL(request.url)
     const category = searchParams.get("category")
 
-    let query = supabase
-      .from("content_items")
-      .select("*, content_categories(name, slug)")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-
+    const filters = [eq(contentItems.isPublished, true)]
     if (category) {
-      query = query.eq("content_categories.slug", category)
+      filters.push(eq(contentCategories.slug, category))
     }
 
-    const { data, error } = await query
+    const rows = await db
+      .select({ item: contentItems, category: contentCategories })
+      .from(contentItems)
+      .leftJoin(
+        contentCategories,
+        eq(contentItems.categoryId, contentCategories.id),
+      )
+      .where(and(...filters))
+      .orderBy(desc(contentItems.createdAt))
 
-    if (error) throw error
+    const categories = await db
+      .select()
+      .from(contentCategories)
+      .orderBy(contentCategories.sortOrder)
 
-    // Buscar categorias para filtros
-    const { data: categories } = await supabase
-      .from("content_categories")
-      .select("*")
-      .order("sort_order")
+    const data = rows.map((row) => ({
+      ...toContentItem(row.item),
+      content_categories: row.category
+        ? toContentCategory(row.category)
+        : null,
+    }))
 
-    return NextResponse.json({ data, categories })
+    return NextResponse.json({
+      data,
+      categories: categories.map(toContentCategory),
+    })
   } catch (error) {
     console.error("[content] Error:", error)
     return NextResponse.json({ error: "Erro ao carregar conteudos" }, { status: 500 })

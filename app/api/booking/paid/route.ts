@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import nodemailer from "nodemailer"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { bookings, db } from "@/lib/db"
+import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { newBookingToMentorEmail } from "@/lib/email-templates"
 
 const TO_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
@@ -30,34 +31,33 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data
-    const supabase = createAdminClient()
 
     // Format date for display
     const [y, m, d] = data.sessionDate.split("-")
     const dateFormatted = `${d}/${m}/${y}`
 
-    // Insert booking
-    const bookingData: Record<string, unknown> = {
-      booking_type: data.bookingType,
+    const mentee = await ensureMenteeProfile({
+      email: data.email,
+      fullName: data.name,
+      whatsapp: data.whatsapp,
+    })
+
+    const bookingData: typeof bookings.$inferInsert = {
+      menteeId: mentee.id,
+      guestName: data.name,
+      guestEmail: data.email.trim().toLowerCase(),
+      guestWhatsapp: data.whatsapp,
+      bookingType: data.bookingType,
       status: "pending",
-      topic_id: data.topicId,
-      session_date: data.sessionDate,
-      start_time: data.startTime.length === 5 ? data.startTime + ":00" : data.startTime,
+      topicId: data.topicId,
+      sessionDate: data.sessionDate,
+      startTime: data.startTime.length === 5 ? data.startTime + ":00" : data.startTime,
       notes: `${data.topicName}${data.notes ? " - " + data.notes : ""}`,
-      guest_name: data.name,
-      guest_email: data.email,
-      guest_whatsapp: data.whatsapp,
     }
 
-    if (data.menteeId) {
-      bookingData.mentee_id = data.menteeId
-    }
-
-    const { error: insertError } = await supabase
-      .from("bookings")
-      .insert(bookingData)
-
-    if (insertError) {
+    try {
+      await db.insert(bookings).values(bookingData)
+    } catch (insertError) {
       console.error("[booking/paid] Insert error:", insertError)
       return NextResponse.json(
         { error: "Erro ao salvar agendamento" },

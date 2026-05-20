@@ -28,10 +28,14 @@ interface Topic {
 
 // Fallback hardcoded caso a API falhe
 const FALLBACK_SLOTS = [
-  { day: "Sexta-feira", time: "20:00" },
-  { day: "Sábado", time: "09:00" },
+  { day: "Segunda-feira", time: "21:00" },
+  { day: "Terça-feira", time: "21:00" },
+  { day: "Quarta-feira", time: "21:00" },
+  { day: "Quinta-feira", time: "21:00" },
+  { day: "Sexta-feira", time: "21:00" },
+  { day: "Sábado", time: "10:00" },
   { day: "Sábado", time: "14:00" },
-  { day: "Domingo", time: "09:00" },
+  { day: "Domingo", time: "10:00" },
   { day: "Domingo", time: "14:00" },
 ]
 

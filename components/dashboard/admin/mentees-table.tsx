@@ -7,8 +7,30 @@ import {
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
-import { Search } from "lucide-react"
+import { MessageCircle, Search } from "lucide-react"
+import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { Profile } from "@/lib/types/database"
+
+function WhatsAppLink({ mentee }: { mentee: Profile }) {
+  if (!mentee.whatsapp) {
+    return <span className="text-xs text-muted-foreground">-</span>
+  }
+
+  const whatsappNumber = formatWhatsAppNumber(mentee.whatsapp)
+
+  return (
+    <a
+      href={`https://wa.me/${whatsappNumber}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Abrir conversa com ${mentee.full_name || mentee.email || "mentorado"} no WhatsApp`}
+      className="inline-flex max-w-[160px] items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-500 transition-colors hover:bg-emerald-500/20"
+    >
+      <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{mentee.whatsapp}</span>
+    </a>
+  )
+}
 
 export function MenteesTable() {
   const [mentees, setMentees] = useState<Profile[]>([])
@@ -42,15 +64,15 @@ export function MenteesTable() {
         />
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
+              <TableHead className="hidden sm:table-cell">Email</TableHead>
+              <TableHead>WhatsApp</TableHead>
               <TableHead className="hidden md:table-cell">LinkedIn</TableHead>
-              <TableHead>Curriculo</TableHead>
+              <TableHead className="hidden sm:table-cell">Curriculo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -71,24 +93,33 @@ export function MenteesTable() {
             ) : (
               mentees.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.full_name || "—"}</TableCell>
-                  <TableCell className="text-xs">{m.email || "—"}</TableCell>
-                  <TableCell className="hidden md:table-cell text-xs">{m.whatsapp || "—"}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex min-w-[120px] flex-col">
+                      <span>{m.full_name || "-"}</span>
+                      <span className="text-xs font-normal text-muted-foreground sm:hidden">
+                        {m.email || "-"}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-xs">{m.email || "-"}</TableCell>
+                  <TableCell>
+                    <WhatsAppLink mentee={m} />
+                  </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {m.linkedin_url ? (
                       <a href={m.linkedin_url} target="_blank" rel="noopener noreferrer"
                         className="text-xs text-primary hover:underline">
                         LinkedIn
                       </a>
-                    ) : "—"}
+                    ) : "-"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     {m.resume_url ? (
                       <a href={m.resume_url} target="_blank" rel="noopener noreferrer">
                         <Badge variant="outline" className="text-xs">PDF</Badge>
                       </a>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground">-</span>
                     )}
                   </TableCell>
                 </TableRow>

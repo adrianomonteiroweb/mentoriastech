@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
+import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, jobs } from "@/lib/db"
+import { toJob } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -21,25 +23,27 @@ export async function PUT(
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const updateData: Record<string, unknown> = {
+    const updateData: Partial<typeof jobs.$inferInsert> = {
       status: parsed.data.status,
+      updatedAt: new Date(),
     }
 
     if (parsed.data.status === "approved") {
-      updateData.approved_by = admin.id
-      updateData.approved_at = new Date().toISOString()
+      updateData.approvedBy = admin.id
+      updateData.approvedAt = new Date()
     }
 
-    const { data, error } = await supabase
-      .from("jobs")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single()
+    const [data] = await db
+      .update(jobs)
+      .set(updateData)
+      .where(eq(jobs.id, id))
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data })
+    if (!data) {
+      return NextResponse.json({ error: "Vaga nao encontrada" }, { status: 404 })
+    }
+
+    return NextResponse.json({ data: toJob(data) })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

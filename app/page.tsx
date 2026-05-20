@@ -1,5 +1,6 @@
 import { ProfileHeader } from "@/components/profile-header"
 import { SocialLinks } from "@/components/social-links"
+import { PlatformLinks } from "@/components/platform-links"
 import { UnifiedBookingForm } from "@/components/booking/unified-booking-form"
 import { MentoringInfo } from "@/components/mentoring-info"
 import { CalendarDays } from "lucide-react"
@@ -11,6 +12,8 @@ export default function Page() {
         <ProfileHeader />
 
         <SocialLinks />
+
+        <PlatformLinks />
 
         <MentoringInfo />
 

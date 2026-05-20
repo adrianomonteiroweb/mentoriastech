@@ -10,7 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Trash2, Eye, EyeOff } from "lucide-react"
 import type { ContentItemWithCategory } from "@/lib/types/database"
 
-export function ContentTable() {
+interface ContentTableProps {
+  refreshKey?: number
+}
+
+export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
   const [items, setItems] = useState<ContentItemWithCategory[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -23,7 +27,7 @@ export function ContentTable() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadContent() }, [])
+  useEffect(() => { loadContent() }, [refreshKey])
 
   async function togglePublish(id: string, isPublished: boolean) {
     await fetch(`/api/admin/content/${id}`, {

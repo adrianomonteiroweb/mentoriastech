@@ -326,6 +326,7 @@ CREATE TABLE public.jobs (
   description TEXT NOT NULL,
   location TEXT,
   job_type TEXT NOT NULL DEFAULT 'remote' CHECK (job_type IN ('remote', 'hybrid', 'onsite')),
+  level TEXT NOT NULL DEFAULT 'junior' CHECK (level IN ('internship', 'junior', 'mid', 'senior')),
   salary_range TEXT,
   application_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (
@@ -405,12 +406,16 @@ CREATE POLICY "Admin can manage settings"
 -- SEED DATA — Dados iniciais
 -- =============================================================================
 
--- Slots iniciais (valores atualmente hardcoded em booking-form.tsx)
+-- Slots iniciais
 INSERT INTO public.mentoring_slots (day_of_week, start_time, slot_type) VALUES
-  (5, '20:00', 'free'),  -- Sexta-feira 20:00
-  (6, '09:00', 'free'),  -- Sábado 09:00
+  (1, '21:00', 'free'),  -- Segunda 21:00
+  (2, '21:00', 'free'),  -- Terça 21:00
+  (3, '21:00', 'free'),  -- Quarta 21:00
+  (4, '21:00', 'free'),  -- Quinta 21:00
+  (5, '21:00', 'free'),  -- Sexta 21:00
+  (6, '10:00', 'free'),  -- Sábado 10:00
   (6, '14:00', 'free'),  -- Sábado 14:00
-  (0, '09:00', 'free'),  -- Domingo 09:00
+  (0, '10:00', 'free'),  -- Domingo 10:00
   (0, '14:00', 'free');  -- Domingo 14:00
 
 -- Topics iniciais (valores atualmente hardcoded em booking-form.tsx e mentoring-info.tsx)
@@ -429,6 +434,39 @@ INSERT INTO public.mentoring_topics (name, category, sort_order) VALUES
 -- Configuração inicial do PIX (atualizar com a chave real do admin)
 INSERT INTO public.site_settings (key, value) VALUES
   ('pix_config', '{"key": "", "name": "Adriano Monteiro", "city": "Fortaleza", "type": "email"}');
+
+-- Categorias de conteúdo
+INSERT INTO public.content_categories (name, slug, description, sort_order) VALUES
+  ('Carreira', 'carreira', 'Dicas e guias sobre carreira em tecnologia', 1),
+  ('Programação', 'programacao', 'Tutoriais e materiais sobre programação', 2),
+  ('Entrevistas', 'entrevistas', 'Preparação para processos seletivos', 3);
+
+-- Conteúdos iniciais
+INSERT INTO public.content_items (category_id, title, description, content_type, url, is_published) VALUES
+  ((SELECT id FROM public.content_categories WHERE slug = 'programacao'),
+   'Como iniciar na programação em 2025',
+   'Guia completo para quem quer começar a programar do zero, com dicas de linguagens, recursos gratuitos e plano de estudos.',
+   'article', NULL, true),
+  ((SELECT id FROM public.content_categories WHERE slug = 'entrevistas'),
+   'Preparação para entrevistas técnicas',
+   'Vídeo com as principais perguntas de entrevistas para desenvolvedores júnior e como se preparar para cada uma delas.',
+   'video', 'https://youtube.com', true),
+  ((SELECT id FROM public.content_categories WHERE slug = 'carreira'),
+   'Roadmap de carreira em tecnologia',
+   'PDF com o mapa de carreira desde estágio até sênior, com habilidades esperadas em cada nível.',
+   'pdf', NULL, true),
+  ((SELECT id FROM public.content_categories WHERE slug = 'programacao'),
+   'Introdução ao Next.js com App Router',
+   'Tutorial passo a passo para criar sua primeira aplicação com Next.js, React e TypeScript.',
+   'video', 'https://youtube.com', true),
+  ((SELECT id FROM public.content_categories WHERE slug = 'carreira'),
+   'Como montar um portfólio que se destaca',
+   'Dicas práticas para criar um portfólio de desenvolvedor que chama atenção dos recrutadores.',
+   'article', NULL, true),
+  ((SELECT id FROM public.content_categories WHERE slug = 'programacao'),
+   'Guia de automações com RPA',
+   'Material em PDF sobre como automatizar processos repetitivos usando ferramentas de RPA.',
+   'pdf', NULL, true);
 
 -- =============================================================================
 -- INDEXES — Índices para performance

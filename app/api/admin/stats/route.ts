@@ -1,30 +1,36 @@
 import { NextResponse } from "next/server"
+import { count, eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { bookings, contentItems, db, jobs, profiles } from "@/lib/db"
 import type { AdminStats } from "@/lib/types/database"
 
 export async function GET() {
   try {
     await requireRole("admin")
-    const supabase = createAdminClient()
 
-    const [bookings, pendingBookings, mentees, pendingJobs, publishedContent, completedBookings] =
-      await Promise.all([
-        supabase.from("bookings").select("id", { count: "exact", head: true }),
-        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "mentee"),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("content_items").select("id", { count: "exact", head: true }).eq("is_published", true),
-        supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "completed"),
-      ])
+    const [
+      totalBookings,
+      pendingBookings,
+      totalMentees,
+      pendingJobs,
+      publishedContent,
+      completedBookings,
+    ] = await Promise.all([
+      db.select({ value: count() }).from(bookings),
+      db.select({ value: count() }).from(bookings).where(eq(bookings.status, "pending")),
+      db.select({ value: count() }).from(profiles).where(eq(profiles.role, "mentee")),
+      db.select({ value: count() }).from(jobs).where(eq(jobs.status, "pending")),
+      db.select({ value: count() }).from(contentItems).where(eq(contentItems.isPublished, true)),
+      db.select({ value: count() }).from(bookings).where(eq(bookings.status, "completed")),
+    ])
 
     const stats: AdminStats = {
-      totalBookings: bookings.count || 0,
-      pendingBookings: pendingBookings.count || 0,
-      totalMentees: mentees.count || 0,
-      pendingJobs: pendingJobs.count || 0,
-      publishedContent: publishedContent.count || 0,
-      completedBookings: completedBookings.count || 0,
+      totalBookings: totalBookings[0]?.value || 0,
+      pendingBookings: pendingBookings[0]?.value || 0,
+      totalMentees: totalMentees[0]?.value || 0,
+      pendingJobs: pendingJobs[0]?.value || 0,
+      publishedContent: publishedContent[0]?.value || 0,
+      completedBookings: completedBookings[0]?.value || 0,
     }
 
     return NextResponse.json({ data: stats })

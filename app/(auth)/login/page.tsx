@@ -1,7 +1,6 @@
 "use client"
 
 import { Suspense, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { Loader2, LogIn } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -20,15 +19,15 @@ function LoginForm() {
     setLoading(true)
     setError("")
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
 
-    if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Email ou senha incorretos."
-          : error.message,
-      )
+    if (!res.ok) {
+      const data = await res.json().catch(() => null)
+      setError(data?.error || "Erro ao entrar.")
       setLoading(false)
       return
     }

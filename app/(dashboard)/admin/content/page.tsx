@@ -9,6 +9,12 @@ import { Plus } from "lucide-react"
 
 export default function AdminContentPage() {
   const [showForm, setShowForm] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  function handleSuccess() {
+    setShowForm(false)
+    setRefreshKey((key) => key + 1)
+  }
 
   return (
     <>
@@ -21,10 +27,10 @@ export default function AdminContentPage() {
       <div className="flex flex-col gap-6 p-4 md:p-6">
         {showForm && (
           <div className="rounded-lg border p-4">
-            <ContentForm onSuccess={() => setShowForm(false)} />
+            <ContentForm onSuccess={handleSuccess} />
           </div>
         )}
-        <ContentTable />
+        <ContentTable refreshKey={refreshKey} />
       </div>
     </>
   )

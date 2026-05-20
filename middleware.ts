@@ -1,55 +1,29 @@
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+const SESSION_COOKIE = "session_id"
+const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/hr", "/mentee"]
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            request.cookies.set(name, value),
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          )
-        },
-      },
-    },
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value)
+  const isProtected = PROTECTED_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix),
   )
 
-  // Refresh da sessão (importante para manter tokens válidos)
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Proteger rotas do dashboard — redireciona para login se não autenticado
-  if (request.nextUrl.pathname.startsWith("/dashboard") && !user) {
+  if (isProtected && !hasSession) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
-    url.searchParams.set("redirect", request.nextUrl.pathname)
+    url.searchParams.set("redirect", pathname)
     return NextResponse.redirect(url)
   }
 
-  // Redirecionar usuários autenticados que acessam login/register
-  if (
-    user &&
-    (request.nextUrl.pathname === "/login" ||
-      request.nextUrl.pathname === "/register")
-  ) {
+  if (hasSession && (pathname === "/login" || pathname === "/register")) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  return NextResponse.next()
 }
 
 export const config = {

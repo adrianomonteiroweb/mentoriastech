@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, contentCategories } from "@/lib/db"
+import { toContentCategory } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -12,14 +13,12 @@ const createSchema = z.object({
 
 export async function GET() {
   try {
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("content_categories")
-      .select("*")
-      .order("sort_order")
+    const data = await db
+      .select()
+      .from(contentCategories)
+      .orderBy(contentCategories.sortOrder)
 
-    if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: data.map(toContentCategory) })
   } catch (error) {
     return NextResponse.json({ error: "Erro ao carregar categorias" }, { status: 500 })
   }
@@ -35,15 +34,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const { data, error } = await supabase
-      .from("content_categories")
-      .insert(parsed.data)
-      .select()
-      .single()
+    const [data] = await db
+      .insert(contentCategories)
+      .values({
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        description: parsed.data.description,
+        sortOrder: parsed.data.sort_order,
+      })
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: toContentCategory(data) }, { status: 201 })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

@@ -19,6 +19,7 @@ interface Job {
   description: string
   location: string | null
   job_type: "remote" | "hybrid" | "onsite"
+  level: "internship" | "junior" | "mid" | "senior"
   salary_range: string | null
   application_url: string | null
   created_at: string
@@ -27,7 +28,7 @@ interface Job {
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   remote: "Remoto",
-  hybrid: "Hibrido",
+  hybrid: "Híbrido",
   onsite: "Presencial",
 }
 
@@ -37,37 +38,124 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   onsite: "bg-blue-500/10 text-blue-400",
 }
 
+const LEVEL_TABS = [
+  { key: "all", label: "Todas" },
+  { key: "internship", label: "Estágio & Trainee" },
+  { key: "junior", label: "Júnior" },
+  { key: "mid", label: "Pleno" },
+  { key: "senior", label: "Sênior" },
+] as const
+
+const FALLBACK_JOBS: Job[] = [
+  {
+    id: "fj1",
+    title: "Estagiário(a) de Desenvolvimento Web",
+    company: "TechStart",
+    description: "Vaga de estágio para estudantes de TI. Você vai atuar no desenvolvimento de interfaces web com React e TypeScript, participar de code reviews e aprender boas práticas de desenvolvimento.",
+    location: "Fortaleza, CE",
+    job_type: "hybrid",
+    level: "internship",
+    salary_range: "R$ 1.200 - R$ 1.800",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+  {
+    id: "fj2",
+    title: "Desenvolvedor(a) Front-end Júnior",
+    company: "DigitalFlow",
+    description: "Buscamos dev júnior com conhecimento em React, Next.js e Tailwind CSS. Experiência com TypeScript é um diferencial. Trabalho 100% remoto com squad ágil.",
+    location: null,
+    job_type: "remote",
+    level: "junior",
+    salary_range: "R$ 3.000 - R$ 4.500",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+  {
+    id: "fj3",
+    title: "Pessoa Desenvolvedora Full-Stack Pleno",
+    company: "Inovare Solutions",
+    description: "Atuação em projetos de média e alta complexidade com Node.js, React e PostgreSQL. Experiência com APIs REST, testes automatizados e CI/CD. Metodologia ágil.",
+    location: "São Paulo, SP",
+    job_type: "remote",
+    level: "mid",
+    salary_range: "R$ 8.000 - R$ 12.000",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+  {
+    id: "fj4",
+    title: "Dev Back-end Sênior (Node.js)",
+    company: "ScaleTech",
+    description: "Liderança técnica em arquitetura de microsserviços, mentoria de devs júnior, definição de padrões de código e revisão de PRs. Stack: Node.js, TypeScript, PostgreSQL, AWS.",
+    location: null,
+    job_type: "remote",
+    level: "senior",
+    salary_range: "R$ 15.000 - R$ 22.000",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+  {
+    id: "fj5",
+    title: "Trainee de Automação RPA",
+    company: "AutomateNow",
+    description: "Programa de trainee focado em automação de processos com ferramentas de RPA. Treinamento completo oferecido pela empresa. Ideal para quem está migrando de carreira.",
+    location: "Fortaleza, CE",
+    job_type: "onsite",
+    level: "internship",
+    salary_range: "R$ 2.000 - R$ 2.800",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+  {
+    id: "fj6",
+    title: "Desenvolvedor(a) React Native Júnior",
+    company: "AppMasters",
+    description: "Desenvolvimento de aplicativos mobile com React Native e Expo. Integração com APIs REST e publicação nas lojas. Mentoria contínua do time sênior.",
+    location: null,
+    job_type: "remote",
+    level: "junior",
+    salary_range: "R$ 3.500 - R$ 5.000",
+    application_url: "https://linkedin.com",
+    created_at: new Date().toISOString(),
+    profiles: { full_name: "Adriano Monteiro" },
+  },
+]
+
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [activeTab, setActiveTab] = useState<string>("all")
 
   useEffect(() => {
     fetch("/api/jobs")
       .then((res) => res.json())
       .then((json) => {
-        if (json.error) {
-          setError(json.error)
+        if (json.error || !json.data) {
+          setJobs(FALLBACK_JOBS)
         } else {
-          setJobs(json.data || [])
+          setJobs(json.data.length > 0 ? json.data : FALLBACK_JOBS)
         }
       })
-      .catch(() => setError("Erro ao carregar vagas"))
+      .catch(() => {
+        setJobs(FALLBACK_JOBS)
+      })
       .finally(() => setLoading(false))
   }, [])
+
+  const filtered = activeTab === "all"
+    ? jobs
+    : jobs.filter((job) => job.level === activeTab)
 
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </main>
-    )
-  }
-
-  if (error) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <p className="text-sm text-destructive">{error}</p>
       </main>
     )
   }
@@ -91,8 +179,24 @@ export default function JobsPage() {
           </p>
         </div>
 
+        <div className="flex flex-wrap gap-2">
+          {LEVEL_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeTab === tab.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col gap-3">
-          {jobs.map((job) => (
+          {filtered.map((job) => (
             <div
               key={job.id}
               className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30"
@@ -115,11 +219,16 @@ export default function JobsPage() {
                     )}
                   </div>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
-                >
-                  {JOB_TYPE_LABELS[job.job_type] || job.job_type}
-                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
+                  >
+                    {JOB_TYPE_LABELS[job.job_type] || job.job_type}
+                  </span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    {job.level === "internship" ? "Estágio" : job.level === "junior" ? "Júnior" : job.level === "mid" ? "Pleno" : "Sênior"}
+                  </span>
+                </div>
               </div>
 
               <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
@@ -157,9 +266,10 @@ export default function JobsPage() {
             </div>
           ))}
 
-          {jobs.length === 0 && (
+          {filtered.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhuma vaga disponivel no momento.
+              Nenhuma vaga disponível
+              {activeTab !== "all" ? " neste nível" : " no momento"}.
             </p>
           )}
         </div>

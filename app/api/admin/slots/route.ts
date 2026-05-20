@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
+import { asc } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
+import { db, mentoringSlots } from "@/lib/db"
+import { toMentoringSlot } from "@/lib/db/mappers"
 import { z } from "zod"
 
-// Slot simples (gratuito) — usa day_of_week
 const freeSlotSchema = z.object({
   day_of_week: z.number().min(0).max(6),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
@@ -11,7 +12,6 @@ const freeSlotSchema = z.object({
   is_active: z.boolean().default(true),
 })
 
-// Slot com RRule (pago/privado) — usa rrule + recurrence dates
 const paidSlotSchema = z.object({
   rrule: z.string().min(1),
   start_time: z.string().regex(/^\d{2}:\d{2}$/),
@@ -26,16 +26,13 @@ const createSchema = z.union([freeSlotSchema, paidSlotSchema])
 export async function GET() {
   try {
     await requireRole("admin")
-    const supabase = createAdminClient()
 
-    const { data, error } = await supabase
-      .from("mentoring_slots")
-      .select("*")
-      .order("day_of_week")
-      .order("start_time")
+    const data = await db
+      .select()
+      .from(mentoringSlots)
+      .orderBy(asc(mentoringSlots.dayOfWeek), asc(mentoringSlots.startTime))
 
-    if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: data.map(toMentoringSlot) })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -53,30 +50,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-    const insertData: Record<string, unknown> = {
-      start_time: parsed.data.start_time + ":00",
-      slot_type: parsed.data.slot_type,
-      is_active: parsed.data.is_active,
+    const insertData: typeof mentoringSlots.$inferInsert = {
+      startTime: parsed.data.start_time + ":00",
+      slotType: parsed.data.slot_type,
+      isActive: parsed.data.is_active,
     }
 
     if ("day_of_week" in parsed.data) {
-      insertData.day_of_week = parsed.data.day_of_week
+      insertData.dayOfWeek = parsed.data.day_of_week
     }
+
     if ("rrule" in parsed.data) {
       insertData.rrule = parsed.data.rrule
-      insertData.recurrence_start = parsed.data.recurrence_start
-      insertData.recurrence_end = parsed.data.recurrence_end || null
+      insertData.recurrenceStart = parsed.data.recurrence_start
+      insertData.recurrenceEnd = parsed.data.recurrence_end || null
     }
 
-    const { data, error } = await supabase
-      .from("mentoring_slots")
-      .insert(insertData)
-      .select()
-      .single()
+    const [data] = await db
+      .insert(mentoringSlots)
+      .values(insertData)
+      .returning()
 
-    if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: toMentoringSlot(data) }, { status: 201 })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

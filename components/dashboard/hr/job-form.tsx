@@ -20,6 +20,7 @@ export function JobForm({ onSuccess }: JobFormProps) {
   const [description, setDescription] = useState("")
   const [location, setLocation] = useState("")
   const [jobType, setJobType] = useState("remote")
+  const [level, setLevel] = useState("junior")
   const [salaryRange, setSalaryRange] = useState("")
   const [applicationUrl, setApplicationUrl] = useState("")
   const [loading, setLoading] = useState(false)
@@ -41,6 +42,7 @@ export function JobForm({ onSuccess }: JobFormProps) {
           description,
           location: location || undefined,
           job_type: jobType,
+          level,
           salary_range: salaryRange || undefined,
           application_url: applicationUrl || undefined,
         }),
@@ -112,6 +114,19 @@ export function JobForm({ onSuccess }: JobFormProps) {
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Nivel</Label>
+        <Select value={level} onValueChange={setLevel}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="internship">Estagio & Trainee</SelectItem>
+            <SelectItem value="junior">Junior</SelectItem>
+            <SelectItem value="mid">Pleno</SelectItem>
+            <SelectItem value="senior">Senior</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">

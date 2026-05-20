@@ -1,25 +1,17 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { asc, eq } from "drizzle-orm"
+import { db, mentoringTopics } from "@/lib/db"
+import { toMentoringTopic } from "@/lib/db/mappers"
 
 export async function GET() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
+    const topics = await db
+      .select()
+      .from(mentoringTopics)
+      .where(eq(mentoringTopics.isActive, true))
+      .orderBy(asc(mentoringTopics.sortOrder))
 
-    const { data: topics, error } = await supabase
-      .from("mentoring_topics")
-      .select("id, name, category, description")
-      .eq("is_active", true)
-      .order("sort_order")
-
-    if (error) {
-      console.error("[topics] Error:", error)
-      return NextResponse.json({ error: "Erro ao carregar temas" }, { status: 500 })
-    }
-
-    return NextResponse.json({ topics })
+    return NextResponse.json({ topics: topics.map(toMentoringTopic) })
   } catch (error) {
     console.error("[topics] Error:", error)
     return NextResponse.json({ error: "Erro ao carregar temas" }, { status: 500 })
