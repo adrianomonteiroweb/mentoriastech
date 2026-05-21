@@ -8,6 +8,7 @@ import {
   Loader2,
   ArrowLeft,
   Tag,
+  ExternalLink,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -21,7 +22,7 @@ interface ContentItem {
   id: string
   title: string
   description: string | null
-  content_type: "pdf" | "article" | "video"
+  content_type: "pdf" | "article" | "video" | "link"
   url: string | null
   created_at: string
   content_categories: { name: string; slug: string } | null
@@ -31,6 +32,7 @@ const TYPE_CONFIG = {
   pdf: { icon: FileText, label: "PDF", color: "text-red-400" },
   video: { icon: Youtube, label: "Vídeo", color: "text-red-500" },
   article: { icon: BookOpen, label: "Artigo", color: "text-blue-400" },
+  link: { icon: ExternalLink, label: "Link", color: "text-primary" },
 }
 
 const FALLBACK_CATEGORIES: ContentCategory[] = [
@@ -150,7 +152,7 @@ export default function ContentPage() {
             Biblioteca de Conteúdos
           </h1>
           <p className="text-sm text-muted-foreground">
-            PDFs, artigos e vídeos sobre programação e carreira em tech.
+            PDFs, artigos, links e vídeos sobre programação e carreira em tech.
           </p>
         </div>
 

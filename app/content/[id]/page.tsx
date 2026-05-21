@@ -17,7 +17,7 @@ interface ContentItem {
   id: string
   title: string
   description: string | null
-  content_type: "pdf" | "article" | "video"
+  content_type: "pdf" | "article" | "video" | "link"
   url: string | null
   article_body: string | null
   file_size_bytes: number | null
@@ -112,12 +112,17 @@ export default function ContentDetailPage() {
             {item.content_type === "article" && (
               <BookOpen className="h-5 w-5 text-blue-400" />
             )}
+            {item.content_type === "link" && (
+              <ExternalLink className="h-5 w-5 text-primary" />
+            )}
             <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               {item.content_type === "pdf"
                 ? "PDF"
                 : item.content_type === "video"
                   ? "Video"
-                  : "Artigo"}
+                  : item.content_type === "article"
+                    ? "Artigo"
+                    : "Link"}
             </span>
             {item.content_categories && (
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
@@ -179,6 +184,32 @@ export default function ContentDetailPage() {
             >
               <ExternalLink className="h-4 w-4" />
               Assistir video
+            </a>
+          )}
+
+          {/* Link: external resource */}
+          {item.content_type === "link" && item.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 w-fit"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Abrir link
+            </a>
+          )}
+
+          {/* Article external link */}
+          {item.content_type === "article" && item.url && (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mb-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 w-fit"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Abrir artigo
             </a>
           )}
 

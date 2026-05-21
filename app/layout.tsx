@@ -9,8 +9,9 @@ const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'Adriano Monteiro | Mentoria em Programação',
-  description: 'Plataforma de mentoria gratuita em programação e carreira em tech.',
+  title: 'Adriano Monteiro | Software, RPA e Mentoria Tech',
+  description:
+    'Mentoria em desenvolvimento de software, automações RPA e carreira em tecnologia.',
   manifest: '/manifest.json',
   applicationName: 'Adriano Mentoria',
   appleWebApp: {

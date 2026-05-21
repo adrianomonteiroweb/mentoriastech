@@ -1,6 +1,9 @@
 import { google } from "googleapis"
+import { eq } from "drizzle-orm"
+import { db, siteSettings } from "@/lib/db"
+import { createAdminClient } from "@/lib/supabase/admin"
 
-function getOAuth2Client() {
+function getOAuth2Client(redirectUri?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
 
@@ -8,15 +11,46 @@ function getOAuth2Client() {
     throw new Error("Google Calendar credentials not configured")
   }
 
-  return new google.auth.OAuth2(clientId, clientSecret)
+  return new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+}
+
+async function getRefreshToken() {
+  if (process.env.GOOGLE_REFRESH_TOKEN) {
+    return process.env.GOOGLE_REFRESH_TOKEN
+  }
+
+  try {
+    const [setting] = await db
+      .select()
+      .from(siteSettings)
+      .where(eq(siteSettings.key, "google_calendar"))
+      .limit(1)
+
+    const dbToken = (setting?.value as { refresh_token?: string } | undefined)?.refresh_token
+    if (dbToken) return dbToken
+  } catch {
+    // Fall back to Supabase settings below for older installations.
+  }
+
+  try {
+    const supabase = createAdminClient()
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "google_calendar")
+      .single()
+
+    return (data?.value as { refresh_token?: string } | undefined)?.refresh_token || null
+  } catch {
+    return null
+  }
 }
 
 /**
  * Gera URL de consentimento OAuth para o admin conectar Google Calendar.
  */
 export function getConsentUrl(redirectUri: string): string {
-  const oauth2 = getOAuth2Client()
-  oauth2.redirectUri = redirectUri
+  const oauth2 = getOAuth2Client(redirectUri)
 
   return oauth2.generateAuthUrl({
     access_type: "offline",
@@ -32,8 +66,7 @@ export async function exchangeCodeForTokens(
   code: string,
   redirectUri: string,
 ) {
-  const oauth2 = getOAuth2Client()
-  oauth2.redirectUri = redirectUri
+  const oauth2 = getOAuth2Client(redirectUri)
 
   const { tokens } = await oauth2.getToken(code)
   return tokens
@@ -41,7 +74,7 @@ export async function exchangeCodeForTokens(
 
 /**
  * Cria um evento no Google Calendar com Google Meet.
- * Retorna o event ID.
+ * Retorna o event ID e o link do Google Meet.
  */
 export async function createCalendarEvent(params: {
   summary: string
@@ -50,8 +83,8 @@ export async function createCalendarEvent(params: {
   time: string // "HH:MM"
   attendeeEmail?: string
   durationMinutes?: number
-}): Promise<string | null> {
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+}): Promise<{ eventId: string; meetLink: string | null } | null> {
+  const refreshToken = await getRefreshToken()
   const calendarId =
     process.env.GOOGLE_CALENDAR_ID || "primary"
 
@@ -109,14 +142,26 @@ export async function createCalendarEvent(params: {
     },
   })
 
-  return event.data.id || null
+  if (!event.data.id) return null
+
+  const meetLink =
+    event.data.hangoutLink ||
+    event.data.conferenceData?.entryPoints?.find(
+      (entryPoint) => entryPoint.entryPointType === "video",
+    )?.uri ||
+    null
+
+  return {
+    eventId: event.data.id,
+    meetLink,
+  }
 }
 
 /**
  * Deleta um evento do Google Calendar.
  */
 export async function deleteCalendarEvent(eventId: string): Promise<void> {
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN
+  const refreshToken = await getRefreshToken()
   const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary"
 
   if (!refreshToken) return

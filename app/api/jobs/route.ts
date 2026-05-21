@@ -16,9 +16,29 @@ const createSchema = z.object({
   application_url: z.string().url().optional(),
 })
 
-// GET: listar vagas aprovadas (publico)
-export async function GET() {
+// GET: listar vagas aprovadas (publico) ou vagas do usuario autenticado (?mine=true)
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const mine = searchParams.get("mine") === "true"
+
+    if (mine) {
+      const user = await requireAuth()
+      const rows = await db
+        .select({ job: jobs, profile: profiles })
+        .from(jobs)
+        .leftJoin(profiles, eq(jobs.postedBy, profiles.id))
+        .where(eq(jobs.postedBy, user.id))
+        .orderBy(desc(jobs.createdAt))
+
+      return NextResponse.json({
+        data: rows.map((row) => ({
+          ...toJob(row.job),
+          profiles: row.profile ? toProfile(row.profile) : null,
+        })),
+      })
+    }
+
     const rows = await db
       .select({ job: jobs, profile: profiles })
       .from(jobs)

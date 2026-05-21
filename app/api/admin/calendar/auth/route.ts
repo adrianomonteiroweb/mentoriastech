@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
 import { getConsentUrl, exchangeCodeForTokens } from "@/lib/google-calendar"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { db, siteSettings } from "@/lib/db"
 
 // GET: Gera URL de consentimento OAuth
 export async function GET(request: Request) {
@@ -41,14 +42,31 @@ export async function POST(request: Request) {
     }
 
     // Salvar refresh_token nas configurações do site
+    const value = {
+      refresh_token: tokens.refresh_token,
+      connected_at: new Date().toISOString(),
+    }
+
+    await db
+      .insert(siteSettings)
+      .values({
+        key: "google_calendar",
+        value,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: siteSettings.key,
+        set: {
+          value,
+          updatedAt: new Date(),
+        },
+      })
+
     const supabase = createAdminClient()
     await supabase.from("site_settings").upsert(
       {
         key: "google_calendar",
-        value: {
-          refresh_token: tokens.refresh_token,
-          connected_at: new Date().toISOString(),
-        },
+        value,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "key" },

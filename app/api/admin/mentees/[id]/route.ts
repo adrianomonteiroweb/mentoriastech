@@ -1,0 +1,84 @@
+import { NextResponse } from "next/server"
+import { eq } from "drizzle-orm"
+import { db, profiles } from "@/lib/db"
+import { toProfile } from "@/lib/db/mappers"
+import { requireRole } from "@/lib/utils/auth"
+import { z } from "zod"
+
+const updateSchema = z.object({
+  full_name: z.string().optional(),
+  email: z.string().email().optional(),
+  whatsapp: z.string().optional(),
+  linkedin_url: z.string().url().optional().or(z.literal("")),
+  bio: z.string().optional(),
+  resume_url: z.string().url().optional().or(z.literal("")),
+})
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireRole("admin")
+    const { id } = await params
+    const body = await request.json()
+
+    const parsed = updateSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
+    }
+
+    const [mentee] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1)
+
+    if (!mentee || mentee.role !== "mentee") {
+      return NextResponse.json({ error: "Mentorado nao encontrado" }, { status: 404 })
+    }
+
+    const updateData: Partial<typeof profiles.$inferInsert> = {
+      updatedAt: new Date(),
+    }
+
+    if (parsed.data.full_name !== undefined) updateData.fullName = parsed.data.full_name || null
+    if (parsed.data.email !== undefined) updateData.email = parsed.data.email
+    if (parsed.data.whatsapp !== undefined) updateData.whatsapp = parsed.data.whatsapp || null
+    if (parsed.data.linkedin_url !== undefined) updateData.linkedinUrl = parsed.data.linkedin_url || null
+    if (parsed.data.bio !== undefined) updateData.bio = parsed.data.bio || null
+    if (parsed.data.resume_url !== undefined) updateData.resumeUrl = parsed.data.resume_url || null
+
+    const [data] = await db
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.id, id))
+      .returning()
+
+    return NextResponse.json({ data: toProfile(data) })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireRole("admin")
+    const { id } = await params
+
+    const [mentee] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1)
+
+    if (!mentee || mentee.role !== "mentee") {
+      return NextResponse.json({ error: "Mentorado nao encontrado" }, { status: 404 })
+    }
+
+    await db.delete(profiles).where(eq(profiles.id, id))
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}

@@ -177,6 +177,7 @@ CREATE TABLE public.bookings (
   ),
   notes TEXT,
   google_event_id TEXT,
+  google_meet_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -277,14 +278,14 @@ CREATE POLICY "Admin can manage categories"
   );
 
 -- -----------------------------------------------------------------------------
--- 7. CONTENT_ITEMS — Itens de conteúdo (PDFs, artigos, vídeos)
+-- 7. CONTENT_ITEMS — Itens de conteúdo (PDFs, artigos, vídeos e links)
 -- -----------------------------------------------------------------------------
 CREATE TABLE public.content_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id UUID NOT NULL REFERENCES public.content_categories(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
-  content_type TEXT NOT NULL CHECK (content_type IN ('pdf', 'article', 'video')),
+  content_type TEXT NOT NULL CHECK (content_type IN ('pdf', 'article', 'video', 'link')),
   url TEXT,
   article_body TEXT,
   file_size_bytes INTEGER,

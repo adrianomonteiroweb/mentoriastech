@@ -1,4 +1,5 @@
 import type {
+  Booking as DbBooking,
   ContentCategory as DbContentCategory,
   ContentItem as DbContentItem,
   Job as DbJob,
@@ -7,6 +8,7 @@ import type {
   Profile as DbProfile,
 } from "@/lib/db/schema"
 import type {
+  Booking,
   ContentCategory,
   ContentItem,
   Job,
@@ -59,6 +61,27 @@ export function toContentItem(row: DbContentItem): ContentItem {
     file_size_bytes: row.fileSizeBytes,
     is_published: row.isPublished,
     created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toBooking(row: DbBooking): Booking {
+  return {
+    id: row.id,
+    mentee_id: row.menteeId,
+    guest_name: row.guestName,
+    guest_email: row.guestEmail,
+    guest_whatsapp: row.guestWhatsapp,
+    slot_id: row.slotId,
+    topic_id: row.topicId,
+    session_date: row.sessionDate,
+    start_time: row.startTime,
+    booking_type: row.bookingType,
+    status: row.status,
+    notes: row.notes,
+    google_event_id: row.googleEventId,
+    google_meet_url: row.googleMeetUrl,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

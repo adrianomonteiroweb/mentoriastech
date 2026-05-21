@@ -11,6 +11,15 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -19,7 +28,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { BookingWithRelations, BookingStatus } from "@/lib/types/database"
+import { ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react"
+import type { BookingWithRelations, BookingStatus, MentoringTopic } from "@/lib/types/database"
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pendente",
@@ -43,8 +53,22 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 
 export function BookingsTable() {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
+  const [topics, setTopics] = useState<MentoringTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
+  const [editingBooking, setEditingBooking] = useState<BookingWithRelations | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const [form, setForm] = useState({
+    topic_id: "",
+    session_date: "",
+    start_time: "",
+    notes: "",
+    guest_name: "",
+    guest_email: "",
+    guest_whatsapp: "",
+    google_meet_url: "",
+  })
 
   function loadBookings() {
     setLoading(true)
@@ -60,12 +84,76 @@ export function BookingsTable() {
     loadBookings()
   }, [filter])
 
+  useEffect(() => {
+    fetch("/api/topics")
+      .then((r) => r.json())
+      .then((json) => setTopics(json.topics || []))
+      .catch(console.error)
+  }, [])
+
   async function updateStatus(id: string, status: BookingStatus) {
-    await fetch(`/api/admin/bookings/${id}`, {
+    const res = await fetch(`/api/admin/bookings/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     })
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error || "Erro ao atualizar agendamento")
+    }
+    loadBookings()
+  }
+
+  function openEdit(booking: BookingWithRelations) {
+    setEditingBooking(booking)
+    setError("")
+    setForm({
+      topic_id: booking.topic_id || "",
+      session_date: booking.session_date || "",
+      start_time: booking.start_time?.substring(0, 5) || "",
+      notes: booking.notes || "",
+      guest_name: booking.guest_name || booking.profiles?.full_name || "",
+      guest_email: booking.guest_email || booking.profiles?.email || "",
+      guest_whatsapp: booking.guest_whatsapp || "",
+      google_meet_url: booking.google_meet_url || "",
+    })
+  }
+
+  async function saveBooking(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingBooking) return
+
+    setSaving(true)
+    setError("")
+
+    try {
+      const res = await fetch(`/api/admin/bookings/${editingBooking.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Erro ao salvar agendamento")
+      }
+
+      setEditingBooking(null)
+      loadBookings()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao salvar")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteBooking(id: string) {
+    if (!confirm("Excluir este agendamento?")) return
+    const res = await fetch(`/api/admin/bookings/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const data = await res.json()
+      alert(data.error || "Erro ao excluir agendamento")
+    }
     loadBookings()
   }
 
@@ -145,8 +233,8 @@ export function BookingsTable() {
                       ? b.session_date.split("-").reverse().join("/")
                       : b.created_at.split("T")[0].split("-").reverse().join("/")}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
+                <TableCell>
+                  <div className="flex gap-1">
                       {b.status === "pending" && (
                         <Button size="sm" variant="outline" className="text-xs h-7"
                           onClick={() => updateStatus(b.id, "confirmed")}>
@@ -171,12 +259,30 @@ export function BookingsTable() {
                           Concluir
                         </Button>
                       )}
+                      {b.google_meet_url && (
+                        <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
+                          <a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Meet
+                          </a>
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="text-xs h-7"
+                        onClick={() => openEdit(b)}>
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Editar
+                      </Button>
                       {!["completed", "cancelled"].includes(b.status) && (
                         <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
                           onClick={() => updateStatus(b.id, "cancelled")}>
                           Cancelar
                         </Button>
                       )}
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
+                        onClick={() => deleteBooking(b.id)}>
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Excluir
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -185,6 +291,116 @@ export function BookingsTable() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar agendamento</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveBooking} className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-name">Nome</Label>
+                <Input
+                  id="booking-name"
+                  value={form.guest_name}
+                  onChange={(e) => setForm((current) => ({ ...current, guest_name: e.target.value }))}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-email">Email</Label>
+                <Input
+                  id="booking-email"
+                  type="email"
+                  value={form.guest_email}
+                  onChange={(e) => setForm((current) => ({ ...current, guest_email: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-date">Data</Label>
+                <Input
+                  id="booking-date"
+                  type="date"
+                  value={form.session_date}
+                  onChange={(e) => setForm((current) => ({ ...current, session_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-time">Horario</Label>
+                <Input
+                  id="booking-time"
+                  type="time"
+                  value={form.start_time}
+                  onChange={(e) => setForm((current) => ({ ...current, start_time: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Tema</Label>
+                <Select
+                  value={form.topic_id || "none"}
+                  onValueChange={(value) => setForm((current) => ({ ...current, topic_id: value === "none" ? "" : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem tema</SelectItem>
+                    {topics.map((topic) => (
+                      <SelectItem key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-whatsapp">WhatsApp</Label>
+                <Input
+                  id="booking-whatsapp"
+                  value={form.guest_whatsapp}
+                  onChange={(e) => setForm((current) => ({ ...current, guest_whatsapp: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-meet">Google Meet</Label>
+              <Input
+                id="booking-meet"
+                type="url"
+                value={form.google_meet_url}
+                onChange={(e) => setForm((current) => ({ ...current, google_meet_url: e.target.value }))}
+                placeholder="https://meet.google.com/..."
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-notes">Observacoes</Label>
+              <Textarea
+                id="booking-notes"
+                value={form.notes}
+                onChange={(e) => setForm((current) => ({ ...current, notes: e.target.value }))}
+                rows={4}
+              />
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <Button type="submit" disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Salvar agendamento
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

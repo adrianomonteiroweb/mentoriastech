@@ -26,6 +26,7 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
   const [categories, setCategories] = useState<ContentCategory[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const requiresUrl = contentType === "video" || contentType === "link" || contentType === "article"
 
   useEffect(() => {
     fetch("/api/admin/content/categories")
@@ -91,6 +92,7 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
       setUrl("")
       setArticleBody("")
       setFile(null)
+      setContentType("pdf")
       onSuccess?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
@@ -132,6 +134,7 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
             <SelectItem value="pdf">PDF</SelectItem>
             <SelectItem value="video">Video (YouTube)</SelectItem>
             <SelectItem value="article">Artigo</SelectItem>
+            <SelectItem value="link">Link</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -148,10 +151,27 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
         </div>
       )}
 
-      {contentType === "video" && (
+      {requiresUrl && (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="url">URL do YouTube</Label>
-          <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+          <Label htmlFor="url">
+            {contentType === "video"
+              ? "URL do YouTube"
+              : contentType === "article"
+                ? "Link do artigo"
+                : "URL do link"}
+          </Label>
+          <Input
+            id="url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder={
+              contentType === "video"
+                ? "https://youtube.com/watch?v=..."
+                : "https://..."
+            }
+            required={requiresUrl}
+          />
         </div>
       )}
 
@@ -164,7 +184,7 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={loading || !title || !categoryId}>
+      <Button type="submit" disabled={loading || !title || !categoryId || (requiresUrl && !url)}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
         {loading ? "Salvando..." : "Publicar conteudo"}
       </Button>

@@ -21,16 +21,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const eventId = await createCalendarEvent(parsed.data)
+    const event = await createCalendarEvent(parsed.data)
 
-    if (!eventId) {
+    if (!event) {
       return NextResponse.json(
         { error: "Google Calendar nao configurado. Conecte em Configuracoes." },
         { status: 400 },
       )
     }
 
-    return NextResponse.json({ eventId })
+    return NextResponse.json({ eventId: event.eventId, meetLink: event.meetLink })
   } catch (error) {
     console.error("[calendar] Create event error:", error)
     return NextResponse.json(

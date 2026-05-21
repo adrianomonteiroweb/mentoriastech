@@ -120,7 +120,16 @@ interface StatusChangeParams {
   startTime?: string
   bookingType: string
   googleEventId?: string | null
+  googleMeetUrl?: string | null
   mentorEmail?: string
+}
+
+function meetRow(url?: string | null) {
+  if (!url) return null
+  return {
+    label: "Google Meet",
+    value: `<a href="${url}" style="color: #0d9488; text-decoration: none;">Entrar na reuniao</a>`,
+  }
 }
 
 function formatDateBR(dateStr?: string) {
@@ -143,6 +152,9 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
     { label: "Data", value: formatDateBR(params.sessionDate) },
     { label: "Horário", value: formatTimeBR(params.startTime) },
   ]
+
+  const confirmedMeetRow = meetRow(params.googleMeetUrl)
+  if (confirmedMeetRow) rows.push(confirmedMeetRow)
 
   const html = baseLayout(
     "Sua mentoria foi confirmada! ✓",
@@ -190,6 +202,9 @@ export function bookingScheduledEmail(params: StatusChangeParams) {
     { label: "Data", value: formatDateBR(params.sessionDate) },
     { label: "Horário", value: formatTimeBR(params.startTime) },
   ]
+
+  const scheduledMeetRow = meetRow(params.googleMeetUrl)
+  if (scheduledMeetRow) rows.push(scheduledMeetRow)
 
   const html = baseLayout(
     "Mentoria agendada! 📅",

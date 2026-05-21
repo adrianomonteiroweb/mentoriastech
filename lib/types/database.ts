@@ -14,7 +14,7 @@ export type BookingStatus =
   | "completed"
   | "cancelled"
 export type PaymentStatus = "pending" | "confirmed" | "failed" | "refunded"
-export type ContentType = "pdf" | "article" | "video"
+export type ContentType = "pdf" | "article" | "video" | "link"
 export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
@@ -81,6 +81,7 @@ export interface Booking {
   status: BookingStatus
   notes: string | null
   google_event_id: string | null
+  google_meet_url: string | null
   created_at: string
   updated_at: string
 }

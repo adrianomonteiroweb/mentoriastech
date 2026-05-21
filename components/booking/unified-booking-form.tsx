@@ -170,10 +170,13 @@ export function UnifiedBookingForm() {
         topic: state.topicName,
       }
 
+      if (state.sessionDate) {
+        body.sessionDate = state.sessionDate
+      }
+
       if (!usingFallback) {
         body.slotId = state.slotId
         body.topicId = state.topicId
-        body.sessionDate = state.sessionDate
       }
 
       const res = await fetch("/api/booking", {

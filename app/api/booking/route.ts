@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 import { bookings, db } from "@/lib/db"
+import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { newBookingToMentorEmail } from "@/lib/email-templates"
 
@@ -22,10 +23,6 @@ const schema = z.object({
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-function normalizeTime(time: string) {
-  return time.length === 5 ? `${time}:00` : time
-}
-
 function isPersistedId(id: string | undefined) {
   return Boolean(id && UUID_PATTERN.test(id))
 }
@@ -43,6 +40,18 @@ export async function POST(request: Request) {
     const data = parsed.data
 
     try {
+      if (
+        await hasBookingConflict({
+          sessionDate: data.sessionDate,
+          startTime: data.time,
+        })
+      ) {
+        return NextResponse.json(
+          { error: "Este horario acabou de ficar indisponivel. Escolha outro horario." },
+          { status: 409 },
+        )
+      }
+
       const mentee = await ensureMenteeProfile({
         email: data.email,
         fullName: data.name,
@@ -72,7 +81,7 @@ export async function POST(request: Request) {
       }
 
       if (data.time) {
-        bookingData.startTime = normalizeTime(data.time)
+        bookingData.startTime = normalizeBookingTime(data.time)
       }
 
       await db.insert(bookings).values(bookingData)

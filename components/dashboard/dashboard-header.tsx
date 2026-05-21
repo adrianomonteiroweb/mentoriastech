@@ -2,6 +2,7 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { DashboardNotifications } from "@/components/dashboard/dashboard-notifications"
 
 interface DashboardHeaderProps {
   title: string
@@ -25,7 +26,10 @@ export function DashboardHeader({
             <p className="text-xs text-muted-foreground">{description}</p>
           )}
         </div>
-        {children && <div className="flex items-center gap-2">{children}</div>}
+        <div className="flex items-center gap-2">
+          <DashboardNotifications />
+          {children}
+        </div>
       </div>
     </header>
   )

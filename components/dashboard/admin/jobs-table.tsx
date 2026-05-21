@@ -7,7 +7,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { CheckCircle2, XCircle } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { JobForm } from "@/components/dashboard/hr/job-form"
+import { CheckCircle2, Pencil, Trash2, XCircle } from "lucide-react"
 import type { JobWithAuthor } from "@/lib/types/database"
 
 interface JobsTableProps {
@@ -23,10 +30,11 @@ export function JobsTable({
 }: JobsTableProps) {
   const [jobs, setJobs] = useState<JobWithAuthor[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingJob, setEditingJob] = useState<JobWithAuthor | null>(null)
 
   function loadJobs() {
     setLoading(true)
-    fetch(adminMode ? "/api/admin/jobs" : "/api/jobs")
+    fetch(adminMode ? "/api/admin/jobs" : "/api/jobs?mine=true")
       .then((r) => r.json())
       .then((json) => setJobs(json.data || []))
       .catch(console.error)
@@ -44,8 +52,21 @@ export function JobsTable({
     loadJobs()
   }
 
+  async function deleteJob(id: string) {
+    if (!confirm("Remover esta vaga?")) return
+    await fetch(adminMode ? `/api/admin/jobs/${id}` : `/api/jobs/${id}`, {
+      method: "DELETE",
+    })
+    loadJobs()
+  }
+
+  function handleEditSuccess() {
+    setEditingJob(null)
+    loadJobs()
+  }
+
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
-  const showActions = adminMode
+  const showActions = true
   const columnCount = showActions ? 7 : 6
 
   return (
@@ -101,8 +122,9 @@ export function JobsTable({
                 </TableCell>
                 {showActions && (
                   <TableCell>
-                    {job.status === "pending" ? (
-                      <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
+                      {adminMode && job.status === "pending" && (
+                        <>
                         <Button size="sm" variant="outline" className="text-xs h-7"
                           onClick={() => updateStatus(job.id, "approved")}>
                           <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
@@ -111,10 +133,25 @@ export function JobsTable({
                           onClick={() => updateStatus(job.id, "rejected")}>
                           <XCircle className="h-3 w-3 mr-1" /> Rejeitar
                         </Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setEditingJob(job)}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" /> Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-destructive"
+                        onClick={() => deleteJob(job.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" /> Remover
+                      </Button>
+                    </div>
                   </TableCell>
                 )}
               </TableRow>
@@ -122,6 +159,21 @@ export function JobsTable({
           )}
         </TableBody>
       </Table>
+      <Dialog open={!!editingJob} onOpenChange={(open) => !open && setEditingJob(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar vaga</DialogTitle>
+          </DialogHeader>
+          {editingJob && (
+            <JobForm
+              key={editingJob.id}
+              job={editingJob}
+              adminMode={adminMode}
+              onSuccess={handleEditSuccess}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

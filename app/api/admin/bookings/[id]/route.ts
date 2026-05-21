@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/utils/auth"
-import { createAdminClient } from "@/lib/supabase/admin"
-import { z } from "zod"
+import { eq } from "drizzle-orm"
 import nodemailer from "nodemailer"
+import { z } from "zod"
+import { bookings, db, mentoringTopics, profiles } from "@/lib/db"
+import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
+import { toBooking } from "@/lib/db/mappers"
+import { requireRole } from "@/lib/utils/auth"
 import {
+  bookingCancelledEmail,
+  bookingCompletedEmail,
   bookingConfirmedEmail,
   bookingPaymentPendingEmail,
   bookingScheduledEmail,
-  bookingCompletedEmail,
-  bookingCancelledEmail,
 } from "@/lib/email-templates"
 
 const updateSchema = z.object({
@@ -24,7 +27,30 @@ const updateSchema = z.object({
     ])
     .optional(),
   notes: z.string().optional(),
+  topic_id: z.string().uuid().optional().or(z.literal("")),
+  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
+  guest_name: z.string().optional(),
+  guest_email: z.string().email().optional().or(z.literal("")),
+  guest_whatsapp: z.string().optional(),
+  google_meet_url: z.string().url().optional().or(z.literal("")),
 })
+
+function shouldBlockStatus(status: string | undefined) {
+  return status === undefined || ["pending", "confirmed", "paid", "scheduled"].includes(status)
+}
+
+async function loadBooking(id: string) {
+  const [row] = await db
+    .select({ booking: bookings, topic: mentoringTopics, profile: profiles })
+    .from(bookings)
+    .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
+    .leftJoin(profiles, eq(bookings.menteeId, profiles.id))
+    .where(eq(bookings.id, id))
+    .limit(1)
+
+  return row
+}
 
 export async function PUT(
   request: Request,
@@ -40,67 +66,85 @@ export async function PUT(
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
-
-    // Buscar booking atual
-    const { data: booking, error: fetchError } = await supabase
-      .from("bookings")
-      .select("*, mentoring_topics(name), profiles(full_name, email)")
-      .eq("id", id)
-      .single()
-
-    if (fetchError || !booking) {
+    const row = await loadBooking(id)
+    if (!row) {
       return NextResponse.json({ error: "Agendamento nao encontrado" }, { status: 404 })
     }
 
-    const updateData: Record<string, unknown> = { ...parsed.data }
+    const nextStatus = parsed.data.status || row.booking.status
+    const nextSessionDate = parsed.data.session_date ?? row.booking.sessionDate
+    const nextStartTime = parsed.data.start_time
+      ? normalizeBookingTime(parsed.data.start_time)
+      : row.booking.startTime
 
-    // Se marcando como "scheduled", tentar criar evento no Google Calendar
-    if (parsed.data.status === "scheduled") {
+    if (
+      shouldBlockStatus(nextStatus) &&
+      (await hasBookingConflict({
+        sessionDate: nextSessionDate,
+        startTime: nextStartTime,
+        excludeBookingId: id,
+      }))
+    ) {
+      return NextResponse.json(
+        { error: "Ja existe um agendamento ativo neste dia e horario." },
+        { status: 409 },
+      )
+    }
+
+    const updateData: Partial<typeof bookings.$inferInsert> = {
+      updatedAt: new Date(),
+    }
+
+    if (parsed.data.status !== undefined) updateData.status = parsed.data.status
+    if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes || null
+    if (parsed.data.topic_id !== undefined) updateData.topicId = parsed.data.topic_id || null
+    if (parsed.data.session_date !== undefined) updateData.sessionDate = parsed.data.session_date
+    if (parsed.data.start_time !== undefined) updateData.startTime = normalizeBookingTime(parsed.data.start_time)
+    if (parsed.data.guest_name !== undefined) updateData.guestName = parsed.data.guest_name || null
+    if (parsed.data.guest_email !== undefined) updateData.guestEmail = parsed.data.guest_email || null
+    if (parsed.data.guest_whatsapp !== undefined) updateData.guestWhatsapp = parsed.data.guest_whatsapp || null
+    if (parsed.data.google_meet_url !== undefined) updateData.googleMeetUrl = parsed.data.google_meet_url || null
+
+    if (
+      (parsed.data.status === "confirmed" || parsed.data.status === "scheduled") &&
+      nextSessionDate &&
+      nextStartTime &&
+      !row.booking.googleEventId
+    ) {
       try {
         const { createCalendarEvent } = await import("@/lib/google-calendar")
+        const menteeEmail = row.profile?.email || row.booking.guestEmail || undefined
+        const menteeName = row.profile?.fullName || row.booking.guestName || "Mentorado"
+        const topicName = row.topic?.name || "Mentoria"
 
-        const menteeEmail =
-          booking.profiles?.email || booking.guest_email
-        const menteeName =
-          booking.profiles?.full_name || booking.guest_name || "Mentorado"
-        const topicName =
-          booking.mentoring_topics?.name || "Mentoria"
+        const event = await createCalendarEvent({
+          summary: `Mentoria: ${topicName}`,
+          description: `Mentoria com ${menteeName}\nTema: ${topicName}`,
+          date: nextSessionDate,
+          time: nextStartTime.substring(0, 5),
+          attendeeEmail: menteeEmail,
+        })
 
-        if (booking.session_date && booking.start_time) {
-          const eventId = await createCalendarEvent({
-            summary: `Mentoria: ${topicName}`,
-            description: `Mentoria com ${menteeName}\nTema: ${topicName}`,
-            date: booking.session_date,
-            time: booking.start_time.substring(0, 5),
-            attendeeEmail: menteeEmail || undefined,
-          })
-
-          if (eventId) {
-            updateData.google_event_id = eventId
-          }
+        if (event) {
+          updateData.googleEventId = event.eventId
+          updateData.googleMeetUrl = event.meetLink
         }
       } catch (calendarError) {
         console.error("[bookings] Calendar error (non-blocking):", calendarError)
-        // Não bloqueia a atualização do status se Calendar falhar
       }
     }
 
-    const { data, error } = await supabase
-      .from("bookings")
-      .update(updateData)
-      .eq("id", id)
-      .select()
-      .single()
+    const [data] = await db
+      .update(bookings)
+      .set(updateData)
+      .where(eq(bookings.id, id))
+      .returning()
 
-    if (error) throw error
-
-    // Send email notification to mentee on status change (non-blocking)
     if (parsed.data.status) {
       try {
-        const menteeEmail = booking.profiles?.email || booking.guest_email
-        const menteeName = booking.profiles?.full_name || booking.guest_name || "Mentorado"
-        const topicName = booking.mentoring_topics?.name || "Mentoria"
+        const menteeEmail = row.profile?.email || row.booking.guestEmail
+        const menteeName = row.profile?.fullName || row.booking.guestName || "Mentorado"
+        const topicName = row.topic?.name || "Mentoria"
 
         if (menteeEmail) {
           const smtpHost = process.env.SMTP_HOST
@@ -112,10 +156,11 @@ export async function PUT(
             const statusParams = {
               menteeName,
               topicName,
-              sessionDate: booking.session_date || undefined,
-              startTime: booking.start_time || undefined,
-              bookingType: booking.booking_type,
-              googleEventId: data?.google_event_id || booking.google_event_id,
+              sessionDate: data.sessionDate || undefined,
+              startTime: data.startTime || undefined,
+              bookingType: data.bookingType,
+              googleEventId: data.googleEventId,
+              googleMeetUrl: data.googleMeetUrl,
             }
 
             let emailContent: { subject: string; html: string } | null = null
@@ -161,7 +206,39 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: toBooking(data) })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requireRole("admin")
+    const { id } = await params
+
+    const row = await loadBooking(id)
+    if (!row) {
+      return NextResponse.json({ error: "Agendamento nao encontrado" }, { status: 404 })
+    }
+
+    if (row.booking.googleEventId) {
+      try {
+        const { deleteCalendarEvent } = await import("@/lib/google-calendar")
+        await deleteCalendarEvent(row.booking.googleEventId)
+      } catch (calendarError) {
+        console.error("[bookings] Calendar delete error (non-blocking):", calendarError)
+      }
+    }
+
+    await db.delete(bookings).where(eq(bookings.id, id))
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

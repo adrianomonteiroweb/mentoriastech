@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import nodemailer from "nodemailer"
 import { bookings, db } from "@/lib/db"
+import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { newBookingToMentorEmail } from "@/lib/email-templates"
 
@@ -32,6 +33,18 @@ export async function POST(request: Request) {
 
     const data = parsed.data
 
+    if (
+      await hasBookingConflict({
+        sessionDate: data.sessionDate,
+        startTime: data.startTime,
+      })
+    ) {
+      return NextResponse.json(
+        { error: "Este horario acabou de ficar indisponivel. Escolha outro horario." },
+        { status: 409 },
+      )
+    }
+
     // Format date for display
     const [y, m, d] = data.sessionDate.split("-")
     const dateFormatted = `${d}/${m}/${y}`
@@ -51,7 +64,7 @@ export async function POST(request: Request) {
       status: "pending",
       topicId: data.topicId,
       sessionDate: data.sessionDate,
-      startTime: data.startTime.length === 5 ? data.startTime + ":00" : data.startTime,
+      startTime: normalizeBookingTime(data.startTime),
       notes: `${data.topicName}${data.notes ? " - " + data.notes : ""}`,
     }
 

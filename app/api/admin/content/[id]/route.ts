@@ -9,8 +9,8 @@ const updateSchema = z.object({
   category_id: z.string().uuid().optional(),
   title: z.string().min(2).optional(),
   description: z.string().optional(),
-  content_type: z.enum(["pdf", "article", "video"]).optional(),
-  url: z.string().optional(),
+  content_type: z.enum(["pdf", "article", "video", "link"]).optional(),
+  url: z.string().url().optional().or(z.literal("")),
   article_body: z.string().optional(),
   is_published: z.boolean().optional(),
 })
@@ -37,7 +37,7 @@ export async function PUT(
     if (parsed.data.title !== undefined) updateData.title = parsed.data.title
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description
     if (parsed.data.content_type !== undefined) updateData.contentType = parsed.data.content_type
-    if (parsed.data.url !== undefined) updateData.url = parsed.data.url
+    if (parsed.data.url !== undefined) updateData.url = parsed.data.url || null
     if (parsed.data.article_body !== undefined) updateData.articleBody = parsed.data.article_body
     if (parsed.data.is_published !== undefined) updateData.isPublished = parsed.data.is_published
 

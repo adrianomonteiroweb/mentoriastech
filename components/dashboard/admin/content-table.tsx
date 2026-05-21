@@ -48,6 +48,7 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
     pdf: "PDF",
     article: "Artigo",
     video: "Video",
+    link: "Link",
   }
 
   return (

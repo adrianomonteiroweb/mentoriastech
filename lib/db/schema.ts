@@ -76,6 +76,7 @@ export const bookings = pgTable("bookings", {
   }).notNull().default("pending"),
   notes: text("notes"),
   googleEventId: text("google_event_id"),
+  googleMeetUrl: text("google_meet_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -115,7 +116,7 @@ export const contentItems = pgTable("content_items", {
   categoryId: uuid("category_id").notNull().references(() => contentCategories.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
-  contentType: text("content_type", { enum: ["pdf", "article", "video"] }).notNull(),
+  contentType: text("content_type", { enum: ["pdf", "article", "video", "link"] }).notNull(),
   url: text("url"),
   articleBody: text("article_body"),
   fileSizeBytes: integer("file_size_bytes"),

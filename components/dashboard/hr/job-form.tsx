@@ -9,20 +9,24 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Loader2, Send, CheckCircle2 } from "lucide-react"
+import type { Job } from "@/lib/types/database"
 
 interface JobFormProps {
   onSuccess?: () => void
+  job?: Job
+  adminMode?: boolean
 }
 
-export function JobForm({ onSuccess }: JobFormProps) {
-  const [title, setTitle] = useState("")
-  const [company, setCompany] = useState("")
-  const [description, setDescription] = useState("")
-  const [location, setLocation] = useState("")
-  const [jobType, setJobType] = useState("remote")
-  const [level, setLevel] = useState("junior")
-  const [salaryRange, setSalaryRange] = useState("")
-  const [applicationUrl, setApplicationUrl] = useState("")
+export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
+  const isEditing = Boolean(job)
+  const [title, setTitle] = useState(job?.title || "")
+  const [company, setCompany] = useState(job?.company || "")
+  const [description, setDescription] = useState(job?.description || "")
+  const [location, setLocation] = useState(job?.location || "")
+  const [jobType, setJobType] = useState(job?.job_type || "remote")
+  const [level, setLevel] = useState(job?.level || "junior")
+  const [salaryRange, setSalaryRange] = useState(job?.salary_range || "")
+  const [applicationUrl, setApplicationUrl] = useState(job?.application_url || "")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
@@ -33,8 +37,14 @@ export function JobForm({ onSuccess }: JobFormProps) {
     setError("")
 
     try {
-      const res = await fetch("/api/jobs", {
-        method: "POST",
+      const endpoint = isEditing
+        ? adminMode
+          ? `/api/admin/jobs/${job!.id}`
+          : `/api/jobs/${job!.id}`
+        : "/api/jobs"
+
+      const res = await fetch(endpoint, {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
@@ -50,19 +60,21 @@ export function JobForm({ onSuccess }: JobFormProps) {
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Erro ao publicar vaga")
+        throw new Error(data.error || "Erro ao salvar vaga")
       }
 
       setSuccess(true)
-      setTitle("")
-      setCompany("")
-      setDescription("")
-      setLocation("")
-      setSalaryRange("")
-      setApplicationUrl("")
+      if (!isEditing) {
+        setTitle("")
+        setCompany("")
+        setDescription("")
+        setLocation("")
+        setSalaryRange("")
+        setApplicationUrl("")
+      }
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao publicar")
+      setError(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {
       setLoading(false)
     }
@@ -72,10 +84,14 @@ export function JobForm({ onSuccess }: JobFormProps) {
     return (
       <div className="flex flex-col items-center gap-4 py-8">
         <CheckCircle2 className="h-12 w-12 text-green-500" />
-        <p className="text-sm font-medium">Vaga publicada com sucesso!</p>
-        <Button variant="outline" onClick={() => setSuccess(false)}>
-          Publicar outra vaga
-        </Button>
+        <p className="text-sm font-medium">
+          {isEditing ? "Vaga atualizada com sucesso!" : "Vaga publicada com sucesso!"}
+        </p>
+        {!isEditing && (
+          <Button variant="outline" onClick={() => setSuccess(false)}>
+            Publicar outra vaga
+          </Button>
+        )}
       </div>
     )
   }
@@ -105,7 +121,7 @@ export function JobForm({ onSuccess }: JobFormProps) {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Modelo</Label>
-          <Select value={jobType} onValueChange={setJobType}>
+          <Select value={jobType} onValueChange={(value) => setJobType(value as typeof jobType)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="remote">Remoto</SelectItem>
@@ -118,7 +134,7 @@ export function JobForm({ onSuccess }: JobFormProps) {
 
       <div className="flex flex-col gap-1.5">
         <Label>Nivel</Label>
-        <Select value={level} onValueChange={setLevel}>
+        <Select value={level} onValueChange={(value) => setLevel(value as typeof level)}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="internship">Estagio & Trainee</SelectItem>
@@ -144,7 +160,7 @@ export function JobForm({ onSuccess }: JobFormProps) {
 
       <Button type="submit" disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-        {loading ? "Publicando..." : "Publicar vaga"}
+        {loading ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Publicar vaga"}
       </Button>
     </form>
   )

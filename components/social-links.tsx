@@ -1,52 +1,45 @@
 "use client"
 
-import { Linkedin, MessageCircle, Instagram } from "lucide-react"
+import { Instagram, Linkedin, MessageCircle } from "lucide-react"
 
 const links = [
   {
     label: "LinkedIn",
     href: "https://linkedin.com/in/adrianomonteirodev",
     icon: Linkedin,
-    color: "hover:border-[#0A66C2] hover:text-[#0A66C2]",
+    color: "hover:border-[#0A66C2]/70 hover:bg-[#0A66C2]/10 hover:text-[#69aef5]",
   },
   {
     label: "WhatsApp",
     href: "https://wa.me/5585986663753",
     icon: MessageCircle,
-    color: "hover:border-[#25D366] hover:text-[#25D366]",
+    color: "hover:border-[#25D366]/70 hover:bg-[#25D366]/10 hover:text-[#4ade80]",
   },
   {
     label: "Instagram",
-    href: "https://instagram.com/adrianomonteirobeck",
+    href: "https://www.instagram.com/mentoriastech/",
     icon: Instagram,
-    color: "hover:border-[#E4405F] hover:text-[#E4405F]",
+    color: "hover:border-[#E4405F]/70 hover:bg-[#E4405F]/10 hover:text-[#fb7185]",
   },
 ]
 
 export function SocialLinks() {
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <nav className="flex justify-center gap-3" aria-label="Redes sociais">
       {links.map((link) => (
         <a
           key={link.label}
           href={link.href}
           target="_blank"
           rel="noopener noreferrer"
-          className={`flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4 text-sm font-medium text-card-foreground transition-all duration-200 ${link.color}`}
+          aria-label={link.label}
+          title={link.label}
+          className={`flex h-11 w-11 items-center justify-center rounded-full border border-border bg-secondary/70 text-muted-foreground shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 ${link.color}`}
         >
           <link.icon className="h-5 w-5" />
-          <span>{link.label}</span>
-          <svg
-            className="ml-auto h-4 w-4 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
-          </svg>
+          <span className="sr-only">{link.label}</span>
         </a>
       ))}
-    </div>
+    </nav>
   )
 }
