@@ -11,7 +11,7 @@ const updateSchema = z.object({
   whatsapp: z.string().optional(),
   linkedin_url: z.string().url().optional().or(z.literal("")),
   bio: z.string().optional(),
-  resume_url: z.string().url().optional().or(z.literal("")),
+  portfolio_url: z.string().url().optional().or(z.literal("")),
   career_status: z
     .enum(["seeking", "interning", "employed", "student", "other"])
     .nullable()
@@ -49,7 +49,7 @@ export async function PUT(
     if (parsed.data.whatsapp !== undefined) updateData.whatsapp = parsed.data.whatsapp || null
     if (parsed.data.linkedin_url !== undefined) updateData.linkedinUrl = parsed.data.linkedin_url || null
     if (parsed.data.bio !== undefined) updateData.bio = parsed.data.bio || null
-    if (parsed.data.resume_url !== undefined) updateData.resumeUrl = parsed.data.resume_url || null
+    if (parsed.data.portfolio_url !== undefined) updateData.portfolioUrl = parsed.data.portfolio_url || null
     if (parsed.data.career_status !== undefined) updateData.careerStatus = parsed.data.career_status || null
     if (parsed.data.seniority !== undefined) updateData.seniority = parsed.data.seniority || null
     if (parsed.data.career_focus !== undefined) updateData.careerFocus = parsed.data.career_focus || null

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -23,7 +23,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { ClipboardList, Loader2, MessageCircle, Pencil, Search, Trash2 } from "lucide-react"
+import {
+  ClipboardList,
+  Download,
+  ExternalLink,
+  Loader2,
+  MessageCircle,
+  Pencil,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
 import type { CareerStatus, Profile, Seniority } from "@/lib/types/database"
@@ -76,13 +86,17 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [historyMentee, setHistoryMentee] = useState<Profile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [uploadingResume, setUploadingResume] = useState(false)
+  const [currentResumeUrl, setCurrentResumeUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     full_name: "",
     email: "",
     whatsapp: "",
     linkedin_url: "",
     bio: "",
-    resume_url: "",
+    portfolio_url: "",
     career_status: "" as CareerStatus | "",
     seniority: "" as Seniority | "",
     career_focus: "",
@@ -106,13 +120,15 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   function openEdit(mentee: Profile) {
     setEditingMentee(mentee)
     setError("")
+    setResumeFile(null)
+    setCurrentResumeUrl(mentee.resume_url || null)
     setForm({
       full_name: mentee.full_name || "",
       email: mentee.email || "",
       whatsapp: mentee.whatsapp || "",
       linkedin_url: mentee.linkedin_url || "",
       bio: mentee.bio || "",
-      resume_url: mentee.resume_url || "",
+      portfolio_url: mentee.portfolio_url || "",
       career_status: mentee.career_status || "",
       seniority: mentee.seniority || "",
       career_focus: mentee.career_focus || "",
@@ -147,6 +163,42 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     }
   }
 
+  async function handleResumeUpload() {
+    if (!resumeFile || !editingMentee) return
+
+    setUploadingResume(true)
+    setError("")
+
+    try {
+      const data = new FormData()
+      data.append("file", resumeFile)
+
+      const res = await fetch(`/api/admin/mentees/${editingMentee.id}/resume`, {
+        method: "POST",
+        body: data,
+      })
+
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || "Erro ao enviar currículo")
+      }
+
+      const { url } = await res.json()
+      setCurrentResumeUrl(url)
+      setResumeFile(null)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      setEditingMentee((prev) => (prev ? { ...prev, resume_url: url } : null))
+      // Atualiza a linha na tabela sem fechar o dialog
+      setMentees((prev) =>
+        prev.map((m) => (m.id === editingMentee.id ? { ...m, resume_url: url } : m)),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar currículo")
+    } finally {
+      setUploadingResume(false)
+    }
+  }
+
   async function deleteMentee(id: string) {
     if (!confirm("Excluir este mentorado? Esta acao tambem remove dados vinculados ao perfil.")) return
 
@@ -177,8 +229,8 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               <TableHead>WhatsApp</TableHead>
               <TableHead className="hidden lg:table-cell">Perfil</TableHead>
               <TableHead className="hidden md:table-cell">LinkedIn</TableHead>
-              <TableHead className="hidden sm:table-cell">Curriculo</TableHead>
-              {canManage && <TableHead>Acoes</TableHead>}
+              <TableHead className="hidden sm:table-cell">Portfólio</TableHead>
+              {canManage && <TableHead>Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -245,19 +297,53 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                     ) : "-"}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {m.resume_url ? (
-                      <a href={m.resume_url} target="_blank" rel="noopener noreferrer">
-                        <Badge variant="outline" className="text-xs">PDF</Badge>
-                      </a>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {m.portfolio_url ? (
+                        <a
+                          href={m.portfolio_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Portfólio
+                        </a>
+                      ) : null}
+                      {m.resume_url ? (
+                        <a
+                          href={m.resume_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary hover:underline"
+                        >
+                          <Download className="h-3 w-3" />
+                          Currículo
+                        </a>
+                      ) : null}
+                      {!m.portfolio_url && !m.resume_url && (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </div>
                   </TableCell>
                   {canManage && (
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setHistoryMentee(m)}>
-                          <ClipboardList className="h-3 w-3 mr-1" /> Historico
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={() => setHistoryMentee(m)}
+                        >
+                          <ClipboardList className="h-3 w-3 mr-1" />
+                          Histórico
+                          {(m.booking_count ?? 0) > 0 && (
+                            <Badge
+                              variant="secondary"
+                              className="ml-1 h-4 min-w-[16px] px-1 text-[10px]"
+                            >
+                              {m.booking_count}
+                            </Badge>
+                          )}
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(m)}>
                           <Pencil className="h-3 w-3 mr-1" /> Editar
@@ -323,14 +409,55 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="mentee-resume">Curriculo</Label>
+              <Label htmlFor="mentee-portfolio">URL do Portfólio</Label>
               <Input
-                id="mentee-resume"
+                id="mentee-portfolio"
                 type="url"
-                value={form.resume_url}
-                onChange={(e) => setForm((current) => ({ ...current, resume_url: e.target.value }))}
+                value={form.portfolio_url}
+                onChange={(e) => setForm((current) => ({ ...current, portfolio_url: e.target.value }))}
                 placeholder="https://..."
               />
+            </div>
+
+            <div className="flex flex-col gap-2 rounded-md border p-3">
+              <Label>Currículo (PDF)</Label>
+              {currentResumeUrl ? (
+                <a
+                  href={currentResumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Ver / baixar currículo atual
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nenhum currículo enviado</p>
+              )}
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                  className="text-xs"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!resumeFile || uploadingResume}
+                  onClick={handleResumeUpload}
+                  className="shrink-0"
+                >
+                  {uploadingResume ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  <span className="ml-1">{uploadingResume ? "Enviando…" : "Enviar"}</span>
+                </Button>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { and, count, desc, eq, ilike, or } from "drizzle-orm"
-import { db, profiles } from "@/lib/db"
+import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm"
+import { db, profiles, bookings } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
 
@@ -35,8 +35,25 @@ export async function GET(request: Request) {
       db.select({ value: count() }).from(profiles).where(where),
     ])
 
+    const menteeIds = rows.map((r) => r.id)
+    const bookingCounts =
+      menteeIds.length > 0
+        ? await db
+            .select({ menteeId: bookings.menteeId, cnt: count(bookings.id) })
+            .from(bookings)
+            .where(
+              and(
+                inArray(bookings.menteeId, menteeIds),
+                eq(bookings.status, "completed"),
+              ),
+            )
+            .groupBy(bookings.menteeId)
+        : []
+
+    const countMap = new Map(bookingCounts.map((r) => [r.menteeId, r.cnt]))
+
     return NextResponse.json({
-      data: rows.map(toProfile),
+      data: rows.map((row) => ({ ...toProfile(row), booking_count: countMap.get(row.id) ?? 0 })),
       total: totalRows[0]?.value || 0,
       page,
       pageSize,

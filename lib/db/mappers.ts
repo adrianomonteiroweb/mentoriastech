@@ -32,6 +32,7 @@ export function toProfile(row: DbProfile): Profile {
     linkedin_url: row.linkedinUrl,
     bio: row.bio,
     resume_url: row.resumeUrl,
+    portfolio_url: row.portfolioUrl,
     avatar_url: row.avatarUrl,
     career_status: row.careerStatus,
     seniority: row.seniority,
