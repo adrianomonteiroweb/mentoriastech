@@ -23,6 +23,7 @@ import { Loader2 } from "lucide-react"
 import type {
   BookingWithRelations,
   CareerStatus,
+  OriginCategory,
   Seniority,
 } from "@/lib/types/database"
 
@@ -39,6 +40,14 @@ const SENIORITY_OPTIONS: { value: Seniority; label: string }[] = [
   { value: "mid", label: "Pleno" },
   { value: "senior", label: "Sênior" },
   { value: "undefined", label: "Indefinido" },
+]
+
+const ORIGIN_CATEGORY_OPTIONS: { value: OriginCategory; label: string }[] = [
+  { value: "linkedin", label: "LinkedIn" },
+  { value: "palestra", label: "Palestra" },
+  { value: "indicacao", label: "Indicação" },
+  { value: "instagram", label: "Instagram" },
+  { value: "evento", label: "Evento" },
 ]
 
 interface CompleteBookingDialogProps {
@@ -65,6 +74,8 @@ export function CompleteBookingDialog({
   const [careerStatus, setCareerStatus] = useState<CareerStatus | "">("")
   const [seniority, setSeniority] = useState<Seniority | "">("")
   const [careerFocus, setCareerFocus] = useState("")
+  const [originCategory, setOriginCategory] = useState<OriginCategory | "">("")
+  const [originDescription, setOriginDescription] = useState("")
 
   useEffect(() => {
     if (!booking) return
@@ -76,6 +87,8 @@ export function CompleteBookingDialog({
     setCareerStatus((booking.profiles?.career_status as CareerStatus) || "")
     setSeniority((booking.profiles?.seniority as Seniority) || "")
     setCareerFocus(booking.profiles?.career_focus || "")
+    setOriginCategory((booking.origin_category as OriginCategory) || "")
+    setOriginDescription(booking.origin_description || "")
   }, [booking])
 
   if (!booking) return null
@@ -97,6 +110,8 @@ export function CompleteBookingDialog({
       mentee_strengths: menteeStrengths,
       mentee_growth_areas: menteeGrowthAreas,
       admin_notes: adminNotes,
+      origin_category: originCategory || null,
+      origin_description: originDescription || null,
     }
 
     if (hasMentee) {
@@ -252,8 +267,48 @@ export function CompleteBookingDialog({
                   placeholder="Ex.: Backend Java, Dados, RPA, Front-end..."
                 />
               </div>
+
             </section>
           )}
+
+          <section className="grid gap-4 border-t border-border pt-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              Origem do mentorado
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Como conheceu?</Label>
+                <Select
+                  value={originCategory || "none"}
+                  onValueChange={(value) =>
+                    setOriginCategory(value === "none" ? "" : (value as OriginCategory))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {ORIGIN_CATEGORY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="origin-description">Detalhes</Label>
+                <Input
+                  id="origin-description"
+                  value={originDescription}
+                  onChange={(e) => setOriginDescription(e.target.value)}
+                  placeholder="Ex.: WTISC 2026, post sobre carreira..."
+                />
+              </div>
+            </div>
+          </section>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -37,6 +37,8 @@ export function toProfile(row: DbProfile): Profile {
     career_status: row.careerStatus,
     seniority: row.seniority,
     career_focus: row.careerFocus,
+    origin_category: row.originCategory,
+    origin_description: row.originDescription,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }
@@ -91,6 +93,8 @@ export function toBooking(row: DbBooking): Booking {
     mentee_strengths: row.menteeStrengths,
     mentee_growth_areas: row.menteeGrowthAreas,
     admin_notes: row.adminNotes,
+    origin_category: row.originCategory,
+    origin_description: row.originDescription,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

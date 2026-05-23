@@ -26,6 +26,7 @@ export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 export type JobActionType = "applied" | "link_issue" | "closed"
+export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
 // -----------------------------------------------------------------------------
 // Profiles
@@ -44,6 +45,8 @@ export interface Profile {
   career_status: CareerStatus | null
   seniority: Seniority | null
   career_focus: string | null
+  origin_category: OriginCategory | null
+  origin_description: string | null
   created_at: string
   updated_at: string
   booking_count?: number
@@ -99,6 +102,8 @@ export interface Booking {
   mentee_strengths: string | null
   mentee_growth_areas: string | null
   admin_notes: string | null
+  origin_category: OriginCategory | null
+  origin_description: string | null
   created_at: string
   updated_at: string
 }

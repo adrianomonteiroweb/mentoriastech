@@ -31,6 +31,10 @@ export const profiles = pgTable("profiles", {
   }),
   seniority: text("seniority", { enum: ["junior", "mid", "senior", "undefined"] }),
   careerFocus: text("career_focus"),
+  originCategory: text("origin_category", {
+    enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
+  }),
+  originDescription: text("origin_description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -87,6 +91,10 @@ export const bookings = pgTable("bookings", {
   menteeStrengths: text("mentee_strengths"),
   menteeGrowthAreas: text("mentee_growth_areas"),
   adminNotes: text("admin_notes"),
+  originCategory: text("origin_category", {
+    enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
+  }),
+  originDescription: text("origin_description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

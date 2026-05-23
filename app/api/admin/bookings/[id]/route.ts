@@ -47,6 +47,11 @@ const updateSchema = z.object({
   mentee_strengths: z.string().optional(),
   mentee_growth_areas: z.string().optional(),
   admin_notes: z.string().optional(),
+  origin_category: z
+    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .nullable()
+    .optional(),
+  origin_description: z.string().nullable().optional(),
   mentee_profile_update: menteeProfileUpdateSchema.optional(),
 })
 
@@ -122,6 +127,8 @@ export async function PUT(
     if (parsed.data.mentee_strengths !== undefined) updateData.menteeStrengths = parsed.data.mentee_strengths || null
     if (parsed.data.mentee_growth_areas !== undefined) updateData.menteeGrowthAreas = parsed.data.mentee_growth_areas || null
     if (parsed.data.admin_notes !== undefined) updateData.adminNotes = parsed.data.admin_notes || null
+    if (parsed.data.origin_category !== undefined) updateData.originCategory = parsed.data.origin_category || null
+    if (parsed.data.origin_description !== undefined) updateData.originDescription = parsed.data.origin_description || null
 
     if (
       (parsed.data.status === "confirmed" || parsed.data.status === "scheduled") &&
