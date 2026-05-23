@@ -179,6 +179,29 @@ export const sessions = pgTable("sessions", {
 })
 
 // -----------------------------------------------------------------------------
+// MENTEE_ACCESS_CODES — códigos one-time enviados por email para área Minhas Mentorias
+// -----------------------------------------------------------------------------
+export const menteeAccessCodes = pgTable("mentee_access_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// MENTEE_ACCESS_SESSIONS — sessões isoladas da área Minhas Mentorias (vinculadas por email)
+// -----------------------------------------------------------------------------
+export const menteeAccessSessions = pgTable("mentee_access_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // CONTENT_VIEWS — rastreamento de visitantes únicos por conteúdo
 // -----------------------------------------------------------------------------
 export const contentViews = pgTable("content_views", {
@@ -215,3 +238,5 @@ export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
 export type SiteSetting = typeof siteSettings.$inferSelect
 export type Session = typeof sessions.$inferSelect
+export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect
+export type MenteeAccessSession = typeof menteeAccessSessions.$inferSelect

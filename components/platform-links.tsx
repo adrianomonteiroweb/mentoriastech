@@ -1,5 +1,10 @@
 import Link from "next/link"
-import { ArrowRight, BookOpenCheck, BriefcaseBusiness } from "lucide-react"
+import {
+  ArrowRight,
+  BookOpenCheck,
+  BriefcaseBusiness,
+  FileText,
+} from "lucide-react"
 
 const links = [
   {
@@ -13,6 +18,12 @@ const links = [
     description: "Oportunidades em tecnologia para seu próximo passo",
     href: "/jobs",
     icon: BriefcaseBusiness,
+  },
+  {
+    label: "Minhas Mentorias",
+    description: "Veja e baixe as anotações das suas mentorias",
+    href: "/minhas-mentorias",
+    icon: FileText,
   },
 ]
 

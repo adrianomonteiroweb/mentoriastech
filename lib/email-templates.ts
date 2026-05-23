@@ -257,3 +257,37 @@ export function bookingCancelledEmail(params: StatusChangeParams) {
 
   return { subject, html }
 }
+
+// ---------------------------------------------------------------------------
+// Email com código de acesso para Minhas Mentorias
+// ---------------------------------------------------------------------------
+
+interface AccessCodeParams {
+  code: string
+  minutesValid: number
+}
+
+export function accessCodeEmail(params: AccessCodeParams) {
+  const subject = `Seu código de acesso - Minhas Mentorias`
+
+  const codeBlock = `
+    <div style="margin: 0 auto 20px; padding: 24px; background: #ffffff; border: 2px dashed ${BRAND_PRIMARY}; border-radius: 10px; text-align: center;">
+      <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">Seu código de acesso</p>
+      <p style="margin: 0; color: ${BRAND_BG}; font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: 'Courier New', monospace;">${params.code}</p>
+    </div>
+  `
+
+  const html = baseLayout(
+    "Código de acesso",
+    "Use o código abaixo para acessar suas mentorias",
+    codeBlock +
+      `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
+        Digite este código de 6 dígitos na página para visualizar o histórico de anotações das suas mentorias.
+      </p>` +
+      actionBox(
+        `<strong>Importante:</strong> Este código é válido por ${params.minutesValid} minutos. Não compartilhe com ninguém. Caso você não tenha solicitado, pode ignorar este email.`,
+      ),
+  )
+
+  return { subject, html }
+}
