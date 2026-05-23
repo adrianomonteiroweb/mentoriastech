@@ -13,11 +13,19 @@ export type BookingStatus =
   | "scheduled"
   | "completed"
   | "cancelled"
+export type CareerStatus =
+  | "seeking"
+  | "interning"
+  | "employed"
+  | "student"
+  | "other"
+export type Seniority = "junior" | "mid" | "senior" | "undefined"
 export type PaymentStatus = "pending" | "confirmed" | "failed" | "refunded"
 export type ContentType = "pdf" | "article" | "video" | "link"
 export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
+export type JobActionType = "applied" | "link_issue" | "closed"
 
 // -----------------------------------------------------------------------------
 // Profiles
@@ -32,6 +40,9 @@ export interface Profile {
   bio: string | null
   resume_url: string | null
   avatar_url: string | null
+  career_status: CareerStatus | null
+  seniority: Seniority | null
+  career_focus: string | null
   created_at: string
   updated_at: string
 }
@@ -82,6 +93,10 @@ export interface Booking {
   notes: string | null
   google_event_id: string | null
   google_meet_url: string | null
+  topics_discussed: string | null
+  mentee_strengths: string | null
+  mentee_growth_areas: string | null
+  admin_notes: string | null
   created_at: string
   updated_at: string
 }
@@ -136,6 +151,7 @@ export interface ContentItem {
   article_body: string | null
   file_size_bytes: number | null
   is_published: boolean
+  view_count: number
   created_by: string | null
   created_at: string
   updated_at: string
@@ -169,6 +185,17 @@ export interface Job {
 
 export interface JobWithAuthor extends Job {
   profiles?: Profile | null
+}
+
+// -----------------------------------------------------------------------------
+// Job Actions
+// -----------------------------------------------------------------------------
+export interface JobAction {
+  id: string
+  job_id: string
+  user_id: string
+  action_type: JobActionType
+  created_at: string
 }
 
 // -----------------------------------------------------------------------------

@@ -25,6 +25,11 @@ export const profiles = pgTable("profiles", {
   bio: text("bio"),
   resumeUrl: text("resume_url"),
   avatarUrl: text("avatar_url"),
+  careerStatus: text("career_status", {
+    enum: ["seeking", "interning", "employed", "student", "other"],
+  }),
+  seniority: text("seniority", { enum: ["junior", "mid", "senior", "undefined"] }),
+  careerFocus: text("career_focus"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -77,6 +82,10 @@ export const bookings = pgTable("bookings", {
   notes: text("notes"),
   googleEventId: text("google_event_id"),
   googleMeetUrl: text("google_meet_url"),
+  topicsDiscussed: text("topics_discussed"),
+  menteeStrengths: text("mentee_strengths"),
+  menteeGrowthAreas: text("mentee_growth_areas"),
+  adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -121,6 +130,7 @@ export const contentItems = pgTable("content_items", {
   articleBody: text("article_body"),
   fileSizeBytes: integer("file_size_bytes"),
   isPublished: boolean("is_published").notNull().default(false),
+  viewCount: integer("view_count").notNull().default(0),
   createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -168,6 +178,27 @@ export const sessions = pgTable("sessions", {
 })
 
 // -----------------------------------------------------------------------------
+// CONTENT_VIEWS — rastreamento de visitantes únicos por conteúdo
+// -----------------------------------------------------------------------------
+export const contentViews = pgTable("content_views", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  contentId: uuid("content_id").notNull().references(() => contentItems.id, { onDelete: "cascade" }),
+  visitorHash: text("visitor_hash").notNull(),
+  viewedAt: timestamp("viewed_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// JOB_ACTIONS — ações de mentorados em vagas
+// -----------------------------------------------------------------------------
+export const jobActions = pgTable("job_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  actionType: text("action_type", { enum: ["applied", "link_issue", "closed"] }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect
@@ -179,5 +210,7 @@ export type Payment = typeof payments.$inferSelect
 export type ContentCategory = typeof contentCategories.$inferSelect
 export type ContentItem = typeof contentItems.$inferSelect
 export type Job = typeof jobs.$inferSelect
+export type ContentView = typeof contentViews.$inferSelect
+export type JobAction = typeof jobActions.$inferSelect
 export type SiteSetting = typeof siteSettings.$inferSelect
 export type Session = typeof sessions.$inferSelect

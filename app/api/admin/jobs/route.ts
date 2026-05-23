@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { desc, eq } from "drizzle-orm"
-import { db, jobs, profiles } from "@/lib/db"
+import { desc, eq, sql } from "drizzle-orm"
+import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
 
@@ -14,10 +14,37 @@ export async function GET() {
       .leftJoin(profiles, eq(jobs.postedBy, profiles.id))
       .orderBy(desc(jobs.createdAt))
 
+    const data = rows.map((row) => ({
+      ...toJob(row.job),
+      profiles: row.profile ? toProfile(row.profile) : null,
+    }))
+
+    const jobIds = data.map((j) => j.id)
+    let actionCounts: Record<string, { applied: number; link_issue: number; closed: number }> = {}
+
+    if (jobIds.length > 0) {
+      const counts = await db
+        .select({
+          jobId: jobActions.jobId,
+          actionType: jobActions.actionType,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(jobActions)
+        .groupBy(jobActions.jobId, jobActions.actionType)
+
+      for (const row of counts) {
+        if (!actionCounts[row.jobId]) {
+          actionCounts[row.jobId] = { applied: 0, link_issue: 0, closed: 0 }
+        }
+        const key = row.actionType as keyof typeof actionCounts[string]
+        actionCounts[row.jobId][key] = row.count
+      }
+    }
+
     return NextResponse.json({
-      data: rows.map((row) => ({
-        ...toJob(row.job),
-        profiles: row.profile ? toProfile(row.profile) : null,
+      data: data.map((job) => ({
+        ...job,
+        action_counts: actionCounts[job.id] || { applied: 0, link_issue: 0, closed: 0 },
       })),
     })
   } catch (error) {

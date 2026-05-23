@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { desc, eq } from "drizzle-orm"
-import { db, jobs, profiles } from "@/lib/db"
+import { desc, eq, inArray } from "drizzle-orm"
+import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
-import { requireAuth, requireRole } from "@/lib/utils/auth"
+import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
 import { z } from "zod"
 
 const createSchema = z.object({
@@ -46,12 +46,23 @@ export async function GET(request: Request) {
       .where(eq(jobs.status, "approved"))
       .orderBy(desc(jobs.createdAt))
 
-    return NextResponse.json({
-      data: rows.map((row) => ({
-        ...toJob(row.job),
-        profiles: row.profile ? toProfile(row.profile) : null,
-      })),
-    })
+    const data = rows.map((row) => ({
+      ...toJob(row.job),
+      profiles: row.profile ? toProfile(row.profile) : null,
+    }))
+
+    let userActions: { job_id: string; action_type: string }[] = []
+    const session = await getSession().catch(() => null)
+    if (session && data.length > 0) {
+      const rows = await db
+        .select({ jobId: jobActions.jobId, actionType: jobActions.actionType })
+        .from(jobActions)
+        .where(eq(jobActions.userId, session.id))
+
+      userActions = rows.map((r) => ({ job_id: r.jobId, action_type: r.actionType }))
+    }
+
+    return NextResponse.json({ data, user_actions: userActions, is_authenticated: !!session })
   } catch (error) {
     console.error("[jobs] Error:", error)
     return NextResponse.json({ error: "Erro ao carregar vagas" }, { status: 500 })

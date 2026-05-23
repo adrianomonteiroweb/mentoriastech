@@ -14,6 +14,15 @@ import {
   bookingScheduledEmail,
 } from "@/lib/email-templates"
 
+const menteeProfileUpdateSchema = z.object({
+  career_status: z
+    .enum(["seeking", "interning", "employed", "student", "other"])
+    .nullable()
+    .optional(),
+  seniority: z.enum(["junior", "mid", "senior", "undefined"]).nullable().optional(),
+  career_focus: z.string().nullable().optional(),
+})
+
 const updateSchema = z.object({
   status: z
     .enum([
@@ -34,6 +43,11 @@ const updateSchema = z.object({
   guest_email: z.string().email().optional().or(z.literal("")),
   guest_whatsapp: z.string().optional(),
   google_meet_url: z.string().url().optional().or(z.literal("")),
+  topics_discussed: z.string().optional(),
+  mentee_strengths: z.string().optional(),
+  mentee_growth_areas: z.string().optional(),
+  admin_notes: z.string().optional(),
+  mentee_profile_update: menteeProfileUpdateSchema.optional(),
 })
 
 function shouldBlockStatus(status: string | undefined) {
@@ -104,6 +118,10 @@ export async function PUT(
     if (parsed.data.guest_email !== undefined) updateData.guestEmail = parsed.data.guest_email || null
     if (parsed.data.guest_whatsapp !== undefined) updateData.guestWhatsapp = parsed.data.guest_whatsapp || null
     if (parsed.data.google_meet_url !== undefined) updateData.googleMeetUrl = parsed.data.google_meet_url || null
+    if (parsed.data.topics_discussed !== undefined) updateData.topicsDiscussed = parsed.data.topics_discussed || null
+    if (parsed.data.mentee_strengths !== undefined) updateData.menteeStrengths = parsed.data.mentee_strengths || null
+    if (parsed.data.mentee_growth_areas !== undefined) updateData.menteeGrowthAreas = parsed.data.mentee_growth_areas || null
+    if (parsed.data.admin_notes !== undefined) updateData.adminNotes = parsed.data.admin_notes || null
 
     if (
       (parsed.data.status === "confirmed" || parsed.data.status === "scheduled") &&
@@ -139,6 +157,23 @@ export async function PUT(
       .set(updateData)
       .where(eq(bookings.id, id))
       .returning()
+
+    if (parsed.data.mentee_profile_update && row.booking.menteeId) {
+      const profileUpdate: Partial<typeof profiles.$inferInsert> = {
+        updatedAt: new Date(),
+      }
+      const mp = parsed.data.mentee_profile_update
+      if (mp.career_status !== undefined) profileUpdate.careerStatus = mp.career_status || null
+      if (mp.seniority !== undefined) profileUpdate.seniority = mp.seniority || null
+      if (mp.career_focus !== undefined) profileUpdate.careerFocus = mp.career_focus || null
+
+      if (Object.keys(profileUpdate).length > 1) {
+        await db
+          .update(profiles)
+          .set(profileUpdate)
+          .where(eq(profiles.id, row.booking.menteeId))
+      }
+    }
 
     if (parsed.data.status) {
       try {

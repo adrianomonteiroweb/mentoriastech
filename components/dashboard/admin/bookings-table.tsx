@@ -28,8 +28,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react"
+import { ExternalLink, Loader2, MessageCircle, Pencil, Trash2 } from "lucide-react"
+import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { BookingWithRelations, BookingStatus, MentoringTopic } from "@/lib/types/database"
+import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pendente",
@@ -57,6 +59,7 @@ export function BookingsTable() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
   const [editingBooking, setEditingBooking] = useState<BookingWithRelations | null>(null)
+  const [completingBooking, setCompletingBooking] = useState<BookingWithRelations | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [form, setForm] = useState({
@@ -188,10 +191,11 @@ export function BookingsTable() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
               <TableHead>Tema</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Data</TableHead>
+              <TableHead>Data/Hora</TableHead>
               <TableHead>Acoes</TableHead>
             </TableRow>
           </TableHeader>
@@ -199,7 +203,7 @@ export function BookingsTable() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-20" />
                     </TableCell>
@@ -208,7 +212,7 @@ export function BookingsTable() {
               ))
             ) : bookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhum agendamento encontrado
                 </TableCell>
               </TableRow>
@@ -217,6 +221,24 @@ export function BookingsTable() {
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{getName(b)}</TableCell>
                   <TableCell className="hidden md:table-cell text-xs">{getEmail(b)}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {(() => {
+                      const whatsapp = b.profiles?.whatsapp || b.guest_whatsapp
+                      if (!whatsapp) return <span className="text-xs text-muted-foreground">-</span>
+                      const number = formatWhatsAppNumber(whatsapp)
+                      return (
+                        <a
+                          href={`https://wa.me/${number}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex max-w-[140px] items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-500 transition-colors hover:bg-emerald-500/20"
+                        >
+                          <MessageCircle className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{whatsapp}</span>
+                        </a>
+                      )
+                    })()}
+                  </TableCell>
                   <TableCell className="text-xs">{getTopic(b)}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs capitalize">
@@ -229,9 +251,18 @@ export function BookingsTable() {
                     </span>
                   </TableCell>
                   <TableCell className="text-xs">
-                    {b.session_date
-                      ? b.session_date.split("-").reverse().join("/")
-                      : b.created_at.split("T")[0].split("-").reverse().join("/")}
+                    <div className="flex flex-col">
+                      <span>
+                        {b.session_date
+                          ? b.session_date.split("-").reverse().join("/")
+                          : b.created_at.split("T")[0].split("-").reverse().join("/")}
+                      </span>
+                      {b.start_time && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {b.start_time.substring(0, 5)}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -255,7 +286,7 @@ export function BookingsTable() {
                       )}
                       {b.status === "scheduled" && (
                         <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => updateStatus(b.id, "completed")}>
+                          onClick={() => setCompletingBooking(b)}>
                           Concluir
                         </Button>
                       )}
@@ -291,6 +322,16 @@ export function BookingsTable() {
           </TableBody>
         </Table>
       </div>
+
+      <CompleteBookingDialog
+        booking={completingBooking}
+        open={!!completingBooking}
+        onClose={() => setCompletingBooking(null)}
+        onCompleted={() => {
+          setCompletingBooking(null)
+          loadBookings()
+        }}
+      />
 
       <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">

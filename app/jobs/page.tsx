@@ -1,42 +1,44 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
-  Briefcase,
+  AlertTriangle,
+  CheckCircle2,
   MapPin,
   Building2,
   Loader2,
   ArrowLeft,
   ExternalLink,
   DollarSign,
-} from "lucide-react"
-import Link from "next/link"
+  XCircle,
+} from "lucide-react";
+import Link from "next/link";
 
 interface Job {
-  id: string
-  title: string
-  company: string
-  description: string
-  location: string | null
-  job_type: "remote" | "hybrid" | "onsite"
-  level: "internship" | "junior" | "mid" | "senior"
-  salary_range: string | null
-  application_url: string | null
-  created_at: string
-  profiles: { full_name: string } | null
+  id: string;
+  title: string;
+  company: string;
+  description: string;
+  location: string | null;
+  job_type: "remote" | "hybrid" | "onsite";
+  level: "internship" | "junior" | "mid" | "senior";
+  salary_range: string | null;
+  application_url: string | null;
+  created_at: string;
+  profiles: { full_name: string } | null;
 }
 
 const JOB_TYPE_LABELS: Record<string, string> = {
   remote: "Remoto",
   hybrid: "Híbrido",
   onsite: "Presencial",
-}
+};
 
 const JOB_TYPE_COLORS: Record<string, string> = {
   remote: "bg-green-500/10 text-green-400",
   hybrid: "bg-yellow-500/10 text-yellow-400",
   onsite: "bg-blue-500/10 text-blue-400",
-}
+};
 
 const LEVEL_TABS = [
   { key: "all", label: "Todas" },
@@ -44,14 +46,15 @@ const LEVEL_TABS = [
   { key: "junior", label: "Júnior" },
   { key: "mid", label: "Pleno" },
   { key: "senior", label: "Sênior" },
-] as const
+] as const;
 
 const FALLBACK_JOBS: Job[] = [
   {
     id: "fj1",
     title: "Estagiário(a) de Desenvolvimento Web",
     company: "TechStart",
-    description: "Vaga de estágio para estudantes de TI. Você vai atuar no desenvolvimento de interfaces web com React e TypeScript, participar de code reviews e aprender boas práticas de desenvolvimento.",
+    description:
+      "Vaga de estágio para estudantes de TI. Você vai atuar no desenvolvimento de interfaces web com React e TypeScript, participar de code reviews e aprender boas práticas de desenvolvimento.",
     location: "Fortaleza, CE",
     job_type: "hybrid",
     level: "internship",
@@ -64,7 +67,8 @@ const FALLBACK_JOBS: Job[] = [
     id: "fj2",
     title: "Desenvolvedor(a) Front-end Júnior",
     company: "DigitalFlow",
-    description: "Buscamos dev júnior com conhecimento em React, Next.js e Tailwind CSS. Experiência com TypeScript é um diferencial. Trabalho 100% remoto com squad ágil.",
+    description:
+      "Buscamos dev júnior com conhecimento em React, Next.js e Tailwind CSS. Experiência com TypeScript é um diferencial. Trabalho 100% remoto com squad ágil.",
     location: null,
     job_type: "remote",
     level: "junior",
@@ -77,7 +81,8 @@ const FALLBACK_JOBS: Job[] = [
     id: "fj3",
     title: "Pessoa Desenvolvedora Full-Stack Pleno",
     company: "Inovare Solutions",
-    description: "Atuação em projetos de média e alta complexidade com Node.js, React e PostgreSQL. Experiência com APIs REST, testes automatizados e CI/CD. Metodologia ágil.",
+    description:
+      "Atuação em projetos de média e alta complexidade com Node.js, React e PostgreSQL. Experiência com APIs REST, testes automatizados e CI/CD. Metodologia ágil.",
     location: "São Paulo, SP",
     job_type: "remote",
     level: "mid",
@@ -90,7 +95,8 @@ const FALLBACK_JOBS: Job[] = [
     id: "fj4",
     title: "Dev Back-end Sênior (Node.js)",
     company: "ScaleTech",
-    description: "Liderança técnica em arquitetura de microsserviços, mentoria de devs júnior, definição de padrões de código e revisão de PRs. Stack: Node.js, TypeScript, PostgreSQL, AWS.",
+    description:
+      "Liderança técnica em arquitetura de microsserviços, mentoria de devs júnior, definição de padrões de código e revisão de PRs. Stack: Node.js, TypeScript, PostgreSQL, AWS.",
     location: null,
     job_type: "remote",
     level: "senior",
@@ -103,7 +109,8 @@ const FALLBACK_JOBS: Job[] = [
     id: "fj5",
     title: "Trainee de Automação RPA",
     company: "AutomateNow",
-    description: "Programa de trainee focado em automação de processos com ferramentas de RPA. Treinamento completo oferecido pela empresa. Ideal para quem está migrando de carreira.",
+    description:
+      "Programa de trainee focado em automação de processos com ferramentas de RPA. Treinamento completo oferecido pela empresa. Ideal para quem está migrando de carreira.",
     location: "Fortaleza, CE",
     job_type: "onsite",
     level: "internship",
@@ -116,7 +123,8 @@ const FALLBACK_JOBS: Job[] = [
     id: "fj6",
     title: "Desenvolvedor(a) React Native Júnior",
     company: "AppMasters",
-    description: "Desenvolvimento de aplicativos mobile com React Native e Expo. Integração com APIs REST e publicação nas lojas. Mentoria contínua do time sênior.",
+    description:
+      "Desenvolvimento de aplicativos mobile com React Native e Expo. Integração com APIs REST e publicação nas lojas. Mentoria contínua do time sênior.",
     location: null,
     job_type: "remote",
     level: "junior",
@@ -125,39 +133,88 @@ const FALLBACK_JOBS: Job[] = [
     created_at: new Date().toISOString(),
     profiles: { full_name: "Adriano Monteiro" },
   },
-]
+];
+
+interface UserAction {
+  job_id: string;
+  action_type: string;
+}
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<string>("all")
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userActions, setUserActions] = useState<UserAction[]>([]);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadJobs() {
     fetch("/api/jobs")
       .then((res) => res.json())
       .then((json) => {
         if (json.error || !json.data) {
-          setJobs(FALLBACK_JOBS)
+          setJobs(FALLBACK_JOBS);
         } else {
-          setJobs(json.data.length > 0 ? json.data : FALLBACK_JOBS)
+          setJobs(json.data.length > 0 ? json.data : FALLBACK_JOBS);
+          setUserActions(json.user_actions || []);
+          setIsAuthenticated(!!json.is_authenticated);
         }
       })
       .catch(() => {
-        setJobs(FALLBACK_JOBS)
+        setJobs(FALLBACK_JOBS);
       })
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }
 
-  const filtered = activeTab === "all"
-    ? jobs
-    : jobs.filter((job) => job.level === activeTab)
+  useEffect(() => {
+    loadJobs();
+  }, []);
+
+  function hasAction(jobId: string, actionType: string) {
+    return userActions.some(
+      (a) => a.job_id === jobId && a.action_type === actionType,
+    );
+  }
+
+  async function toggleAction(jobId: string, actionType: string) {
+    const key = `${jobId}:${actionType}`;
+    setActionLoading(key);
+    try {
+      if (hasAction(jobId, actionType)) {
+        await fetch(`/api/jobs/${jobId}/actions?action_type=${actionType}`, {
+          method: "DELETE",
+        });
+        setUserActions((prev) =>
+          prev.filter(
+            (a) => !(a.job_id === jobId && a.action_type === actionType),
+          ),
+        );
+      } else {
+        await fetch(`/api/jobs/${jobId}/actions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action_type: actionType }),
+        });
+        setUserActions((prev) => [
+          ...prev,
+          { job_id: jobId, action_type: actionType },
+        ]);
+      }
+    } catch {
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  const filtered =
+    activeTab === "all" ? jobs : jobs.filter((job) => job.level === activeTab);
 
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </main>
-    )
+    );
   }
 
   return (
@@ -226,7 +283,13 @@ export default function JobsPage() {
                     {JOB_TYPE_LABELS[job.job_type] || job.job_type}
                   </span>
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    {job.level === "internship" ? "Estágio" : job.level === "junior" ? "Júnior" : job.level === "mid" ? "Pleno" : "Sênior"}
+                    {job.level === "internship"
+                      ? "Estágio"
+                      : job.level === "junior"
+                        ? "Júnior"
+                        : job.level === "mid"
+                          ? "Pleno"
+                          : "Sênior"}
                   </span>
                 </div>
               </div>
@@ -263,6 +326,63 @@ export default function JobsPage() {
                   Publicado por {job.profiles.full_name}
                 </p>
               )}
+
+              {isAuthenticated && !job.id.startsWith("fj") && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                  <button
+                    onClick={() => toggleAction(job.id, "applied")}
+                    disabled={actionLoading === `${job.id}:applied`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                      hasAction(job.id, "applied")
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Me candidatei
+                  </button>
+                  <button
+                    onClick={() => toggleAction(job.id, "link_issue")}
+                    disabled={
+                      hasAction(job.id, "link_issue") ||
+                      actionLoading === `${job.id}:link_issue`
+                    }
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                      hasAction(job.id, "link_issue")
+                        ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                    title={
+                      hasAction(job.id, "link_issue")
+                        ? "Já reportado"
+                        : "Reportar link com problemas"
+                    }
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    Link com problemas
+                  </button>
+                  <button
+                    onClick={() => toggleAction(job.id, "closed")}
+                    disabled={
+                      hasAction(job.id, "closed") ||
+                      actionLoading === `${job.id}:closed`
+                    }
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                      hasAction(job.id, "closed")
+                        ? "bg-red-500/20 text-red-400"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                    title={
+                      hasAction(job.id, "closed")
+                        ? "Já reportado"
+                        : "Reportar que não aceita mais candidaturas"
+                    }
+                  >
+                    <XCircle className="h-3 w-3" />
+                    Não aceita mais candidaturas
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
@@ -273,8 +393,7 @@ export default function JobsPage() {
             </p>
           )}
         </div>
-
       </div>
     </main>
-  )
+  );
 }

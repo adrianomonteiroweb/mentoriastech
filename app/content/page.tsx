@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import {
+  Eye,
   FileText,
   Youtube,
   BookOpen,
@@ -24,6 +25,7 @@ interface ContentItem {
   description: string | null
   content_type: "pdf" | "article" | "video" | "link"
   url: string | null
+  view_count: number
   created_at: string
   content_categories: { name: string; slug: string } | null
 }
@@ -48,6 +50,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "Guia completo para quem quer começar a programar do zero, com dicas de linguagens, recursos gratuitos e plano de estudos.",
     content_type: "article",
     url: null,
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Programação", slug: "programacao" },
   },
@@ -57,6 +60,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "Vídeo com as principais perguntas de entrevistas para desenvolvedores júnior e como se preparar para cada uma delas.",
     content_type: "video",
     url: "https://youtube.com",
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Entrevistas", slug: "entrevistas" },
   },
@@ -66,6 +70,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "PDF com o mapa de carreira desde estágio até sênior, com habilidades esperadas em cada nível.",
     content_type: "pdf",
     url: null,
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Carreira", slug: "carreira" },
   },
@@ -75,6 +80,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "Tutorial passo a passo para criar sua primeira aplicação com Next.js, React e TypeScript.",
     content_type: "video",
     url: "https://youtube.com",
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Programação", slug: "programacao" },
   },
@@ -84,6 +90,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "Dicas práticas para criar um portfólio de desenvolvedor que chama atenção dos recrutadores.",
     content_type: "article",
     url: null,
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Carreira", slug: "carreira" },
   },
@@ -93,6 +100,7 @@ const FALLBACK_ITEMS: ContentItem[] = [
     description: "Material em PDF sobre como automatizar processos repetitivos usando ferramentas de RPA.",
     content_type: "pdf",
     url: null,
+    view_count: 0,
     created_at: new Date().toISOString(),
     content_categories: { name: "Programação", slug: "programacao" },
   },
@@ -213,11 +221,19 @@ export default function ContentPage() {
                         {item.description}
                       </p>
                     )}
-                    {item.content_categories && (
-                      <span className="mt-2 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                        {item.content_categories.name}
-                      </span>
-                    )}
+                    <div className="mt-2 flex items-center gap-2">
+                      {item.content_categories && (
+                        <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          {item.content_categories.name}
+                        </span>
+                      )}
+                      {item.view_count > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                          <Eye className="h-3 w-3" />
+                          {item.view_count}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Link>

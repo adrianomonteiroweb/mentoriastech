@@ -33,6 +33,9 @@ export function toProfile(row: DbProfile): Profile {
     bio: row.bio,
     resume_url: row.resumeUrl,
     avatar_url: row.avatarUrl,
+    career_status: row.careerStatus,
+    seniority: row.seniority,
+    career_focus: row.careerFocus,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }
@@ -60,6 +63,7 @@ export function toContentItem(row: DbContentItem): ContentItem {
     article_body: row.articleBody,
     file_size_bytes: row.fileSizeBytes,
     is_published: row.isPublished,
+    view_count: row.viewCount,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
@@ -82,6 +86,10 @@ export function toBooking(row: DbBooking): Booking {
     notes: row.notes,
     google_event_id: row.googleEventId,
     google_meet_url: row.googleMeetUrl,
+    topics_discussed: row.topicsDiscussed,
+    mentee_strengths: row.menteeStrengths,
+    mentee_growth_areas: row.menteeGrowthAreas,
+    admin_notes: row.adminNotes,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

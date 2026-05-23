@@ -16,6 +16,9 @@ CREATE TABLE public.profiles (
   bio TEXT,
   resume_url TEXT,
   avatar_url TEXT,
+  career_status TEXT,         -- 'seeking' | 'interning' | 'employed' | 'student' | 'other'
+  seniority TEXT,             -- 'junior' | 'mid' | 'senior' | 'undefined'
+  career_focus TEXT,          -- Foco de carreira (texto livre)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -178,6 +181,10 @@ CREATE TABLE public.bookings (
   notes TEXT,
   google_event_id TEXT,
   google_meet_url TEXT,
+  topics_discussed TEXT,        -- Duvidas/temas abordados na sessao
+  mentee_strengths TEXT,        -- Pontos positivos do mentorado
+  mentee_growth_areas TEXT,     -- Pontos a desenvolver
+  admin_notes TEXT,             -- Anotacoes privadas do admin sobre o candidato
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -290,6 +297,7 @@ CREATE TABLE public.content_items (
   article_body TEXT,
   file_size_bytes INTEGER,
   is_published BOOLEAN NOT NULL DEFAULT false,
+  view_count INTEGER NOT NULL DEFAULT 0,
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -479,3 +487,32 @@ CREATE INDEX idx_content_items_category ON public.content_items(category_id);
 CREATE INDEX idx_content_items_published ON public.content_items(is_published);
 CREATE INDEX idx_jobs_status ON public.jobs(status);
 CREATE INDEX idx_jobs_posted_by ON public.jobs(posted_by);
+
+-- -----------------------------------------------------------------------------
+-- 10. CONTENT_VIEWS — Rastreamento de visitantes únicos por conteúdo
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.content_views (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  content_id UUID NOT NULL REFERENCES public.content_items(id) ON DELETE CASCADE,
+  visitor_hash TEXT NOT NULL,
+  viewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(content_id, visitor_hash)
+);
+
+CREATE INDEX idx_content_views_content_id ON public.content_views(content_id);
+CREATE INDEX idx_content_items_view_count ON public.content_items(view_count DESC);
+
+-- -----------------------------------------------------------------------------
+-- 11. JOB_ACTIONS — Ações de mentorados em vagas
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.job_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  job_id UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL,  -- 'applied', 'link_issue', 'closed'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(job_id, user_id, action_type)
+);
+
+CREATE INDEX idx_job_actions_job_id ON public.job_actions(job_id);
+CREATE INDEX idx_job_actions_user_id ON public.job_actions(user_id);

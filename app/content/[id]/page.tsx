@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import {
+  Eye,
   FileText,
   Youtube,
   BookOpen,
@@ -44,6 +45,8 @@ export default function ContentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  const [viewCount, setViewCount] = useState<number | null>(null)
+
   useEffect(() => {
     if (!params.id) return
     fetch(`/api/content/${params.id}`)
@@ -53,6 +56,11 @@ export default function ContentDetailPage() {
           setError(json.error)
         } else {
           setItem(json.data)
+          setViewCount(json.data.view_count ?? 0)
+          fetch(`/api/content/${params.id}/view`, { method: "POST" })
+            .then((r) => r.json())
+            .then((v) => { if (v.view_count != null) setViewCount(v.view_count) })
+            .catch(() => {})
         }
       })
       .catch(() => setError("Erro ao carregar conteudo"))
@@ -225,9 +233,18 @@ export default function ContentDetailPage() {
           )}
         </div>
 
-        <p className="text-[10px] text-muted-foreground text-center">
-          Publicado em{" "}
-          {new Date(item.created_at).toLocaleDateString("pt-BR")}
+        <p className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground text-center">
+          {viewCount != null && (
+            <span className="inline-flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {viewCount} {viewCount === 1 ? "visualização" : "visualizações"}
+            </span>
+          )}
+          <span>·</span>
+          <span>
+            Publicado em{" "}
+            {new Date(item.created_at).toLocaleDateString("pt-BR")}
+          </span>
         </p>
       </div>
     </main>

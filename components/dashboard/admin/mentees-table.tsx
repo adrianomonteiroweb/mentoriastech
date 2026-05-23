@@ -16,9 +16,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Loader2, MessageCircle, Pencil, Search, Trash2 } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { ClipboardList, Loader2, MessageCircle, Pencil, Search, Trash2 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
-import type { Profile } from "@/lib/types/database"
+import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
+import type { CareerStatus, Profile, Seniority } from "@/lib/types/database"
+
+const CAREER_STATUS_LABEL: Record<CareerStatus, string> = {
+  seeking: "Buscando vaga",
+  interning: "Estagiando",
+  employed: "Empregado",
+  student: "Estudante",
+  other: "Outro",
+}
+
+const SENIORITY_LABEL: Record<Seniority, string> = {
+  junior: "Júnior",
+  mid: "Pleno",
+  senior: "Sênior",
+  undefined: "Indefinido",
+}
 
 function WhatsAppLink({ mentee }: { mentee: Profile }) {
   if (!mentee.whatsapp) {
@@ -50,6 +73,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [editingMentee, setEditingMentee] = useState<Profile | null>(null)
+  const [historyMentee, setHistoryMentee] = useState<Profile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [form, setForm] = useState({
@@ -59,6 +83,9 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     linkedin_url: "",
     bio: "",
     resume_url: "",
+    career_status: "" as CareerStatus | "",
+    seniority: "" as Seniority | "",
+    career_focus: "",
   })
 
   function loadMentees() {
@@ -86,6 +113,9 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
       linkedin_url: mentee.linkedin_url || "",
       bio: mentee.bio || "",
       resume_url: mentee.resume_url || "",
+      career_status: mentee.career_status || "",
+      seniority: mentee.seniority || "",
+      career_focus: mentee.career_focus || "",
     })
   }
 
@@ -124,7 +154,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     loadMentees()
   }
 
-  const columnCount = canManage ? 6 : 5
+  const columnCount = canManage ? 7 : 6
 
   return (
     <div className="flex flex-col gap-4">
@@ -145,6 +175,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               <TableHead>Nome</TableHead>
               <TableHead className="hidden sm:table-cell">Email</TableHead>
               <TableHead>WhatsApp</TableHead>
+              <TableHead className="hidden lg:table-cell">Perfil</TableHead>
               <TableHead className="hidden md:table-cell">LinkedIn</TableHead>
               <TableHead className="hidden sm:table-cell">Curriculo</TableHead>
               {canManage && <TableHead>Acoes</TableHead>}
@@ -180,6 +211,31 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                   <TableCell>
                     <WhatsAppLink mentee={m} />
                   </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {m.career_status || m.seniority || m.career_focus ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-wrap gap-1">
+                          {m.career_status && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {CAREER_STATUS_LABEL[m.career_status]}
+                            </Badge>
+                          )}
+                          {m.seniority && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {SENIORITY_LABEL[m.seniority]}
+                            </Badge>
+                          )}
+                        </div>
+                        {m.career_focus && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {m.career_focus}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {m.linkedin_url ? (
                       <a href={m.linkedin_url} target="_blank" rel="noopener noreferrer"
@@ -200,6 +256,9 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                   {canManage && (
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setHistoryMentee(m)}>
+                          <ClipboardList className="h-3 w-3 mr-1" /> Historico
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(m)}>
                           <Pencil className="h-3 w-3 mr-1" /> Editar
                         </Button>
@@ -274,6 +333,69 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               />
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Status profissional</Label>
+                <Select
+                  value={form.career_status || "none"}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      career_status: value === "none" ? "" : (value as CareerStatus),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {(Object.keys(CAREER_STATUS_LABEL) as CareerStatus[]).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {CAREER_STATUS_LABEL[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Senioridade</Label>
+                <Select
+                  value={form.seniority || "none"}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      seniority: value === "none" ? "" : (value as Seniority),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {(Object.keys(SENIORITY_LABEL) as Seniority[]).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {SENIORITY_LABEL[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="mentee-focus">Foco de carreira</Label>
+              <Input
+                id="mentee-focus"
+                value={form.career_focus}
+                onChange={(e) =>
+                  setForm((current) => ({ ...current, career_focus: e.target.value }))
+                }
+                placeholder="Ex.: Backend Java, Dados, RPA..."
+              />
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="mentee-bio">Bio</Label>
               <Textarea
@@ -293,6 +415,12 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <MenteeHistoryDialog
+        mentee={historyMentee}
+        open={!!historyMentee}
+        onClose={() => setHistoryMentee(null)}
+      />
     </div>
   )
 }

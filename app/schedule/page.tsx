@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   CalendarDays,
   Clock,
@@ -9,8 +9,12 @@ import {
   Loader2,
   CheckCircle2,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import Link from "next/link"
+
+const SCHEDULE_WEEKS = 16
 
 interface SlotBooking {
   id: string
@@ -21,6 +25,7 @@ interface SlotBooking {
 
 interface ScheduleSlot {
   id: string
+  slotId?: string
   dayOfWeek: number
   dayName: string
   startTime: string
@@ -48,6 +53,19 @@ const SCHEDULE_TEMPLATE = [
   { day: 0, times: ["10:00", "14:00"] },
 ]
 
+function mondayOf(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00")
+  const day = d.getDay()
+  d.setDate(d.getDate() - ((day + 6) % 7))
+  return d.toISOString().split("T")[0]
+}
+
+function addDaysISO(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T12:00:00")
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
+
 function generateFallbackSchedule(): ScheduleData {
   const now = new Date()
   const currentDay = now.getDay()
@@ -62,34 +80,37 @@ function generateFallbackSchedule(): ScheduleData {
 
   const slots: ScheduleSlot[] = []
 
-  for (const entry of SCHEDULE_TEMPLATE) {
-    let diff = entry.day - currentDay
-    if (diff < 0) diff += 7
+  for (let week = 0; week < SCHEDULE_WEEKS; week++) {
+    for (const entry of SCHEDULE_TEMPLATE) {
+      const daysToAdd = ((entry.day - 1 + 7) % 7) + week * 7
+      const date = new Date(monday)
+      date.setDate(monday.getDate() + daysToAdd)
+      const dateStr = date.toISOString().split("T")[0]
 
-    const date = new Date(now)
-    date.setDate(now.getDate() + diff)
-    const dateStr = date.toISOString().split("T")[0]
+      for (const time of entry.times) {
+        if (week === 0 && entry.day === currentDay) {
+          const [h, m] = time.split(":").map(Number)
+          const isPast = currentHour > h || (currentHour === h && currentMinute >= m)
+          if (isPast) continue
+        }
 
-    for (const time of entry.times) {
-      const [h, m] = time.split(":").map(Number)
-      const isToday = diff === 0
-      const isPast = isToday && (currentHour > h || (currentHour === h && currentMinute >= m))
-      if (isPast) continue
-
-      slots.push({
-        id: `fallback-${entry.day}-${time}`,
-        dayOfWeek: entry.day,
-        dayName: DAY_NAMES[entry.day],
-        startTime: time,
-        slotType: "free",
-        date: dateStr,
-        bookings: [],
-        isAvailable: true,
-      })
+        slots.push({
+          id: `fallback-${week}-${entry.day}-${time}`,
+          dayOfWeek: entry.day,
+          dayName: DAY_NAMES[entry.day],
+          startTime: time,
+          slotType: "free",
+          date: dateStr,
+          bookings: [],
+          isAvailable: true,
+        })
+      }
     }
   }
 
-  slots.sort((a, b) => a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date))
+  slots.sort((a, b) =>
+    a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date),
+  )
 
   return {
     schedule: slots,
@@ -98,9 +119,15 @@ function generateFallbackSchedule(): ScheduleData {
   }
 }
 
+function formatDate(dateStr: string) {
+  const [year, month, day] = dateStr.split("-")
+  return `${day}/${month}`
+}
+
 export default function SchedulePage() {
   const [data, setData] = useState<ScheduleData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeWeek, setActiveWeek] = useState<string | null>(null)
 
   useEffect(() => {
     fetch("/api/schedule")
@@ -118,10 +145,32 @@ export default function SchedulePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  function formatDate(dateStr: string) {
-    const [year, month, day] = dateStr.split("-")
-    return `${day}/${month}`
-  }
+  const weeks = useMemo(() => {
+    if (!data) return [] as { key: string; slots: ScheduleSlot[] }[]
+
+    const map = new Map<string, ScheduleSlot[]>()
+    for (const slot of data.schedule) {
+      const key = mondayOf(slot.date)
+      const list = map.get(key) || []
+      list.push(slot)
+      map.set(key, list)
+    }
+
+    return Array.from(map.entries())
+      .map(([key, slots]) => ({
+        key,
+        slots: slots.sort((a, b) =>
+          a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date),
+        ),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+  }, [data])
+
+  useEffect(() => {
+    if (!weeks.length || activeWeek) return
+    const firstWithAvailable = weeks.find((w) => w.slots.some((s) => s.isAvailable))
+    setActiveWeek(firstWithAvailable?.key || weeks[0].key)
+  }, [weeks, activeWeek])
 
   if (loading) {
     return (
@@ -131,9 +180,14 @@ export default function SchedulePage() {
     )
   }
 
+  const currentIdx = weeks.findIndex((w) => w.key === activeWeek)
+  const currentWeek = currentIdx >= 0 ? weeks[currentIdx] : null
+  const weekStart = currentWeek?.key
+  const weekEnd = weekStart ? addDaysISO(weekStart, 6) : undefined
+
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-12 md:py-20">
-      <div className="w-full max-w-lg flex flex-col gap-8">
+      <div className="w-full max-w-lg flex flex-col gap-6">
         <div className="flex flex-col gap-2">
           <Link
             href="/"
@@ -142,35 +196,55 @@ export default function SchedulePage() {
             <ArrowLeft className="h-3 w-3" />
             Voltar
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">
-            Agenda da Semana
-          </h1>
-          {data && (
+          <h1 className="text-xl font-semibold text-foreground">Agenda de mentorias</h1>
+          {weekStart && weekEnd && (
             <p className="text-sm text-muted-foreground">
-              {formatDate(data.weekStart)} a {formatDate(data.weekEnd)}
+              {formatDate(weekStart)} a {formatDate(weekEnd)}
             </p>
           )}
         </div>
 
+        {weeks.length > 1 && (
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => currentIdx > 0 && setActiveWeek(weeks[currentIdx - 1].key)}
+              disabled={currentIdx <= 0}
+              className="flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Semana anterior
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Semana {currentIdx + 1} de {weeks.length}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                currentIdx < weeks.length - 1 && setActiveWeek(weeks[currentIdx + 1].key)
+              }
+              disabled={currentIdx >= weeks.length - 1}
+              className="flex items-center gap-1 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Próxima semana
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-col gap-3">
-          {data?.schedule.map((slot) => (
+          {currentWeek?.slots.map((slot) => (
             <div
               key={slot.id}
               className={`rounded-xl border p-4 transition-all ${
-                slot.isAvailable
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-border bg-card"
+                slot.isAvailable ? "border-primary/30 bg-primary/5" : "border-border bg-card"
               }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">
-                    {slot.dayName}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(slot.date)}
-                  </span>
+                  <span className="text-sm font-semibold text-foreground">{slot.dayName}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(slot.date)}</span>
                 </div>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
@@ -213,9 +287,9 @@ export default function SchedulePage() {
             </div>
           ))}
 
-          {(!data?.schedule || data.schedule.length === 0) && (
+          {(!currentWeek || currentWeek.slots.length === 0) && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum horário disponível esta semana.
+              Nenhum horário nesta semana.
             </p>
           )}
         </div>

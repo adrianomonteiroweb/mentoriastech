@@ -14,8 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
-import { CheckCircle2, Pencil, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, LinkIcon, Pencil, Trash2, XCircle } from "lucide-react"
 import type { JobWithAuthor } from "@/lib/types/database"
+
+interface JobWithCounts extends JobWithAuthor {
+  action_counts?: { applied: number; link_issue: number; closed: number }
+}
 
 interface JobsTableProps {
   showAll?: boolean
@@ -28,9 +32,9 @@ export function JobsTable({
   adminMode = false,
   refreshKey = 0,
 }: JobsTableProps) {
-  const [jobs, setJobs] = useState<JobWithAuthor[]>([])
+  const [jobs, setJobs] = useState<JobWithCounts[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingJob, setEditingJob] = useState<JobWithAuthor | null>(null)
+  const [editingJob, setEditingJob] = useState<JobWithCounts | null>(null)
 
   function loadJobs() {
     setLoading(true)
@@ -113,12 +117,33 @@ export function JobsTable({
                 </TableCell>
                 <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>
                 <TableCell>
-                  <Badge
-                    variant={job.status === "approved" ? "default" : "outline"}
-                    className="text-xs capitalize"
-                  >
-                    {job.status === "approved" ? "Aprovada" : job.status === "pending" ? "Pendente" : "Rejeitada"}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge
+                      variant={job.status === "approved" ? "default" : "outline"}
+                      className="text-xs capitalize w-fit"
+                    >
+                      {job.status === "approved" ? "Aprovada" : job.status === "pending" ? "Pendente" : "Rejeitada"}
+                    </Badge>
+                    {adminMode && job.action_counts && (job.action_counts.link_issue > 0 || job.action_counts.closed > 0) && (
+                      <div className="flex gap-1">
+                        {job.action_counts.link_issue > 0 && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-medium text-yellow-500" title="Link com problemas">
+                            <AlertTriangle className="h-2.5 w-2.5" /> {job.action_counts.link_issue}
+                          </span>
+                        )}
+                        {job.action_counts.closed > 0 && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-500" title="Não aceita mais candidaturas">
+                            <XCircle className="h-2.5 w-2.5" /> {job.action_counts.closed}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {adminMode && job.action_counts && job.action_counts.applied > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <CheckCircle2 className="h-2.5 w-2.5" /> {job.action_counts.applied} candidatura{job.action_counts.applied > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 {showActions && (
                   <TableCell>

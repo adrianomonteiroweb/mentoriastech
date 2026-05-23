@@ -28,6 +28,8 @@ export async function GET() {
         .orderBy(asc(mentoringTopics.sortOrder)),
     ])
 
+    const SCHEDULE_WEEKS = 16
+
     const now = new Date()
     const currentDay = now.getDay()
 
@@ -39,13 +41,13 @@ export async function GET() {
     sunday.setDate(monday.getDate() + 6)
     sunday.setHours(23, 59, 59, 999)
 
-    const fourWeeksOut = new Date(now)
-    fourWeeksOut.setDate(fourWeeksOut.getDate() + 28)
-    fourWeeksOut.setHours(23, 59, 59, 999)
+    const horizonOut = new Date(monday)
+    horizonOut.setDate(monday.getDate() + SCHEDULE_WEEKS * 7 - 1)
+    horizonOut.setHours(23, 59, 59, 999)
 
     const mondayStr = monday.toISOString().split("T")[0]
     const sundayStr = sunday.toISOString().split("T")[0]
-    const fourWeeksStr = fourWeeksOut.toISOString().split("T")[0]
+    const horizonStr = horizonOut.toISOString().split("T")[0]
 
     const bookingRows = await db
       .select()
@@ -53,7 +55,7 @@ export async function GET() {
       .where(
         and(
           gte(bookings.sessionDate, mondayStr),
-          lte(bookings.sessionDate, fourWeeksStr),
+          lte(bookings.sessionDate, horizonStr),
           inArray(bookings.status, ["pending", "confirmed", "paid", "scheduled"]),
         ),
       )
@@ -93,28 +95,44 @@ export async function GET() {
     const freeSlots = slots.filter((slot) => !slot.rrule && slot.dayOfWeek !== null)
     const paidSlots = slots.filter((slot) => slot.rrule)
 
-    const freeSchedule = freeSlots.map((slot) => {
-      const slotDate = new Date(monday)
-      const daysToAdd = ((slot.dayOfWeek! - 1 + 7) % 7)
-      slotDate.setDate(monday.getDate() + daysToAdd)
+    type ScheduleEntry = {
+      id: string
+      slotId: string
+      dayOfWeek: number
+      dayName: string
+      startTime: string
+      slotType: typeof slots[number]["slotType"]
+      date: string
+      bookings: ReturnType<typeof getSlotBookings>
+      isAvailable: boolean
+    }
 
-      const slotDateStr = slotDate.toISOString().split("T")[0]
+    const freeSchedule: ScheduleEntry[] = []
+    for (const slot of freeSlots) {
+      const daysToAdd = (slot.dayOfWeek! - 1 + 7) % 7
       const startTime = slot.startTime.substring(0, 5)
-      const slotBookings = getSlotBookings(slotDateStr, slot.startTime)
 
-      return {
-        id: slot.id,
-        dayOfWeek: slot.dayOfWeek!,
-        dayName: DAY_NAMES[slot.dayOfWeek!],
-        startTime,
-        slotType: slot.slotType,
-        date: slotDateStr,
-        bookings: slotBookings,
-        isAvailable: slotBookings.length === 0,
+      for (let week = 0; week < SCHEDULE_WEEKS; week++) {
+        const slotDate = new Date(monday)
+        slotDate.setDate(monday.getDate() + daysToAdd + week * 7)
+        const slotDateStr = slotDate.toISOString().split("T")[0]
+        const slotBookings = getSlotBookings(slotDateStr, slot.startTime)
+
+        freeSchedule.push({
+          id: `${slot.id}_${slotDateStr}`,
+          slotId: slot.id,
+          dayOfWeek: slot.dayOfWeek!,
+          dayName: DAY_NAMES[slot.dayOfWeek!],
+          startTime,
+          slotType: slot.slotType,
+          date: slotDateStr,
+          bookings: slotBookings,
+          isAvailable: slotBookings.length === 0,
+        })
       }
-    })
+    }
 
-    const paidSchedule: typeof freeSchedule = []
+    const paidSchedule: ScheduleEntry[] = []
     for (const slot of paidSlots) {
       if (!slot.rrule || !slot.recurrenceStart) continue
 
@@ -123,7 +141,7 @@ export async function GET() {
         slot.recurrenceStart,
         slot.recurrenceEnd,
         now,
-        fourWeeksOut,
+        horizonOut,
       )
 
       for (const dateStr of dates) {
@@ -133,6 +151,7 @@ export async function GET() {
 
         paidSchedule.push({
           id: `${slot.id}_${dateStr}`,
+          slotId: slot.id,
           dayOfWeek,
           dayName: DAY_NAMES[dayOfWeek],
           startTime,

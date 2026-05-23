@@ -1,8 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Send,
   CheckCircle2,
@@ -11,6 +13,7 @@ import {
 
 interface ScheduleSlot {
   id: string
+  slotId?: string
   dayOfWeek: number
   dayName: string
   startTime: string
@@ -48,6 +51,24 @@ const FALLBACK_TOPICS = [
   "Automações RPA",
 ]
 
+function mondayOf(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00")
+  const day = d.getDay()
+  d.setDate(d.getDate() - ((day + 6) % 7))
+  return d.toISOString().split("T")[0]
+}
+
+function addDaysISO(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T12:00:00")
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
+
+function formatShort(dateStr: string) {
+  const [, month, day] = dateStr.split("-")
+  return `${day}/${month}`
+}
+
 export function BookingForm() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -65,6 +86,7 @@ export function BookingForm() {
   const [topics, setTopics] = useState<Topic[]>([])
   const [dataLoaded, setDataLoaded] = useState(false)
   const [usingFallback, setUsingFallback] = useState(false)
+  const [activeWeek, setActiveWeek] = useState<string | null>(null)
 
   // Fallback state (quando API falha)
   const [fallbackSlotIdx, setFallbackSlotIdx] = useState<number | null>(null)
@@ -90,6 +112,39 @@ export function BookingForm() {
         setDataLoaded(true)
       })
   }, [])
+
+  const availableSlots = useMemo(
+    () => slots.filter((s) => s.isAvailable && s.slotType === "free"),
+    [slots],
+  )
+
+  const weeks = useMemo(() => {
+    const map = new Map<string, ScheduleSlot[]>()
+    for (const slot of availableSlots) {
+      const key = mondayOf(slot.date)
+      const list = map.get(key) || []
+      list.push(slot)
+      map.set(key, list)
+    }
+    return Array.from(map.entries())
+      .map(([key, weekSlots]) => ({
+        key,
+        slots: weekSlots.sort((a, b) =>
+          a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date),
+        ),
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key))
+  }, [availableSlots])
+
+  useEffect(() => {
+    if (!weeks.length) {
+      setActiveWeek(null)
+      return
+    }
+    if (!activeWeek || !weeks.some((w) => w.key === activeWeek)) {
+      setActiveWeek(weeks[0].key)
+    }
+  }, [weeks, activeWeek])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -124,7 +179,7 @@ export function BookingForm() {
         day: slot.dayName,
         time: slot.startTime,
         topic: selectedTopicName,
-        slotId: slot.id,
+        slotId: slot.slotId || slot.id,
         topicId: selectedTopic,
         sessionDate: slot.date,
       }
@@ -189,9 +244,9 @@ export function BookingForm() {
   const freeTopics = usingFallback
     ? FALLBACK_TOPICS
     : topics.filter((t) => t.category === "free")
-  const availableSlots = usingFallback
-    ? FALLBACK_SLOTS
-    : slots.filter((s) => s.isAvailable && s.slotType === "free")
+
+  const currentIdx = activeWeek ? weeks.findIndex((w) => w.key === activeWeek) : -1
+  const currentWeek = currentIdx >= 0 ? weeks[currentIdx] : null
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" id="booking">
@@ -300,14 +355,15 @@ export function BookingForm() {
         <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Dia e horario disponivel
         </label>
-        <div className="grid grid-cols-1 gap-2">
-          {!dataLoaded ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Carregando horarios...
-            </div>
-          ) : usingFallback ? (
-            FALLBACK_SLOTS.map((slot, i) => (
+
+        {!dataLoaded ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Carregando horarios...
+          </div>
+        ) : usingFallback ? (
+          <div className="grid grid-cols-1 gap-2">
+            {FALLBACK_SLOTS.map((slot, i) => (
               <button
                 key={i}
                 type="button"
@@ -325,37 +381,84 @@ export function BookingForm() {
                   {slot.time}
                 </span>
               </button>
-            ))
-          ) : (availableSlots as ScheduleSlot[]).length === 0 ? (
-            <p className="text-xs text-muted-foreground py-2">
-              Todos os horarios desta semana ja foram preenchidos. Volte na
-              proxima semana!
-            </p>
-          ) : (
-            (availableSlots as ScheduleSlot[]).map((slot) => (
-              <button
-                key={slot.id}
-                type="button"
-                onClick={() => setSelectedSlot(slot.id)}
-                className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200 ${
-                  selectedSlot === slot.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-secondary text-secondary-foreground hover:border-muted-foreground/30"
-                }`}
-              >
-                <CalendarDays className="h-4 w-4 shrink-0" />
-                <span className="font-medium">{slot.dayName}</span>
-                <span className="text-xs text-muted-foreground ml-1">
-                  {slot.date.split("-").reverse().slice(0, 2).join("/")}
+            ))}
+          </div>
+        ) : weeks.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2">
+            Todos os horarios das proximas semanas ja foram preenchidos. Tente novamente em breve.
+          </p>
+        ) : (
+          <>
+            {weeks.length > 1 && (
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentIdx > 0) {
+                      setActiveWeek(weeks[currentIdx - 1].key)
+                      setSelectedSlot(null)
+                    }
+                  }}
+                  disabled={currentIdx <= 0}
+                  className="flex items-center gap-1 rounded-lg border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Anterior
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {currentWeek
+                    ? `${formatShort(currentWeek.key)} a ${formatShort(addDaysISO(currentWeek.key, 6))}`
+                    : ""}
                 </span>
-                <span className="ml-auto flex items-center gap-1 text-xs">
-                  <Clock className="h-3 w-3" />
-                  {slot.startTime}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentIdx < weeks.length - 1) {
+                      setActiveWeek(weeks[currentIdx + 1].key)
+                      setSelectedSlot(null)
+                    }
+                  }}
+                  disabled={currentIdx >= weeks.length - 1}
+                  className="flex items-center gap-1 rounded-lg border border-border bg-secondary px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Próxima
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-2">
+              {currentWeek && currentWeek.slots.length > 0 ? (
+                currentWeek.slots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    onClick={() => setSelectedSlot(slot.id)}
+                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200 ${
+                      selectedSlot === slot.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-secondary text-secondary-foreground hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <CalendarDays className="h-4 w-4 shrink-0" />
+                    <span className="font-medium">{slot.dayName}</span>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {formatShort(slot.date)}
+                    </span>
+                    <span className="ml-auto flex items-center gap-1 text-xs">
+                      <Clock className="h-3 w-3" />
+                      {slot.startTime}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground py-2">
+                  Esta semana esta cheia. Navegue para a proxima.
+                </p>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {status === "error" && (
