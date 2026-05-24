@@ -8,20 +8,23 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Loader2, Upload, ImageIcon } from "lucide-react"
 import Image from "next/image"
+import type { Ad } from "@/lib/types/database"
 
 interface AdFormProps {
+  ad?: Ad
   onSuccess?: () => void
 }
 
-export function AdForm({ onSuccess }: AdFormProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [whatsappNumber, setWhatsappNumber] = useState("")
-  const [linkUrl, setLinkUrl] = useState("")
-  const [sortOrder, setSortOrder] = useState(0)
-  const [isActive, setIsActive] = useState(true)
+export function AdForm({ ad, onSuccess }: AdFormProps) {
+  const isEditing = !!ad
+  const [title, setTitle] = useState(ad?.title ?? "")
+  const [description, setDescription] = useState(ad?.description ?? "")
+  const [whatsappNumber, setWhatsappNumber] = useState(ad?.whatsapp_number ?? "")
+  const [linkUrl, setLinkUrl] = useState(ad?.link_url ?? "")
+  const [sortOrder, setSortOrder] = useState(ad?.sort_order ?? 0)
+  const [isActive, setIsActive] = useState(ad?.is_active ?? true)
   const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(ad?.image_url ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -42,7 +45,7 @@ export function AdForm({ onSuccess }: AdFormProps) {
     setError("")
 
     try {
-      let imageUrl = ""
+      let imageUrl = isEditing ? (ad?.image_url ?? "") : ""
 
       if (file) {
         const formData = new FormData()
