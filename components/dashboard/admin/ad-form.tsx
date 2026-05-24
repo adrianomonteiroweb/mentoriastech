@@ -65,8 +65,11 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
         imageUrl = uploadData.url
       }
 
-      const res = await fetch("/api/admin/ads", {
-        method: "POST",
+      const endpoint = isEditing ? `/api/admin/ads/${ad!.id}` : "/api/admin/ads"
+      const method = isEditing ? "PUT" : "POST"
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
@@ -81,17 +84,19 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Erro ao criar anúncio")
+        throw new Error(data.error || (isEditing ? "Erro ao atualizar anúncio" : "Erro ao criar anúncio"))
       }
 
-      setTitle("")
-      setDescription("")
-      setWhatsappNumber("")
-      setLinkUrl("")
-      setSortOrder(0)
-      setIsActive(true)
-      setFile(null)
-      setPreview(null)
+      if (!isEditing) {
+        setTitle("")
+        setDescription("")
+        setWhatsappNumber("")
+        setLinkUrl("")
+        setSortOrder(0)
+        setIsActive(true)
+        setFile(null)
+        setPreview(null)
+      }
       onSuccess?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
@@ -175,7 +180,7 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
 
       <Button type="submit" disabled={loading || !title}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-        {loading ? "Salvando..." : "Criar anúncio"}
+        {loading ? "Salvando..." : isEditing ? "Salvar alterações" : "Criar anúncio"}
       </Button>
     </form>
   )

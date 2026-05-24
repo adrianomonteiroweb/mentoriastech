@@ -7,7 +7,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Eye, EyeOff } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { ContentForm } from "@/components/dashboard/admin/content-form"
+import { Trash2, Eye, EyeOff, Pencil } from "lucide-react"
 import type { ContentItemWithCategory } from "@/lib/types/database"
 
 interface ContentTableProps {
@@ -17,6 +24,7 @@ interface ContentTableProps {
 export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
   const [items, setItems] = useState<ContentItemWithCategory[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingContent, setEditingContent] = useState<ContentItemWithCategory | null>(null)
 
   function loadContent() {
     setLoading(true)
@@ -41,6 +49,11 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
   async function deleteItem(id: string) {
     if (!confirm("Remover este conteudo?")) return
     await fetch(`/api/admin/content/${id}`, { method: "DELETE" })
+    loadContent()
+  }
+
+  function handleEditSuccess() {
+    setEditingContent(null)
     loadContent()
   }
 
@@ -101,15 +114,35 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
                   </button>
                 </TableCell>
                 <TableCell>
-                  <Button size="sm" variant="ghost" onClick={() => deleteItem(item.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={() => setEditingContent(item)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => deleteItem(item.id)}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={!!editingContent} onOpenChange={(open) => !open && setEditingContent(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar conteudo</DialogTitle>
+          </DialogHeader>
+          {editingContent && (
+            <ContentForm
+              key={editingContent.id}
+              content={editingContent}
+              onSuccess={handleEditSuccess}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

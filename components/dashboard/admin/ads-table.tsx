@@ -12,7 +12,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Eye, EyeOff, MousePointerClick, Percent } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { AdForm } from "@/components/dashboard/admin/ad-form"
+import { Trash2, Eye, EyeOff, MousePointerClick, Pencil, Percent } from "lucide-react"
 import type { Ad } from "@/lib/types/database"
 import Image from "next/image"
 
@@ -23,6 +30,7 @@ interface AdsTableProps {
 export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
   const [items, setItems] = useState<Ad[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingAd, setEditingAd] = useState<Ad | null>(null)
 
   function loadAds() {
     setLoading(true)
@@ -49,6 +57,11 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
   async function deleteItem(id: string) {
     if (!confirm("Remover este anúncio?")) return
     await fetch(`/api/admin/ads/${id}`, { method: "DELETE" })
+    loadAds()
+  }
+
+  function handleEditSuccess() {
+    setEditingAd(null)
     loadAds()
   }
 
@@ -146,6 +159,15 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingAd(item)}
+                      className="text-xs"
+                    >
+                      <Pencil className="h-3 w-3 mr-1" />
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => toggleActive(item.id, item.is_active)}
                       className="text-xs"
@@ -172,6 +194,21 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={!!editingAd} onOpenChange={(open) => !open && setEditingAd(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar anúncio</DialogTitle>
+          </DialogHeader>
+          {editingAd && (
+            <AdForm
+              key={editingAd.id}
+              ad={editingAd}
+              onSuccess={handleEditSuccess}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

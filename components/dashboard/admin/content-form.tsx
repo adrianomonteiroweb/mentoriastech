@@ -9,19 +9,21 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Loader2, Upload } from "lucide-react"
-import type { ContentCategory } from "@/lib/types/database"
+import type { ContentCategory, ContentItemWithCategory } from "@/lib/types/database"
 
 interface ContentFormProps {
+  content?: ContentItemWithCategory
   onSuccess?: () => void
 }
 
-export function ContentForm({ onSuccess }: ContentFormProps) {
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [contentType, setContentType] = useState<string>("pdf")
-  const [categoryId, setCategoryId] = useState("")
-  const [url, setUrl] = useState("")
-  const [articleBody, setArticleBody] = useState("")
+export function ContentForm({ content, onSuccess }: ContentFormProps) {
+  const isEditing = !!content
+  const [title, setTitle] = useState(content?.title ?? "")
+  const [description, setDescription] = useState(content?.description ?? "")
+  const [contentType, setContentType] = useState<string>(content?.content_type ?? "pdf")
+  const [categoryId, setCategoryId] = useState(content?.category_id ?? "")
+  const [url, setUrl] = useState(content?.url ?? "")
+  const [articleBody, setArticleBody] = useState(content?.article_body ?? "")
   const [file, setFile] = useState<File | null>(null)
   const [categories, setCategories] = useState<ContentCategory[]>([])
   const [loading, setLoading] = useState(false)
@@ -65,9 +67,12 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
         fileSize = uploadData.size
       }
 
-      // Criar conteúdo
-      const res = await fetch("/api/admin/content", {
-        method: "POST",
+      // Criar ou atualizar conteúdo
+      const endpoint = isEditing ? `/api/admin/content/${content!.id}` : "/api/admin/content"
+      const method = isEditing ? "PUT" : "POST"
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
@@ -76,23 +81,24 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
           category_id: categoryId,
           url: fileUrl || undefined,
           article_body: contentType === "article" ? articleBody : undefined,
-          file_size_bytes: fileSize,
-          is_published: true,
+          ...(fileSize ? { file_size_bytes: fileSize } : {}),
+          ...(!isEditing ? { is_published: true } : {}),
         }),
       })
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Erro ao criar conteudo")
+        throw new Error(data.error || (isEditing ? "Erro ao atualizar conteudo" : "Erro ao criar conteudo"))
       }
 
-      // Reset form
-      setTitle("")
-      setDescription("")
-      setUrl("")
-      setArticleBody("")
-      setFile(null)
-      setContentType("pdf")
+      if (!isEditing) {
+        setTitle("")
+        setDescription("")
+        setUrl("")
+        setArticleBody("")
+        setFile(null)
+        setContentType("pdf")
+      }
       onSuccess?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
@@ -186,7 +192,7 @@ export function ContentForm({ onSuccess }: ContentFormProps) {
 
       <Button type="submit" disabled={loading || !title || !categoryId || (requiresUrl && !url)}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-        {loading ? "Salvando..." : "Publicar conteudo"}
+        {loading ? "Salvando..." : isEditing ? "Salvar alterações" : "Publicar conteudo"}
       </Button>
     </form>
   )
