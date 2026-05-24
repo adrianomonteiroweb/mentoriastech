@@ -303,6 +303,12 @@ export function BookingsTable() {
                         <Pencil className="h-3 w-3 mr-1" />
                         Editar
                       </Button>
+                      {b.status === "cancelled" && (
+                        <Button size="sm" variant="outline" className="text-xs h-7"
+                          onClick={() => updateStatus(b.id, "scheduled")}>
+                          Reativar
+                        </Button>
+                      )}
                       {!["completed", "cancelled"].includes(b.status) && (
                         <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
                           onClick={() => updateStatus(b.id, "cancelled")}>

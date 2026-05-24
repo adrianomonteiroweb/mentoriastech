@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { count, eq } from "drizzle-orm"
+import { count, countDistinct, eq, inArray } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { bookings, contentItems, db, jobs, profiles } from "@/lib/db"
+import { bookings, contentItems, db, jobActions, jobs, profiles } from "@/lib/db"
 import type { AdminStats } from "@/lib/types/database"
 
 export async function GET() {
@@ -15,6 +15,8 @@ export async function GET() {
       pendingJobs,
       publishedContent,
       completedBookings,
+      reportedJobs,
+      totalApplications,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings),
       db.select({ value: count() }).from(bookings).where(eq(bookings.status, "pending")),
@@ -22,6 +24,8 @@ export async function GET() {
       db.select({ value: count() }).from(jobs).where(eq(jobs.status, "pending")),
       db.select({ value: count() }).from(contentItems).where(eq(contentItems.isPublished, true)),
       db.select({ value: count() }).from(bookings).where(eq(bookings.status, "completed")),
+      db.select({ value: countDistinct(jobActions.jobId) }).from(jobActions).where(inArray(jobActions.actionType, ["link_issue", "closed"])),
+      db.select({ value: count() }).from(jobActions).where(eq(jobActions.actionType, "applied")),
     ])
 
     const stats: AdminStats = {
@@ -31,6 +35,8 @@ export async function GET() {
       pendingJobs: pendingJobs[0]?.value || 0,
       publishedContent: publishedContent[0]?.value || 0,
       completedBookings: completedBookings[0]?.value || 0,
+      reportedJobs: reportedJobs[0]?.value || 0,
+      totalApplications: totalApplications[0]?.value || 0,
     }
 
     return NextResponse.json({ data: stats })

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Users, Briefcase, FileText, CheckCircle2, Clock } from "lucide-react"
+import { BookOpen, Users, Briefcase, FileText, CheckCircle2, Clock, AlertTriangle, MousePointerClick } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminStats } from "@/lib/types/database"
 
@@ -24,6 +24,8 @@ export function StatsCards() {
     { label: "Concluidos", value: stats?.completedBookings, icon: CheckCircle2, color: "text-green-400" },
     { label: "Mentorados", value: stats?.totalMentees, icon: Users, color: "text-primary" },
     { label: "Vagas Pendentes", value: stats?.pendingJobs, icon: Briefcase, color: "text-orange-400" },
+    { label: "Vagas Reportadas", value: stats?.reportedJobs, icon: AlertTriangle, color: "text-red-400" },
+    { label: "Candidaturas", value: stats?.totalApplications, icon: MousePointerClick, color: "text-teal-400" },
     { label: "Conteudos", value: stats?.publishedContent, icon: FileText, color: "text-purple-400" },
   ]
 

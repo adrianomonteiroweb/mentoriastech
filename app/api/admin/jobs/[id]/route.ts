@@ -14,6 +14,9 @@ const updateSchema = z.object({
   level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional().or(z.literal("")),
+  is_international: z.boolean().optional(),
+  required_language: z.string().optional(),
+  language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
   status: z.enum(["pending", "approved", "rejected", "expired"]).optional(),
 })
 
@@ -41,6 +44,9 @@ export async function PUT(
     if (parsed.data.level !== undefined) updateData.level = parsed.data.level
     if (parsed.data.salary_range !== undefined) updateData.salaryRange = parsed.data.salary_range || null
     if (parsed.data.application_url !== undefined) updateData.applicationUrl = parsed.data.application_url || null
+    if (parsed.data.is_international !== undefined) updateData.isInternational = parsed.data.is_international
+    if (parsed.data.required_language !== undefined) updateData.requiredLanguage = parsed.data.required_language || null
+    if (parsed.data.language_level !== undefined) updateData.languageLevel = parsed.data.language_level || null
     if (parsed.data.status !== undefined) updateData.status = parsed.data.status
 
     if (parsed.data.status === "approved") {

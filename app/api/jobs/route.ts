@@ -14,6 +14,9 @@ const createSchema = z.object({
   level: z.enum(["internship", "junior", "mid", "senior"]).default("junior"),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional(),
+  is_international: z.boolean().default(false),
+  required_language: z.string().optional(),
+  language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
 })
 
 // GET: listar vagas aprovadas (publico) ou vagas do usuario autenticado (?mine=true)
@@ -98,6 +101,9 @@ export async function POST(request: Request) {
         level: parsed.data.level,
         salaryRange: parsed.data.salary_range,
         applicationUrl: parsed.data.application_url,
+        isInternational: parsed.data.is_international,
+        requiredLanguage: parsed.data.required_language,
+        languageLevel: parsed.data.language_level,
         postedBy: user.id,
         status: autoApprove ? "approved" : "pending",
         approvedBy: autoApprove ? user.id : null,

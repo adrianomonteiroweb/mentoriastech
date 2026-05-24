@@ -59,6 +59,7 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
             <TableHead>Titulo</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Categoria</TableHead>
+            <TableHead>Views</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Acoes</TableHead>
           </TableRow>
@@ -67,14 +68,14 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 5 }).map((_, j) => (
+                {Array.from({ length: 6 }).map((_, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
                 ))}
               </TableRow>
             ))
           ) : items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                 Nenhum conteudo cadastrado
               </TableCell>
             </TableRow>
@@ -86,6 +87,7 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
                   <Badge variant="outline" className="text-xs">{typeLabels[item.content_type]}</Badge>
                 </TableCell>
                 <TableCell className="text-xs">{item.content_categories?.name || "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{item.view_count}</TableCell>
                 <TableCell>
                   <button
                     onClick={() => togglePublish(item.id, item.is_published)}

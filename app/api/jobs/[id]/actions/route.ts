@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { db, jobActions } from "@/lib/db"
+import { db, jobActions, jobs } from "@/lib/db"
 import { requireAuth } from "@/lib/utils/auth"
 
 const actionSchema = z.object({
@@ -32,7 +32,19 @@ export async function POST(
       .onConflictDoNothing()
       .returning()
 
-    return NextResponse.json({ data: action || null }, { status: action ? 201 : 200 })
+    let deactivated = false
+    if (action && (parsed.data.action_type === "link_issue" || parsed.data.action_type === "closed")) {
+      await db
+        .update(jobs)
+        .set({ status: "expired", updatedAt: new Date() })
+        .where(and(eq(jobs.id, id), eq(jobs.status, "approved")))
+      deactivated = true
+    }
+
+    return NextResponse.json(
+      { data: action || null, deactivated },
+      { status: action ? 201 : 200 },
+    )
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

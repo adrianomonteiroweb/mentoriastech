@@ -84,14 +84,15 @@ export function AdBanner() {
           )}
 
           <div className="flex-1 min-w-0 text-center sm:text-left">
-            <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+            <div className="flex items-center justify-center sm:justify-start gap-2 mb-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
                 Indicação
               </span>
             </div>
-            <h3 className="text-sm font-semibold text-foreground">{ad.title}</h3>
+            <h3 className="text-sm font-semibold text-foreground break-words">{ad.title}</h3>
             {ad.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-3 break-words leading-relaxed">
                 {ad.description}
               </p>
             )}

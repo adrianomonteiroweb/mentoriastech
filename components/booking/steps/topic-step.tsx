@@ -42,7 +42,7 @@ export function TopicStep({
           onBack={onBack}
           onNext={onNext}
           canGoNext={false}
-          isFirst={false}
+          isFirst={true}
           isLast={false}
         />
       </div>
@@ -88,7 +88,7 @@ export function TopicStep({
         onBack={onBack}
         onNext={onNext}
         canGoNext={!!selectedTopicId}
-        isFirst={false}
+        isFirst={true}
         isLast={false}
       />
     </div>

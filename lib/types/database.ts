@@ -26,6 +26,7 @@ export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 export type JobActionType = "applied" | "link_issue" | "closed"
+export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
 // -----------------------------------------------------------------------------
@@ -182,6 +183,9 @@ export interface Job {
   level: JobLevel
   salary_range: string | null
   application_url: string | null
+  is_international: boolean
+  required_language: string | null
+  language_level: LanguageLevel | null
   status: JobStatus
   approved_by: string | null
   approved_at: string | null
@@ -266,4 +270,6 @@ export interface AdminStats {
   pendingJobs: number
   publishedContent: number
   completedBookings: number
+  reportedJobs: number
+  totalApplications: number
 }
