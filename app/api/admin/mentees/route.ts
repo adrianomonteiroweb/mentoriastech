@@ -3,6 +3,38 @@ import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm"
 import { db, profiles, bookings } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
+import { ensureMenteeProfile } from "@/lib/db/mentees"
+import { z } from "zod"
+
+const createMenteeSchema = z.object({
+  full_name: z.string().min(1, "Nome é obrigatório"),
+  email: z.string().email("Email inválido"),
+  whatsapp: z.string().optional(),
+})
+
+export async function POST(request: Request) {
+  try {
+    await requireRole("admin")
+    const body = await request.json()
+
+    const parsed = createMenteeSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 })
+    }
+
+    const profile = await ensureMenteeProfile({
+      email: parsed.data.email,
+      fullName: parsed.data.full_name,
+      whatsapp: parsed.data.whatsapp || null,
+    })
+
+    return NextResponse.json({ data: toProfile(profile) }, { status: 201 })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
 
 export async function GET(request: Request) {
   try {

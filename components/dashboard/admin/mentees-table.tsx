@@ -24,19 +24,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  CalendarPlus,
   ClipboardList,
   Download,
   ExternalLink,
   Loader2,
   MessageCircle,
   Pencil,
+  Plus,
   Search,
   Trash2,
   Upload,
 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
-import type { CareerStatus, Profile, Seniority } from "@/lib/types/database"
+import type { CareerStatus, MentoringTopic, Profile, Seniority } from "@/lib/types/database"
 
 const CAREER_STATUS_LABEL: Record<CareerStatus, string> = {
   seeking: "Buscando vaga",
@@ -100,6 +102,23 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     career_status: "" as CareerStatus | "",
     seniority: "" as Seniority | "",
     career_focus: "",
+  })
+
+  const [addingMentee, setAddingMentee] = useState(false)
+  const [savingNew, setSavingNew] = useState(false)
+  const [newError, setNewError] = useState("")
+  const [newForm, setNewForm] = useState({ full_name: "", email: "", whatsapp: "" })
+
+  const [bookingMentee, setBookingMentee] = useState<Profile | null>(null)
+  const [topics, setTopics] = useState<MentoringTopic[]>([])
+  const [savingBooking, setSavingBooking] = useState(false)
+  const [bookingError, setBookingError] = useState("")
+  const [bookingForm, setBookingForm] = useState({
+    session_date: "",
+    start_time: "",
+    topic_id: "",
+    booking_type: "free" as "free" | "paid" | "private",
+    notes: "",
   })
 
   function loadMentees() {
@@ -206,18 +225,100 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     loadMentees()
   }
 
+  async function createMentee(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingNew(true)
+    setNewError("")
+
+    try {
+      const res = await fetch("/api/admin/mentees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newForm),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Erro ao criar mentorado")
+      }
+
+      setAddingMentee(false)
+      setNewForm({ full_name: "", email: "", whatsapp: "" })
+      loadMentees()
+    } catch (err) {
+      setNewError(err instanceof Error ? err.message : "Erro ao criar")
+    } finally {
+      setSavingNew(false)
+    }
+  }
+
+  function openBookingDialog(mentee: Profile) {
+    setBookingMentee(mentee)
+    setBookingError("")
+    setBookingForm({ session_date: "", start_time: "", topic_id: "", booking_type: "free", notes: "" })
+    if (topics.length === 0) {
+      fetch("/api/topics")
+        .then((r) => r.json())
+        .then((json) => setTopics(json.topics || []))
+        .catch(console.error)
+    }
+  }
+
+  async function createBooking(e: React.FormEvent) {
+    e.preventDefault()
+    if (!bookingMentee) return
+
+    setSavingBooking(true)
+    setBookingError("")
+
+    try {
+      const res = await fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mentee_id: bookingMentee.id,
+          session_date: bookingForm.session_date,
+          start_time: bookingForm.start_time || undefined,
+          topic_id: bookingForm.topic_id || undefined,
+          booking_type: bookingForm.booking_type,
+          notes: bookingForm.notes || undefined,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Erro ao criar agendamento")
+      }
+
+      setBookingMentee(null)
+      loadMentees()
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : "Erro ao criar")
+    } finally {
+      setSavingBooking(false)
+    }
+  }
+
   const columnCount = canManage ? 7 : 6
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome ou email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {canManage && (
+          <Button onClick={() => { setAddingMentee(true); setNewError(""); setNewForm({ full_name: "", email: "", whatsapp: "" }) }}>
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar
+          </Button>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-md border">
@@ -344,6 +445,9 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                               {m.booking_count}
                             </Badge>
                           )}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openBookingDialog(m)}>
+                          <CalendarPlus className="h-3 w-3 mr-1" /> Agendar
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(m)}>
                           <Pencil className="h-3 w-3 mr-1" /> Editar
@@ -548,6 +652,131 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
         open={!!historyMentee}
         onClose={() => setHistoryMentee(null)}
       />
+
+      <Dialog open={addingMentee} onOpenChange={(open) => !open && setAddingMentee(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar mentorado</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={createMentee} className="grid gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-mentee-name">Nome</Label>
+              <Input
+                id="new-mentee-name"
+                value={newForm.full_name}
+                onChange={(e) => setNewForm((c) => ({ ...c, full_name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-mentee-email">Email</Label>
+              <Input
+                id="new-mentee-email"
+                type="email"
+                value={newForm.email}
+                onChange={(e) => setNewForm((c) => ({ ...c, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-mentee-whatsapp">WhatsApp</Label>
+              <Input
+                id="new-mentee-whatsapp"
+                value={newForm.whatsapp}
+                onChange={(e) => setNewForm((c) => ({ ...c, whatsapp: e.target.value }))}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+            {newError && <p className="text-sm text-destructive">{newError}</p>}
+            <Button type="submit" disabled={savingNew}>
+              {savingNew && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Criar mentorado
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!bookingMentee} onOpenChange={(open) => !open && setBookingMentee(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Novo agendamento — {bookingMentee?.full_name || bookingMentee?.email}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={createBooking} className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-date">Data</Label>
+                <Input
+                  id="booking-date"
+                  type="date"
+                  value={bookingForm.session_date}
+                  onChange={(e) => setBookingForm((c) => ({ ...c, session_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="booking-time">Horário</Label>
+                <Input
+                  id="booking-time"
+                  type="time"
+                  value={bookingForm.start_time}
+                  onChange={(e) => setBookingForm((c) => ({ ...c, start_time: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Tema</Label>
+                <Select
+                  value={bookingForm.topic_id || "none"}
+                  onValueChange={(value) => setBookingForm((c) => ({ ...c, topic_id: value === "none" ? "" : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem tema</SelectItem>
+                    {topics.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Tipo</Label>
+                <Select
+                  value={bookingForm.booking_type}
+                  onValueChange={(value) => setBookingForm((c) => ({ ...c, booking_type: value as "free" | "paid" | "private" }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Gratuita</SelectItem>
+                    <SelectItem value="paid">Paga</SelectItem>
+                    <SelectItem value="private">Privada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="booking-notes">Observações</Label>
+              <Textarea
+                id="booking-notes"
+                value={bookingForm.notes}
+                onChange={(e) => setBookingForm((c) => ({ ...c, notes: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            {bookingError && <p className="text-sm text-destructive">{bookingError}</p>}
+            <Button type="submit" disabled={savingBooking}>
+              {savingBooking && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Criar agendamento
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
