@@ -157,6 +157,7 @@ export function toJob(row: DbJob): Job {
     location: row.location,
     job_type: row.jobType,
     level: row.level,
+    category: row.category,
     salary_range: row.salaryRange,
     application_url: row.applicationUrl,
     is_international: row.isInternational,

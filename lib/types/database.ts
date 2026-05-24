@@ -27,6 +27,17 @@ export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 export type JobActionType = "applied" | "link_issue" | "closed"
 export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
+export type JobCategory =
+  | "dados"
+  | "ia"
+  | "desenvolvimento"
+  | "po"
+  | "pm"
+  | "qa"
+  | "cyber_security"
+  | "devops"
+  | "design"
+  | "other"
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
 // -----------------------------------------------------------------------------
@@ -181,6 +192,7 @@ export interface Job {
   location: string | null
   job_type: JobType
   level: JobLevel
+  category: JobCategory
   salary_range: string | null
   application_url: string | null
   is_international: boolean

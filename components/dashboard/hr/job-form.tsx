@@ -26,6 +26,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
   const [location, setLocation] = useState(job?.location || "")
   const [jobType, setJobType] = useState(job?.job_type || "remote")
   const [level, setLevel] = useState(job?.level || "junior")
+  const [category, setCategory] = useState(job?.category || "other")
   const [salaryRange, setSalaryRange] = useState(job?.salary_range || "")
   const [applicationUrl, setApplicationUrl] = useState(job?.application_url || "")
   const [isInternational, setIsInternational] = useState(job?.is_international || false)
@@ -57,6 +58,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
           location: location || undefined,
           job_type: jobType,
           level,
+          category,
           salary_range: salaryRange || undefined,
           application_url: applicationUrl || undefined,
           is_international: isInternational,
@@ -139,17 +141,37 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Nivel</Label>
-        <Select value={level} onValueChange={(value) => setLevel(value as typeof level)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="internship">Estagio & Trainee</SelectItem>
-            <SelectItem value="junior">Junior</SelectItem>
-            <SelectItem value="mid">Pleno</SelectItem>
-            <SelectItem value="senior">Senior</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label>Nivel</Label>
+          <Select value={level} onValueChange={(value) => setLevel(value as typeof level)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="internship">Estagio & Trainee</SelectItem>
+              <SelectItem value="junior">Junior</SelectItem>
+              <SelectItem value="mid">Pleno</SelectItem>
+              <SelectItem value="senior">Senior</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>Categoria</Label>
+          <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dados">Dados</SelectItem>
+              <SelectItem value="ia">IA</SelectItem>
+              <SelectItem value="desenvolvimento">Desenvolvimento</SelectItem>
+              <SelectItem value="po">PO</SelectItem>
+              <SelectItem value="pm">PM</SelectItem>
+              <SelectItem value="qa">QA</SelectItem>
+              <SelectItem value="cyber_security">Cyber Security</SelectItem>
+              <SelectItem value="devops">DevOps</SelectItem>
+              <SelectItem value="design">Design</SelectItem>
+              <SelectItem value="other">Outra</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">

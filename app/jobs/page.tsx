@@ -26,6 +26,7 @@ interface Job {
   location: string | null;
   job_type: "remote" | "hybrid" | "onsite";
   level: "internship" | "junior" | "mid" | "senior";
+  category: "dados" | "ia" | "desenvolvimento" | "po" | "pm" | "qa" | "cyber_security" | "devops" | "design" | "other";
   salary_range: string | null;
   application_url: string | null;
   is_international: boolean;
@@ -45,6 +46,19 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   remote: "bg-green-500/10 text-green-400",
   hybrid: "bg-yellow-500/10 text-yellow-400",
   onsite: "bg-blue-500/10 text-blue-400",
+};
+
+const JOB_CATEGORY_LABELS: Record<string, string> = {
+  dados: "Dados",
+  ia: "IA",
+  desenvolvimento: "Desenvolvimento",
+  po: "PO",
+  pm: "PM",
+  qa: "QA",
+  cyber_security: "Cyber Security",
+  devops: "DevOps",
+  design: "Design",
+  other: "Outra",
 };
 
 const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
@@ -75,6 +89,20 @@ const SCOPE_TABS = [
   { key: "international", label: "Internacional" },
 ] as const;
 
+const CATEGORY_TABS = [
+  { key: "all", label: "Todas" },
+  { key: "dados", label: "Dados" },
+  { key: "ia", label: "IA" },
+  { key: "desenvolvimento", label: "Dev" },
+  { key: "po", label: "PO" },
+  { key: "pm", label: "PM" },
+  { key: "qa", label: "QA" },
+  { key: "cyber_security", label: "Cyber Security" },
+  { key: "devops", label: "DevOps" },
+  { key: "design", label: "Design" },
+  { key: "other", label: "Outra" },
+] as const;
+
 const FALLBACK_JOBS: Job[] = [
   {
     id: "fj1",
@@ -85,6 +113,7 @@ const FALLBACK_JOBS: Job[] = [
     location: "Fortaleza, CE",
     job_type: "hybrid",
     level: "internship",
+    category: "desenvolvimento",
     salary_range: "R$ 1.200 - R$ 1.800",
     application_url: "https://linkedin.com",
     is_international: false,
@@ -102,6 +131,7 @@ const FALLBACK_JOBS: Job[] = [
     location: null,
     job_type: "remote",
     level: "junior",
+    category: "desenvolvimento",
     salary_range: "R$ 3.000 - R$ 4.500",
     application_url: "https://linkedin.com",
     is_international: false,
@@ -119,6 +149,7 @@ const FALLBACK_JOBS: Job[] = [
     location: "São Paulo, SP",
     job_type: "remote",
     level: "mid",
+    category: "desenvolvimento",
     salary_range: "R$ 8.000 - R$ 12.000",
     application_url: "https://linkedin.com",
     is_international: false,
@@ -136,6 +167,7 @@ const FALLBACK_JOBS: Job[] = [
     location: null,
     job_type: "remote",
     level: "senior",
+    category: "desenvolvimento",
     salary_range: "R$ 15.000 - R$ 22.000",
     application_url: "https://linkedin.com",
     is_international: false,
@@ -153,6 +185,7 @@ const FALLBACK_JOBS: Job[] = [
     location: "Fortaleza, CE",
     job_type: "onsite",
     level: "internship",
+    category: "ia",
     salary_range: "R$ 2.000 - R$ 2.800",
     application_url: "https://linkedin.com",
     is_international: false,
@@ -170,6 +203,7 @@ const FALLBACK_JOBS: Job[] = [
     location: null,
     job_type: "remote",
     level: "mid",
+    category: "desenvolvimento",
     salary_range: "USD 4.000 - USD 6.000",
     application_url: "https://linkedin.com",
     is_international: true,
@@ -200,6 +234,7 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [activeType, setActiveType] = useState<string>("all");
   const [activeScope, setActiveScope] = useState<string>("all");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -283,6 +318,7 @@ export default function JobsPage() {
     if (activeType !== "all" && job.job_type !== activeType) return false;
     if (activeScope === "national" && job.is_international) return false;
     if (activeScope === "international" && !job.is_international) return false;
+    if (activeCategory !== "all" && job.category !== activeCategory) return false;
     return true;
   });
 
@@ -363,6 +399,21 @@ export default function JobsPage() {
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveCategory(tab.key)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeCategory === tab.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <JobTips />
@@ -406,6 +457,11 @@ export default function JobsPage() {
                           ? "Pleno"
                           : "Sênior"}
                   </span>
+                  {job.category && job.category !== "other" && (
+                    <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+                      {JOB_CATEGORY_LABELS[job.category] || job.category}
+                    </span>
+                  )}
                 </div>
               </div>
 

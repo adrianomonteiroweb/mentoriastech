@@ -336,6 +336,7 @@ CREATE TABLE public.jobs (
   location TEXT,
   job_type TEXT NOT NULL DEFAULT 'remote' CHECK (job_type IN ('remote', 'hybrid', 'onsite')),
   level TEXT NOT NULL DEFAULT 'junior' CHECK (level IN ('internship', 'junior', 'mid', 'senior')),
+  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('dados', 'ia', 'desenvolvimento', 'po', 'pm', 'qa', 'cyber_security', 'devops', 'design', 'other')),
   salary_range TEXT,
   application_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (

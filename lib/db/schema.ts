@@ -157,6 +157,7 @@ export const jobs = pgTable("jobs", {
   location: text("location"),
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] }).notNull().default("remote"),
   level: text("level", { enum: ["internship", "junior", "mid", "senior"] }).notNull().default("junior"),
+  category: text("category", { enum: ["dados", "ia", "desenvolvimento", "po", "pm", "qa", "cyber_security", "devops", "design", "other"] }).notNull().default("other"),
   salaryRange: text("salary_range"),
   applicationUrl: text("application_url"),
   isInternational: boolean("is_international").notNull().default(false),

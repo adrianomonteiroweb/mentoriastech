@@ -71,7 +71,7 @@ export function JobsTable({
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = showActions ? 9 : 8
+  const columnCount = showActions ? 10 : 9
 
   return (
     <div className="rounded-md border">
@@ -82,6 +82,7 @@ export function JobsTable({
             <TableHead>Empresa</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Nivel</TableHead>
+            <TableHead>Categoria</TableHead>
             <TableHead>Autor</TableHead>
             <TableHead>Views</TableHead>
             <TableHead>Cliques</TableHead>
@@ -115,6 +116,11 @@ export function JobsTable({
                 <TableCell>
                   <Badge variant="outline" className="text-xs">
                     {job.level === "internship" ? "Estágio" : job.level === "junior" ? "Júnior" : job.level === "mid" ? "Pleno" : "Sênior"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {job.category === "cyber_security" ? "Cyber Security" : job.category === "ia" ? "IA" : job.category === "desenvolvimento" ? "Dev" : job.category === "dados" ? "Dados" : job.category?.toUpperCase() || "—"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>
