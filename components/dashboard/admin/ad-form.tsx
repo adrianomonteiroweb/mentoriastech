@@ -23,6 +23,8 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
   const [linkUrl, setLinkUrl] = useState(ad?.link_url ?? "")
   const [sortOrder, setSortOrder] = useState(ad?.sort_order ?? 0)
   const [isActive, setIsActive] = useState(ad?.is_active ?? true)
+  const [hasMaxClicks, setHasMaxClicks] = useState(ad?.max_clicks != null)
+  const [maxClicks, setMaxClicks] = useState(ad?.max_clicks ?? 100)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(ad?.image_url ?? null)
   const [loading, setLoading] = useState(false)
@@ -79,6 +81,7 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
           link_url: linkUrl || undefined,
           sort_order: sortOrder,
           is_active: isActive,
+          max_clicks: hasMaxClicks ? maxClicks : null,
         }),
       })
 
@@ -169,6 +172,30 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
             onChange={(e) => setSortOrder(Number(e.target.value))}
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <Switch id="ad-max-clicks" checked={hasMaxClicks} onCheckedChange={setHasMaxClicks} />
+          <Label htmlFor="ad-max-clicks">Limite de cliques</Label>
+        </div>
+        {hasMaxClicks && (
+          <div className="flex flex-col gap-1.5 pl-6">
+            <Label htmlFor="ad-max-clicks-value">Máximo de cliques permitidos</Label>
+            <Input
+              id="ad-max-clicks-value"
+              type="number"
+              min={1}
+              value={maxClicks}
+              onChange={(e) => setMaxClicks(Number(e.target.value))}
+              placeholder="Ex: 100"
+              className="max-w-[200px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              O anúncio será desativado automaticamente ao atingir este limite.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

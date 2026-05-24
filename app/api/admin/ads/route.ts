@@ -13,6 +13,7 @@ const createSchema = z.object({
   link_url: z.string().url().optional().or(z.literal("")),
   sort_order: z.number().int().default(0),
   is_active: z.boolean().default(true),
+  max_clicks: z.number().int().min(1).nullable().optional(),
 })
 
 export async function GET() {
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
         linkUrl: parsed.data.link_url || undefined,
         sortOrder: parsed.data.sort_order,
         isActive: parsed.data.is_active,
+        maxClicks: parsed.data.max_clicks ?? undefined,
         createdBy: admin.id,
       })
       .returning()

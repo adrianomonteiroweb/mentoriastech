@@ -203,6 +203,7 @@ export default function JobsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
   const viewedJobs = useRef<Set<string>>(new Set());
 
   function loadJobs() {
@@ -424,9 +425,29 @@ export default function JobsPage() {
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
+              <p className={`text-xs text-muted-foreground mb-1 whitespace-pre-line ${
+                expandedJobs.has(job.id) ? "" : "line-clamp-3"
+              }`}>
                 {job.description}
               </p>
+              {job.description && job.description.length > 150 && (
+                <button
+                  onClick={() => {
+                    setExpandedJobs((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(job.id)) {
+                        next.delete(job.id);
+                      } else {
+                        next.add(job.id);
+                      }
+                      return next;
+                    });
+                  }}
+                  className="text-[11px] font-medium text-primary hover:underline mb-3"
+                >
+                  {expandedJobs.has(job.id) ? "Ver menos" : "Ver mais"}
+                </button>
+              )}
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

@@ -131,9 +131,16 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                    item.max_clicks != null && item.click_count >= item.max_clicks
+                      ? "text-red-500"
+                      : "text-muted-foreground"
+                  }`}>
                     <MousePointerClick className="h-3 w-3" />
                     {item.click_count}
+                    {item.max_clicks != null && (
+                      <span className="text-muted-foreground font-normal"> / {item.max_clicks}</span>
+                    )}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -151,9 +158,13 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge className={item.is_active ? "bg-green-500/10 text-green-600" : "bg-gray-500/10 text-gray-600"}>
-                    {item.is_active ? "Ativo" : "Inativo"}
-                  </Badge>
+                  {item.is_active ? (
+                    <Badge className="bg-green-500/10 text-green-600">Ativo</Badge>
+                  ) : item.max_clicks != null && item.click_count >= item.max_clicks ? (
+                    <Badge className="bg-red-500/10 text-red-500">Limite atingido</Badge>
+                  ) : (
+                    <Badge className="bg-gray-500/10 text-gray-600">Inativo</Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">

@@ -238,6 +238,7 @@ export const ads = pgTable("ads", {
   isActive: boolean("is_active").notNull().default(true),
   viewCount: integer("view_count").notNull().default(0),
   clickCount: integer("click_count").notNull().default(0),
+  maxClicks: integer("max_clicks"),  // null = sem limite
   createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

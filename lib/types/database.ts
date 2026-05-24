@@ -225,6 +225,7 @@ export interface Ad {
   is_active: boolean
   view_count: number
   click_count: number
+  max_clicks: number | null
   created_by: string | null
   created_at: string
   updated_at: string

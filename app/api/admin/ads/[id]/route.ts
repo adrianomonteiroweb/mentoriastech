@@ -13,6 +13,7 @@ const updateSchema = z.object({
   link_url: z.string().url().optional().or(z.literal("")),
   sort_order: z.number().int().optional(),
   is_active: z.boolean().optional(),
+  max_clicks: z.number().int().min(1).nullable().optional(),
 })
 
 export async function PUT(
@@ -38,6 +39,7 @@ export async function PUT(
     if (parsed.data.link_url !== undefined) updateData.linkUrl = parsed.data.link_url || null
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
     if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
+    if (parsed.data.max_clicks !== undefined) updateData.maxClicks = parsed.data.max_clicks
 
     const [data] = await db
       .update(ads)

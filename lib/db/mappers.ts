@@ -36,6 +36,7 @@ export function toAd(row: DbAd): Ad {
     is_active: row.isActive,
     view_count: row.viewCount,
     click_count: row.clickCount,
+    max_clicks: row.maxClicks ?? null,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
