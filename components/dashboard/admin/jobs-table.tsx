@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
-import { AlertTriangle, CheckCircle2, LinkIcon, Pencil, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Eye, LinkIcon, MousePointerClick, Pencil, Trash2, XCircle } from "lucide-react"
 import type { JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
@@ -71,7 +71,7 @@ export function JobsTable({
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = showActions ? 7 : 6
+  const columnCount = showActions ? 9 : 8
 
   return (
     <div className="rounded-md border">
@@ -83,6 +83,8 @@ export function JobsTable({
             <TableHead>Tipo</TableHead>
             <TableHead>Nivel</TableHead>
             <TableHead>Autor</TableHead>
+            <TableHead>Views</TableHead>
+            <TableHead>Cliques</TableHead>
             <TableHead>Status</TableHead>
             {showActions && <TableHead>Acoes</TableHead>}
           </TableRow>
@@ -116,6 +118,18 @@ export function JobsTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Eye className="h-3 w-3" />
+                    {job.view_count ?? 0}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <MousePointerClick className="h-3 w-3" />
+                    {job.click_count ?? 0}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <Badge

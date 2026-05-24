@@ -163,6 +163,8 @@ export const jobs = pgTable("jobs", {
   approvedBy: uuid("approved_by").references(() => profiles.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  viewCount: integer("view_count").notNull().default(0),
+  clickCount: integer("click_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -220,6 +222,25 @@ export const contentViews = pgTable("content_views", {
 })
 
 // -----------------------------------------------------------------------------
+// ADS — anúncios de serviços indicados pelo admin
+// -----------------------------------------------------------------------------
+export const ads = pgTable("ads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  whatsappNumber: text("whatsapp_number"),
+  linkUrl: text("link_url"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  viewCount: integer("view_count").notNull().default(0),
+  clickCount: integer("click_count").notNull().default(0),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // JOB_ACTIONS — ações de mentorados em vagas
 // -----------------------------------------------------------------------------
 export const jobActions = pgTable("job_actions", {
@@ -244,6 +265,8 @@ export type ContentItem = typeof contentItems.$inferSelect
 export type Job = typeof jobs.$inferSelect
 export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
+export type Ad = typeof ads.$inferSelect
+export type NewAd = typeof ads.$inferInsert
 export type SiteSetting = typeof siteSettings.$inferSelect
 export type Session = typeof sessions.$inferSelect
 export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect

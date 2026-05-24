@@ -411,6 +411,42 @@ CREATE POLICY "Admin can manage settings"
     )
   );
 
+-- -----------------------------------------------------------------------------
+-- ADS — Anúncios de serviços indicados pelo admin
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.ads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  whatsapp_number TEXT,
+  link_url TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.ads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read active ads"
+  ON public.ads FOR SELECT
+  USING (is_active = true);
+
+CREATE POLICY "Admin can manage all ads"
+  ON public.ads FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+CREATE TRIGGER ads_updated_at
+  BEFORE UPDATE ON public.ads
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
 -- =============================================================================
 -- SEED DATA — Dados iniciais
 -- =============================================================================

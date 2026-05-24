@@ -186,6 +186,8 @@ export interface Job {
   approved_by: string | null
   approved_at: string | null
   expires_at: string | null
+  view_count: number
+  click_count: number
   created_at: string
   updated_at: string
 }
@@ -203,6 +205,25 @@ export interface JobAction {
   user_id: string
   action_type: JobActionType
   created_at: string
+}
+
+// -----------------------------------------------------------------------------
+// Ads
+// -----------------------------------------------------------------------------
+export interface Ad {
+  id: string
+  title: string
+  description: string | null
+  image_url: string | null
+  whatsapp_number: string | null
+  link_url: string | null
+  sort_order: number
+  is_active: boolean
+  view_count: number
+  click_count: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
 }
 
 // -----------------------------------------------------------------------------

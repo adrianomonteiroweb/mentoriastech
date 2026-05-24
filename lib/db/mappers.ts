@@ -1,4 +1,5 @@
 import type {
+  Ad as DbAd,
   Booking as DbBooking,
   ContentCategory as DbContentCategory,
   ContentItem as DbContentItem,
@@ -8,6 +9,7 @@ import type {
   Profile as DbProfile,
 } from "@/lib/db/schema"
 import type {
+  Ad,
   Booking,
   ContentCategory,
   ContentItem,
@@ -20,6 +22,24 @@ import type {
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null
   return value instanceof Date ? value.toISOString() : value
+}
+
+export function toAd(row: DbAd): Ad {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    image_url: row.imageUrl,
+    whatsapp_number: row.whatsappNumber,
+    link_url: row.linkUrl,
+    sort_order: row.sortOrder,
+    is_active: row.isActive,
+    view_count: row.viewCount,
+    click_count: row.clickCount,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
 }
 
 export function toProfile(row: DbProfile): Profile {
@@ -142,6 +162,8 @@ export function toJob(row: DbJob): Job {
     approved_by: row.approvedBy,
     approved_at: toIso(row.approvedAt),
     expires_at: toIso(row.expiresAt),
+    view_count: row.viewCount,
+    click_count: row.clickCount,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

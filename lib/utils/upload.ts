@@ -10,6 +10,11 @@ const ALLOWED_TYPES: Record<string, string[]> = {
     "image/jpeg",
     "image/webp",
   ],
+  ads: [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+  ],
 }
 
 interface UploadResult {
@@ -28,7 +33,7 @@ interface UploadResult {
 export async function uploadFile(
   file: File,
   folder: string,
-  category: "resume" | "content" = "content",
+  category: "resume" | "content" | "ads" = "content",
 ): Promise<UploadResult> {
   // Validar tamanho
   if (file.size > MAX_FILE_SIZE) {

@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import Link from "next/link"
+import { AdBanner } from "@/components/ad-banner"
 
 interface ContentCategory {
   id: string
@@ -163,6 +164,8 @@ export default function ContentPage() {
             PDFs, artigos, links e vídeos sobre programação e carreira em tech.
           </p>
         </div>
+
+        <AdBanner />
 
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2">

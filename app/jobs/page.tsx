@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { AdBanner } from "@/components/ad-banner";
 
 interface Job {
   id: string;
@@ -135,6 +136,15 @@ const FALLBACK_JOBS: Job[] = [
   },
 ];
 
+function trackJobEvent(jobId: string, event: "view" | "click") {
+  if (jobId.startsWith("fj")) return; // não rastrear fallback
+  fetch(`/api/jobs/${jobId}/track`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event }),
+  }).catch(() => {});
+}
+
 interface UserAction {
   job_id: string;
   action_type: string;
@@ -147,6 +157,7 @@ export default function JobsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const viewedJobs = useRef<Set<string>>(new Set());
 
   function loadJobs() {
     fetch("/api/jobs")
@@ -169,6 +180,16 @@ export default function JobsPage() {
   useEffect(() => {
     loadJobs();
   }, []);
+
+  // Rastrear visualização das vagas quando carregam
+  useEffect(() => {
+    jobs.forEach((job) => {
+      if (!job.id.startsWith("fj") && !viewedJobs.current.has(job.id)) {
+        viewedJobs.current.add(job.id);
+        trackJobEvent(job.id, "view");
+      }
+    });
+  }, [jobs]);
 
   function hasAction(jobId: string, actionType: string) {
     return userActions.some(
@@ -235,6 +256,8 @@ export default function JobsPage() {
             Vagas compartilhadas pela comunidade de mentorados.
           </p>
         </div>
+
+        <AdBanner />
 
         <div className="flex flex-wrap gap-2">
           {LEVEL_TABS.map((tab) => (
@@ -313,6 +336,7 @@ export default function JobsPage() {
                     href={job.application_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackJobEvent(job.id, "click")}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                   >
                     <ExternalLink className="h-3 w-3" />
