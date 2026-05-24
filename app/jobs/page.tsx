@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
+import { JobTips } from "@/components/job-tips";
 
 interface Job {
   id: string;
@@ -362,6 +363,8 @@ export default function JobsPage() {
             ))}
           </div>
         </div>
+
+        <JobTips />
 
         <div className="flex flex-col gap-3">
           {filtered.map((job) => (
