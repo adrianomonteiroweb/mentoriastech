@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Trash2, Eye, EyeOff, MousePointerClick } from "lucide-react"
+import { Trash2, Eye, EyeOff, MousePointerClick, Percent } from "lucide-react"
 import type { Ad } from "@/lib/types/database"
 import Image from "next/image"
 
@@ -63,6 +63,7 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
             <TableHead>Ordem</TableHead>
             <TableHead>Visualizações</TableHead>
             <TableHead>Cliques</TableHead>
+            <TableHead>Conversão</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
@@ -71,7 +72,7 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 8 }).map((_, j) => (
+                {Array.from({ length: 9 }).map((_, j) => (
                   <TableCell key={j}>
                     <Skeleton className="h-4 w-16" />
                   </TableCell>
@@ -80,7 +81,7 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
             ))
           ) : items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                 Nenhum anúncio cadastrado
               </TableCell>
             </TableRow>
@@ -120,6 +121,20 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <MousePointerClick className="h-3 w-3" />
                     {item.click_count}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                    item.view_count > 0 && (item.click_count / item.view_count) * 100 >= 5
+                      ? "text-green-500"
+                      : item.view_count > 0 && (item.click_count / item.view_count) * 100 >= 2
+                        ? "text-yellow-500"
+                        : "text-muted-foreground"
+                  }`}>
+                    <Percent className="h-3 w-3" />
+                    {item.view_count > 0
+                      ? ((item.click_count / item.view_count) * 100).toFixed(1) + "%"
+                      : "—"}
                   </span>
                 </TableCell>
                 <TableCell>
