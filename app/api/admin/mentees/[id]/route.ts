@@ -15,9 +15,20 @@ const updateSchema = z.object({
   career_status: z
     .enum(["seeking", "interning", "employed", "student", "other"])
     .nullable()
-    .optional(),
-  seniority: z.enum(["junior", "mid", "senior", "undefined"]).nullable().optional(),
+    .optional()
+    .or(z.literal("")),
+  seniority: z
+    .enum(["junior", "mid", "senior", "undefined"])
+    .nullable()
+    .optional()
+    .or(z.literal("")),
   career_focus: z.string().nullable().optional(),
+  origin_category: z
+    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .nullable()
+    .optional()
+    .or(z.literal("")),
+  origin_description: z.string().nullable().optional(),
 })
 
 export async function PUT(
@@ -53,6 +64,8 @@ export async function PUT(
     if (parsed.data.career_status !== undefined) updateData.careerStatus = parsed.data.career_status || null
     if (parsed.data.seniority !== undefined) updateData.seniority = parsed.data.seniority || null
     if (parsed.data.career_focus !== undefined) updateData.careerFocus = parsed.data.career_focus || null
+    if (parsed.data.origin_category !== undefined) updateData.originCategory = parsed.data.origin_category || null
+    if (parsed.data.origin_description !== undefined) updateData.originDescription = parsed.data.origin_description || null
 
     const [data] = await db
       .update(profiles)

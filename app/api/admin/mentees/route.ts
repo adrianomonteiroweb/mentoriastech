@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm"
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { db, profiles, bookings } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
@@ -11,6 +11,14 @@ const createMenteeSchema = z.object({
   email: z.string().email("Email inválido"),
   whatsapp: z.string().optional(),
 })
+
+const careerStatusValues = ["seeking", "interning", "employed", "student", "other"] as const
+const seniorityValues = ["junior", "mid", "senior", "undefined"] as const
+const originCategoryValues = ["linkedin", "palestra", "indicacao", "instagram", "evento"] as const
+
+function isInValues<T extends readonly string[]>(value: string | null, values: T): value is T[number] {
+  return !!value && values.includes(value as T[number])
+}
 
 export async function POST(request: Request) {
   try {
@@ -42,6 +50,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
 
     const search = searchParams.get("search")?.trim()
+    const history = searchParams.get("history")
+    const linkedin = searchParams.get("linkedin")
+    const resume = searchParams.get("resume")
+    const portfolio = searchParams.get("portfolio")
+    const careerStatus = searchParams.get("career_status")
+    const seniority = searchParams.get("seniority")
+    const origin = searchParams.get("origin")
     const page = parseInt(searchParams.get("page") || "1")
     const pageSize = parseInt(searchParams.get("pageSize") || "20")
 
@@ -53,6 +68,45 @@ export async function GET(request: Request) {
           ilike(profiles.email, `%${search}%`),
         )!,
       )
+    }
+    if (history === "with") {
+      filters.push(sql`EXISTS (
+        SELECT 1 FROM ${bookings}
+        WHERE ${bookings.menteeId} = ${profiles.id}
+        AND ${bookings.status} = 'completed'
+      )`)
+    } else if (history === "without") {
+      filters.push(sql`NOT EXISTS (
+        SELECT 1 FROM ${bookings}
+        WHERE ${bookings.menteeId} = ${profiles.id}
+        AND ${bookings.status} = 'completed'
+      )`)
+    }
+    if (linkedin === "with") {
+      filters.push(sql`${profiles.linkedinUrl} IS NOT NULL AND ${profiles.linkedinUrl} <> ''`)
+    } else if (linkedin === "without") {
+      filters.push(sql`(${profiles.linkedinUrl} IS NULL OR ${profiles.linkedinUrl} = '')`)
+    }
+    if (resume === "with") {
+      filters.push(sql`${profiles.resumeUrl} IS NOT NULL AND ${profiles.resumeUrl} <> ''`)
+    } else if (resume === "without") {
+      filters.push(sql`(${profiles.resumeUrl} IS NULL OR ${profiles.resumeUrl} = '')`)
+    }
+    if (portfolio === "with") {
+      filters.push(sql`${profiles.portfolioUrl} IS NOT NULL AND ${profiles.portfolioUrl} <> ''`)
+    } else if (portfolio === "without") {
+      filters.push(sql`(${profiles.portfolioUrl} IS NULL OR ${profiles.portfolioUrl} = '')`)
+    }
+    if (isInValues(careerStatus, careerStatusValues)) {
+      filters.push(eq(profiles.careerStatus, careerStatus))
+    }
+    if (isInValues(seniority, seniorityValues)) {
+      filters.push(eq(profiles.seniority, seniority))
+    }
+    if (isInValues(origin, originCategoryValues)) {
+      filters.push(eq(profiles.originCategory, origin))
+    } else if (origin === "none") {
+      filters.push(sql`(${profiles.originCategory} IS NULL OR ${profiles.originCategory} = '')`)
     }
 
     const where = and(...filters)

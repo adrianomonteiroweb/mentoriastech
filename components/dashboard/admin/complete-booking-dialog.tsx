@@ -87,8 +87,10 @@ export function CompleteBookingDialog({
     setCareerStatus((booking.profiles?.career_status as CareerStatus) || "")
     setSeniority((booking.profiles?.seniority as Seniority) || "")
     setCareerFocus(booking.profiles?.career_focus || "")
-    setOriginCategory((booking.origin_category as OriginCategory) || "")
-    setOriginDescription(booking.origin_description || "")
+    setOriginCategory(
+      ((booking.origin_category || booking.profiles?.origin_category) as OriginCategory) || "",
+    )
+    setOriginDescription(booking.origin_description || booking.profiles?.origin_description || "")
   }, [booking])
 
   if (!booking) return null
@@ -119,6 +121,8 @@ export function CompleteBookingDialog({
         career_status: careerStatus || null,
         seniority: seniority || null,
         career_focus: careerFocus || null,
+        origin_category: originCategory || null,
+        origin_description: originDescription || null,
       }
     }
 

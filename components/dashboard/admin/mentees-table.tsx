@@ -35,10 +35,13 @@ import {
   Search,
   Trash2,
   Upload,
+  X,
 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
-import type { CareerStatus, MentoringTopic, Profile, Seniority } from "@/lib/types/database"
+import type { CareerStatus, MentoringTopic, OriginCategory, Profile, Seniority } from "@/lib/types/database"
+
+type PresenceFilter = "all" | "with" | "without"
 
 const CAREER_STATUS_LABEL: Record<CareerStatus, string> = {
   seeking: "Buscando vaga",
@@ -53,6 +56,22 @@ const SENIORITY_LABEL: Record<Seniority, string> = {
   mid: "Pleno",
   senior: "Sênior",
   undefined: "Indefinido",
+}
+
+const ORIGIN_CATEGORY_LABEL: Record<OriginCategory, string> = {
+  linkedin: "LinkedIn",
+  palestra: "Palestra",
+  indicacao: "Indicação",
+  instagram: "Instagram",
+  evento: "Evento",
+}
+
+const ORIGIN_CATEGORY_COLORS: Record<OriginCategory, string> = {
+  linkedin: "border-sky-500/30 bg-sky-500/10 text-sky-400",
+  palestra: "border-violet-500/30 bg-violet-500/10 text-violet-300",
+  indicacao: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+  instagram: "border-pink-500/30 bg-pink-500/10 text-pink-300",
+  evento: "border-amber-500/30 bg-amber-500/10 text-amber-300",
 }
 
 function WhatsAppLink({ mentee }: { mentee: Profile }) {
@@ -76,6 +95,25 @@ function WhatsAppLink({ mentee }: { mentee: Profile }) {
   )
 }
 
+function OriginBadge({ mentee }: { mentee: Profile }) {
+  if (!mentee.origin_category) return null
+
+  const label = ORIGIN_CATEGORY_LABEL[mentee.origin_category]
+  const title = mentee.origin_description
+    ? `${label}: ${mentee.origin_description}`
+    : `Origem: ${label}`
+
+  return (
+    <Badge
+      variant="outline"
+      title={title}
+      className={`w-fit text-[10px] ${ORIGIN_CATEGORY_COLORS[mentee.origin_category]}`}
+    >
+      {label}
+    </Badge>
+  )
+}
+
 interface MenteesTableProps {
   canManage?: boolean
 }
@@ -84,6 +122,13 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [historyFilter, setHistoryFilter] = useState<PresenceFilter>("all")
+  const [linkedinFilter, setLinkedinFilter] = useState<PresenceFilter>("all")
+  const [resumeFilter, setResumeFilter] = useState<PresenceFilter>("all")
+  const [portfolioFilter, setPortfolioFilter] = useState<PresenceFilter>("all")
+  const [careerStatusFilter, setCareerStatusFilter] = useState<CareerStatus | "all">("all")
+  const [seniorityFilter, setSeniorityFilter] = useState<Seniority | "all">("all")
+  const [originFilter, setOriginFilter] = useState<OriginCategory | "all" | "none">("all")
   const [editingMentee, setEditingMentee] = useState<Profile | null>(null)
   const [historyMentee, setHistoryMentee] = useState<Profile | null>(null)
   const [saving, setSaving] = useState(false)
@@ -102,6 +147,8 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     career_status: "" as CareerStatus | "",
     seniority: "" as Seniority | "",
     career_focus: "",
+    origin_category: "" as OriginCategory | "",
+    origin_description: "",
   })
 
   const [addingMentee, setAddingMentee] = useState(false)
@@ -123,8 +170,19 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
 
   function loadMentees() {
     setLoading(true)
-    const params = search ? `?search=${encodeURIComponent(search)}` : ""
-    fetch(`/api/admin/mentees${params}`)
+    const params = new URLSearchParams()
+
+    if (search.trim()) params.set("search", search.trim())
+    if (historyFilter !== "all") params.set("history", historyFilter)
+    if (linkedinFilter !== "all") params.set("linkedin", linkedinFilter)
+    if (resumeFilter !== "all") params.set("resume", resumeFilter)
+    if (portfolioFilter !== "all") params.set("portfolio", portfolioFilter)
+    if (careerStatusFilter !== "all") params.set("career_status", careerStatusFilter)
+    if (seniorityFilter !== "all") params.set("seniority", seniorityFilter)
+    if (originFilter !== "all") params.set("origin", originFilter)
+
+    const query = params.toString()
+    fetch(`/api/admin/mentees${query ? `?${query}` : ""}`)
       .then((r) => r.json())
       .then((json) => setMentees(json.data || []))
       .catch(console.error)
@@ -134,7 +192,16 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   useEffect(() => {
     const timeout = setTimeout(loadMentees, 300)
     return () => clearTimeout(timeout)
-  }, [search])
+  }, [
+    search,
+    historyFilter,
+    linkedinFilter,
+    resumeFilter,
+    portfolioFilter,
+    careerStatusFilter,
+    seniorityFilter,
+    originFilter,
+  ])
 
   function openEdit(mentee: Profile) {
     setEditingMentee(mentee)
@@ -151,6 +218,8 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
       career_status: mentee.career_status || "",
       seniority: mentee.seniority || "",
       career_focus: mentee.career_focus || "",
+      origin_category: mentee.origin_category || "",
+      origin_description: mentee.origin_description || "",
     })
   }
 
@@ -300,23 +369,150 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   }
 
   const columnCount = canManage ? 7 : 6
+  const hasActiveFilters =
+    !!search.trim() ||
+    historyFilter !== "all" ||
+    linkedinFilter !== "all" ||
+    resumeFilter !== "all" ||
+    portfolioFilter !== "all" ||
+    careerStatusFilter !== "all" ||
+    seniorityFilter !== "all" ||
+    originFilter !== "all"
+
+  function clearFilters() {
+    setSearch("")
+    setHistoryFilter("all")
+    setLinkedinFilter("all")
+    setResumeFilter("all")
+    setPortfolioFilter("all")
+    setCareerStatusFilter("all")
+    setSeniorityFilter("all")
+    setOriginFilter("all")
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          {canManage && (
+            <Button onClick={() => { setAddingMentee(true); setNewError(""); setNewForm({ full_name: "", email: "", whatsapp: "" }) }}>
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar
+            </Button>
+          )}
         </div>
-        {canManage && (
-          <Button onClick={() => { setAddingMentee(true); setNewError(""); setNewForm({ full_name: "", email: "", whatsapp: "" }) }}>
-            <Plus className="h-4 w-4 mr-1" />
-            Adicionar
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+          <Select value={historyFilter} onValueChange={(value) => setHistoryFilter(value as PresenceFilter)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Histórico" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Histórico: todos</SelectItem>
+              <SelectItem value="with">Com histórico</SelectItem>
+              <SelectItem value="without">Sem histórico</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={linkedinFilter} onValueChange={(value) => setLinkedinFilter(value as PresenceFilter)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="LinkedIn" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">LinkedIn: todos</SelectItem>
+              <SelectItem value="with">Com LinkedIn</SelectItem>
+              <SelectItem value="without">Sem LinkedIn</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={resumeFilter} onValueChange={(value) => setResumeFilter(value as PresenceFilter)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Currículo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Currículo: todos</SelectItem>
+              <SelectItem value="with">Com currículo</SelectItem>
+              <SelectItem value="without">Sem currículo</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={portfolioFilter} onValueChange={(value) => setPortfolioFilter(value as PresenceFilter)}>
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Portfólio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Portfólio: todos</SelectItem>
+              <SelectItem value="with">Com portfólio</SelectItem>
+              <SelectItem value="without">Sem portfólio</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={careerStatusFilter}
+            onValueChange={(value) => setCareerStatusFilter(value as CareerStatus | "all")}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Status: todos</SelectItem>
+              {(Object.keys(CAREER_STATUS_LABEL) as CareerStatus[]).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {CAREER_STATUS_LABEL[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={seniorityFilter}
+            onValueChange={(value) => setSeniorityFilter(value as Seniority | "all")}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Senioridade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Senioridade: todas</SelectItem>
+              {(Object.keys(SENIORITY_LABEL) as Seniority[]).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {SENIORITY_LABEL[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={originFilter}
+            onValueChange={(value) => setOriginFilter(value as OriginCategory | "all" | "none")}
+          >
+            <SelectTrigger className="h-9">
+              <SelectValue placeholder="Origem" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Origem: todas</SelectItem>
+              {(Object.keys(ORIGIN_CATEGORY_LABEL) as OriginCategory[]).map((value) => (
+                <SelectItem key={value} value={value}>
+                  {ORIGIN_CATEGORY_LABEL[value]}
+                </SelectItem>
+              ))}
+              <SelectItem value="none">Sem origem</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {hasActiveFilters && (
+          <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={clearFilters}>
+            <X className="h-4 w-4 mr-1" />
+            Limpar filtros
           </Button>
         )}
       </div>
@@ -353,11 +549,19 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               mentees.map((m) => (
                 <TableRow key={m.id}>
                   <TableCell className="font-medium">
-                    <div className="flex min-w-[120px] flex-col">
+                    <div className="flex min-w-[140px] flex-col gap-1">
                       <span>{m.full_name || "-"}</span>
                       <span className="text-xs font-normal text-muted-foreground sm:hidden">
                         {m.email || "-"}
                       </span>
+                      <div className="flex flex-wrap gap-1">
+                        <OriginBadge mentee={m} />
+                        {(m.booking_count ?? 0) > 0 && (
+                          <Badge variant="secondary" className="w-fit text-[10px]">
+                            {m.booking_count} mentoria{m.booking_count === 1 ? "" : "s"}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell text-xs">{m.email || "-"}</TableCell>
@@ -625,6 +829,45 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                 }
                 placeholder="Ex.: Backend Java, Dados, RPA..."
               />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label>Origem</Label>
+                <Select
+                  value={form.origin_category || "none"}
+                  onValueChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      origin_category: value === "none" ? "" : (value as OriginCategory),
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não informado</SelectItem>
+                    {(Object.keys(ORIGIN_CATEGORY_LABEL) as OriginCategory[]).map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {ORIGIN_CATEGORY_LABEL[value]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="mentee-origin-description">Detalhes da origem</Label>
+                <Input
+                  id="mentee-origin-description"
+                  value={form.origin_description}
+                  onChange={(e) =>
+                    setForm((current) => ({ ...current, origin_description: e.target.value }))
+                  }
+                  placeholder="Ex.: nome do evento, palestra ou indicação"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

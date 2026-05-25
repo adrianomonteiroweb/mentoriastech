@@ -53,6 +53,26 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
   cancelled: "bg-red-500/10 text-red-500",
 }
 
+const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("pt-BR", { weekday: "long" })
+
+function parseIsoDate(date: string | null | undefined) {
+  if (!date) return null
+  const [year, month, day] = date.split("-").map(Number)
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function formatDate(date: string | null | undefined) {
+  if (!date) return "—"
+  return date.split("-").reverse().join("/")
+}
+
+function formatWeekday(date: string | null | undefined) {
+  const localDate = parseIsoDate(date)
+  if (!localDate) return null
+  return WEEKDAY_FORMATTER.format(localDate).replace("-feira", "")
+}
+
 export function BookingsTable() {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [topics, setTopics] = useState<MentoringTopic[]>([])
@@ -217,113 +237,119 @@ export function BookingsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              bookings.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell className="font-medium">{getName(b)}</TableCell>
-                  <TableCell className="hidden md:table-cell text-xs">{getEmail(b)}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {(() => {
-                      const whatsapp = b.profiles?.whatsapp || b.guest_whatsapp
-                      if (!whatsapp) return <span className="text-xs text-muted-foreground">-</span>
-                      const number = formatWhatsAppNumber(whatsapp)
-                      return (
-                        <a
-                          href={`https://wa.me/${number}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex max-w-[140px] items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-500 transition-colors hover:bg-emerald-500/20"
-                        >
-                          <MessageCircle className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{whatsapp}</span>
-                        </a>
-                      )
-                    })()}
-                  </TableCell>
-                  <TableCell className="text-xs">{getTopic(b)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs capitalize">
-                      {b.booking_type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[b.status]}`}>
-                      {STATUS_LABELS[b.status]}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <div className="flex flex-col">
-                      <span>
-                        {b.session_date
-                          ? b.session_date.split("-").reverse().join("/")
-                          : b.created_at.split("T")[0].split("-").reverse().join("/")}
-                      </span>
-                      {b.start_time && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {b.start_time.substring(0, 5)}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                      {b.status === "pending" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => updateStatus(b.id, "confirmed")}>
-                          Confirmar
-                        </Button>
-                      )}
-                      {b.status === "confirmed" && b.booking_type === "paid" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => updateStatus(b.id, "payment_pending")}>
-                          Solicitar Pgto
-                        </Button>
-                      )}
-                      {(b.status === "paid" || (b.status === "confirmed" && b.booking_type === "free")) && (
-                        <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => updateStatus(b.id, "scheduled")}>
-                          Agendar
-                        </Button>
-                      )}
-                      {b.status === "scheduled" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => setCompletingBooking(b)}>
-                          Concluir
-                        </Button>
-                      )}
-                      {b.google_meet_url && (
-                        <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
-                          <a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            Meet
+              bookings.map((b) => {
+                const date = b.session_date || b.created_at.split("T")[0]
+                const weekday = formatWeekday(date)
+
+                return (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-medium">{getName(b)}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs">{getEmail(b)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      {(() => {
+                        const whatsapp = b.profiles?.whatsapp || b.guest_whatsapp
+                        if (!whatsapp) return <span className="text-xs text-muted-foreground">-</span>
+                        const number = formatWhatsAppNumber(whatsapp)
+                        return (
+                          <a
+                            href={`https://wa.me/${number}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex max-w-[140px] items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-500 transition-colors hover:bg-emerald-500/20"
+                          >
+                            <MessageCircle className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{whatsapp}</span>
                           </a>
+                        )
+                      })()}
+                    </TableCell>
+                    <TableCell className="text-xs">{getTopic(b)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {b.booking_type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[b.status]}`}>
+                        {STATUS_LABELS[b.status]}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <div className="flex flex-col">
+                        {weekday && (
+                          <span className="font-medium text-foreground">
+                            {weekday}
+                          </span>
+                        )}
+                        <span>{formatDate(date)}</span>
+                        {b.start_time && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {b.start_time.substring(0, 5)}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {b.status === "pending" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7"
+                            onClick={() => updateStatus(b.id, "confirmed")}>
+                            Confirmar
+                          </Button>
+                        )}
+                        {b.status === "confirmed" && b.booking_type === "paid" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7"
+                            onClick={() => updateStatus(b.id, "payment_pending")}>
+                            Solicitar Pgto
+                          </Button>
+                        )}
+                        {(b.status === "paid" || (b.status === "confirmed" && b.booking_type === "free")) && (
+                          <Button size="sm" variant="outline" className="text-xs h-7"
+                            onClick={() => updateStatus(b.id, "scheduled")}>
+                            Agendar
+                          </Button>
+                        )}
+                        {b.status === "scheduled" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7"
+                            onClick={() => setCompletingBooking(b)}>
+                            Concluir
+                          </Button>
+                        )}
+                        {b.google_meet_url && (
+                          <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
+                            <a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              Meet
+                            </a>
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="text-xs h-7"
+                          onClick={() => openEdit(b)}>
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Editar
                         </Button>
-                      )}
-                      <Button size="sm" variant="ghost" className="text-xs h-7"
-                        onClick={() => openEdit(b)}>
-                        <Pencil className="h-3 w-3 mr-1" />
-                        Editar
-                      </Button>
-                      {b.status === "cancelled" && (
-                        <Button size="sm" variant="outline" className="text-xs h-7"
-                          onClick={() => updateStatus(b.id, "scheduled")}>
-                          Reativar
-                        </Button>
-                      )}
-                      {!["completed", "cancelled"].includes(b.status) && (
+                        {b.status === "cancelled" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7"
+                            onClick={() => updateStatus(b.id, "scheduled")}>
+                            Reativar
+                          </Button>
+                        )}
+                        {!["completed", "cancelled"].includes(b.status) && (
+                          <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
+                            onClick={() => updateStatus(b.id, "cancelled")}>
+                            Cancelar
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
-                          onClick={() => updateStatus(b.id, "cancelled")}>
-                          Cancelar
+                          onClick={() => deleteBooking(b.id)}>
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
                         </Button>
-                      )}
-                      <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
-                        onClick={() => deleteBooking(b.id)}>
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>

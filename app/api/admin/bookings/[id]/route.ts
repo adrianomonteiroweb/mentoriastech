@@ -21,6 +21,11 @@ const menteeProfileUpdateSchema = z.object({
     .optional(),
   seniority: z.enum(["junior", "mid", "senior", "undefined"]).nullable().optional(),
   career_focus: z.string().nullable().optional(),
+  origin_category: z
+    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .nullable()
+    .optional(),
+  origin_description: z.string().nullable().optional(),
 })
 
 const updateSchema = z.object({
@@ -173,6 +178,8 @@ export async function PUT(
       if (mp.career_status !== undefined) profileUpdate.careerStatus = mp.career_status || null
       if (mp.seniority !== undefined) profileUpdate.seniority = mp.seniority || null
       if (mp.career_focus !== undefined) profileUpdate.careerFocus = mp.career_focus || null
+      if (mp.origin_category !== undefined) profileUpdate.originCategory = mp.origin_category || null
+      if (mp.origin_description !== undefined) profileUpdate.originDescription = mp.origin_description || null
 
       if (Object.keys(profileUpdate).length > 1) {
         await db

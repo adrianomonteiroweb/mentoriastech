@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         eq(contentItems.categoryId, contentCategories.id),
       )
       .where(and(...filters))
-      .orderBy(desc(contentItems.viewCount), desc(contentItems.createdAt))
+      .orderBy(desc(contentItems.createdAt))
 
     const categories = await db
       .select()
