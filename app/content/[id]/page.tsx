@@ -210,10 +210,10 @@ export default function ContentDetailPage() {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary hover:border-primary/30 w-full"
+                  className="flex items-start gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary hover:border-primary/30 w-full"
                 >
-                  <ExternalLink className="h-4 w-4 text-primary shrink-0" />
-                  <span className="truncate">{link.label}</span>
+                  <ExternalLink className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span className="break-words min-w-0">{link.label}</span>
                 </a>
               ))}
             </div>
