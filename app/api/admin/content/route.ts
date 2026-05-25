@@ -4,12 +4,18 @@ import { db, contentItems } from "@/lib/db"
 import { toContentItem } from "@/lib/db/mappers"
 import { z } from "zod"
 
+const linkItemSchema = z.object({
+  url: z.string().url(),
+  label: z.string().min(1),
+})
+
 const createSchema = z.object({
   category_id: z.string().uuid(),
   title: z.string().min(2),
   description: z.string().optional(),
   content_type: z.enum(["pdf", "article", "video", "link"]),
   url: z.string().url().optional().or(z.literal("")),
+  links: z.array(linkItemSchema).optional(),
   article_body: z.string().optional(),
   file_size_bytes: z.number().optional(),
   is_published: z.boolean().default(false),
@@ -36,6 +42,7 @@ export async function POST(request: Request) {
         description: parsed.data.description,
         contentType: parsed.data.content_type,
         url: parsed.data.url || undefined,
+        links: parsed.data.links ?? undefined,
         articleBody: parsed.data.article_body,
         fileSizeBytes: parsed.data.file_size_bytes,
         isPublished: parsed.data.is_published,

@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Upload } from "lucide-react"
-import type { ContentCategory, ContentItemWithCategory } from "@/lib/types/database"
+import { Loader2, Upload, Plus, Trash2 } from "lucide-react"
+import type { ContentCategory, ContentItemWithCategory, ContentLink } from "@/lib/types/database"
 
 interface ContentFormProps {
   content?: ContentItemWithCategory
@@ -24,11 +24,16 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
   const [categoryId, setCategoryId] = useState(content?.category_id ?? "")
   const [url, setUrl] = useState(content?.url ?? "")
   const [articleBody, setArticleBody] = useState(content?.article_body ?? "")
+  const [links, setLinks] = useState<ContentLink[]>(
+    content?.links && content.links.length > 0
+      ? content.links
+      : [{ url: "", label: "" }]
+  )
   const [file, setFile] = useState<File | null>(null)
   const [categories, setCategories] = useState<ContentCategory[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
-  const requiresUrl = contentType === "video" || contentType === "link" || contentType === "article"
+  const requiresUrl = contentType === "video" || contentType === "article"
 
   useEffect(() => {
     fetch("/api/admin/content/categories")
@@ -71,6 +76,11 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
       const endpoint = isEditing ? `/api/admin/content/${content!.id}` : "/api/admin/content"
       const method = isEditing ? "PUT" : "POST"
 
+      // Filtrar links válidos (ambos url e label preenchidos)
+      const validLinks = contentType === "link"
+        ? links.filter((l) => l.url.trim() && l.label.trim())
+        : undefined
+
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -79,7 +89,8 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
           description,
           content_type: contentType,
           category_id: categoryId,
-          url: fileUrl || undefined,
+          url: contentType !== "link" ? (fileUrl || undefined) : undefined,
+          links: validLinks,
           article_body: contentType === "article" ? articleBody : undefined,
           ...(fileSize ? { file_size_bytes: fileSize } : {}),
           ...(!isEditing ? { is_published: true } : {}),
@@ -95,6 +106,7 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
         setTitle("")
         setDescription("")
         setUrl("")
+        setLinks([{ url: "", label: "" }])
         setArticleBody("")
         setFile(null)
         setContentType("pdf")
@@ -160,11 +172,7 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
       {requiresUrl && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="url">
-            {contentType === "video"
-              ? "URL do YouTube"
-              : contentType === "article"
-                ? "Link do artigo"
-                : "URL do link"}
+            {contentType === "video" ? "URL do YouTube" : "Link do artigo"}
           </Label>
           <Input
             id="url"
@@ -181,6 +189,60 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
         </div>
       )}
 
+      {contentType === "link" && (
+        <div className="flex flex-col gap-3">
+          <Label>Links</Label>
+          {links.map((link, index) => (
+            <div key={index} className="flex items-start gap-2">
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Texto do link"
+                  value={link.label}
+                  onChange={(e) => {
+                    const updated = [...links]
+                    updated[index] = { ...updated[index], label: e.target.value }
+                    setLinks(updated)
+                  }}
+                  required
+                />
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={link.url}
+                  onChange={(e) => {
+                    const updated = [...links]
+                    updated[index] = { ...updated[index], url: e.target.value }
+                    setLinks(updated)
+                  }}
+                  required
+                />
+              </div>
+              {links.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                  onClick={() => setLinks(links.filter((_, i) => i !== index))}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-fit"
+            onClick={() => setLinks([...links, { url: "", label: "" }])}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Adicionar link
+          </Button>
+        </div>
+      )}
+
       {contentType === "article" && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="body">Conteudo do artigo</Label>
@@ -190,7 +252,7 @@ export function ContentForm({ content, onSuccess }: ContentFormProps) {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={loading || !title || !categoryId || (requiresUrl && !url)}>
+      <Button type="submit" disabled={loading || !title || !categoryId || (requiresUrl && !url) || (contentType === "link" && !links.some(l => l.url.trim() && l.label.trim()))}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
         {loading ? "Salvando..." : isEditing ? "Salvar alterações" : "Publicar conteudo"}
       </Button>

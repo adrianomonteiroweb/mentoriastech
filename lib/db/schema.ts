@@ -136,6 +136,7 @@ export const contentItems = pgTable("content_items", {
   description: text("description"),
   contentType: text("content_type", { enum: ["pdf", "article", "video", "link"] }).notNull(),
   url: text("url"),
+  links: jsonb("links"),
   articleBody: text("article_body"),
   fileSizeBytes: integer("file_size_bytes"),
   isPublished: boolean("is_published").notNull().default(false),

@@ -14,12 +14,18 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
+interface ContentLink {
+  url: string
+  label: string
+}
+
 interface ContentItem {
   id: string
   title: string
   description: string | null
   content_type: "pdf" | "article" | "video" | "link"
   url: string | null
+  links: ContentLink[] | null
   article_body: string | null
   file_size_bytes: number | null
   created_at: string
@@ -195,8 +201,26 @@ export default function ContentDetailPage() {
             </a>
           )}
 
-          {/* Link: external resource */}
-          {item.content_type === "link" && item.url && (
+          {/* Link: multiple external resources */}
+          {item.content_type === "link" && item.links && item.links.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {item.links.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary hover:border-primary/30 w-full"
+                >
+                  <ExternalLink className="h-4 w-4 text-primary shrink-0" />
+                  <span className="truncate">{link.label}</span>
+                </a>
+              ))}
+            </div>
+          )}
+
+          {/* Link: fallback single url (legacy) */}
+          {item.content_type === "link" && (!item.links || item.links.length === 0) && item.url && (
             <a
               href={item.url}
               target="_blank"

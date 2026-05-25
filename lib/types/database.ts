@@ -160,6 +160,11 @@ export interface ContentCategory {
 // -----------------------------------------------------------------------------
 // Content Items
 // -----------------------------------------------------------------------------
+export interface ContentLink {
+  url: string
+  label: string
+}
+
 export interface ContentItem {
   id: string
   category_id: string
@@ -167,6 +172,7 @@ export interface ContentItem {
   description: string | null
   content_type: ContentType
   url: string | null
+  links: ContentLink[] | null
   article_body: string | null
   file_size_bytes: number | null
   is_published: boolean

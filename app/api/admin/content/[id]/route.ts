@@ -5,12 +5,18 @@ import { db, contentItems } from "@/lib/db"
 import { toContentItem } from "@/lib/db/mappers"
 import { z } from "zod"
 
+const linkItemSchema = z.object({
+  url: z.string().url(),
+  label: z.string().min(1),
+})
+
 const updateSchema = z.object({
   category_id: z.string().uuid().optional(),
   title: z.string().min(2).optional(),
   description: z.string().optional(),
   content_type: z.enum(["pdf", "article", "video", "link"]).optional(),
   url: z.string().url().optional().or(z.literal("")),
+  links: z.array(linkItemSchema).optional(),
   article_body: z.string().optional(),
   is_published: z.boolean().optional(),
 })
@@ -38,6 +44,7 @@ export async function PUT(
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description
     if (parsed.data.content_type !== undefined) updateData.contentType = parsed.data.content_type
     if (parsed.data.url !== undefined) updateData.url = parsed.data.url || null
+    if (parsed.data.links !== undefined) updateData.links = parsed.data.links
     if (parsed.data.article_body !== undefined) updateData.articleBody = parsed.data.article_body
     if (parsed.data.is_published !== undefined) updateData.isPublished = parsed.data.is_published
 

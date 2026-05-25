@@ -84,6 +84,7 @@ export function toContentItem(row: DbContentItem): ContentItem {
     description: row.description,
     content_type: row.contentType,
     url: row.url,
+    links: (row.links as { url: string; label: string }[] | null) ?? null,
     article_body: row.articleBody,
     file_size_bytes: row.fileSizeBytes,
     is_published: row.isPublished,

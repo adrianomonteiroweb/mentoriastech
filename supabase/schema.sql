@@ -294,6 +294,7 @@ CREATE TABLE public.content_items (
   description TEXT,
   content_type TEXT NOT NULL CHECK (content_type IN ('pdf', 'article', 'video', 'link')),
   url TEXT,
+  links JSONB,
   article_body TEXT,
   file_size_bytes INTEGER,
   is_published BOOLEAN NOT NULL DEFAULT false,
