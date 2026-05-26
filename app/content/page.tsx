@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { AdBanner } from "@/components/ad-banner"
+import { ShareButton } from "@/components/share-button"
 
 interface ContentCategory {
   id: string
@@ -201,45 +202,62 @@ export default function ContentPage() {
             const config = TYPE_CONFIG[item.content_type]
             const Icon = config.icon
             return (
-              <Link
+              <div
                 key={item.id}
-                href={`/content/${item.id}`}
                 className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Icon className={`h-5 w-5 ${config.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-sm font-semibold text-foreground truncate">
-                        {item.title}
-                      </h2>
-                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                        {config.label}
-                      </span>
+                  <Link
+                    href={`/content/${item.id}`}
+                    className="flex min-w-0 flex-1 items-start gap-3"
+                  >
+                    <div className="mt-0.5">
+                      <Icon className={`h-5 w-5 ${config.color}`} />
                     </div>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {item.description}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center gap-2">
-                      {item.content_categories && (
-                        <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                          {item.content_categories.name}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="text-sm font-semibold text-foreground truncate">
+                          {item.title}
+                        </h2>
+                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {config.label}
                         </span>
+                      </div>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {item.description}
+                        </p>
                       )}
-                      {item.view_count > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                          <Eye className="h-3 w-3" />
-                          {item.view_count}
-                        </span>
-                      )}
+                      <div className="mt-2 flex items-center gap-2">
+                        {item.content_categories && (
+                          <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                            {item.content_categories.name}
+                          </span>
+                        )}
+                        {item.view_count > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                            <Eye className="h-3 w-3" />
+                            {item.view_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </Link>
+                  <ShareButton
+                    path={`/content/${item.id}`}
+                    title={item.title}
+                    text={
+                      item.description ||
+                      "Veja este conteúdo da biblioteca do Adriano Monteiro."
+                    }
+                    label="Compartilhar"
+                    variant="ghost"
+                    size="sm"
+                    tracking={{ type: "content", id: item.id }}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  />
                 </div>
-              </Link>
+              </div>
             )
           })}
 

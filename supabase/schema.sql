@@ -300,6 +300,7 @@ CREATE TABLE public.content_items (
   file_size_bytes INTEGER,
   is_published BOOLEAN NOT NULL DEFAULT false,
   view_count INTEGER NOT NULL DEFAULT 0,
+  share_count INTEGER NOT NULL DEFAULT 0,
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -338,7 +339,7 @@ CREATE TABLE public.jobs (
   location TEXT,
   job_type TEXT NOT NULL DEFAULT 'remote' CHECK (job_type IN ('remote', 'hybrid', 'onsite')),
   level TEXT NOT NULL DEFAULT 'junior' CHECK (level IN ('internship', 'junior', 'mid', 'senior')),
-  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('dados', 'ia', 'desenvolvimento', 'po', 'pm', 'qa', 'cyber_security', 'devops', 'design', 'other')),
+  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('dados', 'ia', 'desenvolvimento', 'po', 'pm', 'qa', 'cyber_security', 'devops', 'design', 'pcd', 'afirmativa_pessoas_pretas', 'afirmativa_mulheres_tecnologia', 'other')),
   salary_range TEXT,
   application_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (
@@ -347,6 +348,7 @@ CREATE TABLE public.jobs (
   approved_by UUID REFERENCES public.profiles(id),
   approved_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
+  share_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -408,6 +410,42 @@ CREATE POLICY "Anyone can read settings"
 CREATE POLICY "Admin can manage settings"
   ON public.site_settings FOR ALL
   USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+-- -----------------------------------------------------------------------------
+-- PAGE_SHARES — Contadores de compartilhamento para páginas públicas
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.page_shares (
+  path TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  share_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.page_shares ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can read page shares"
+  ON public.page_shares FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+CREATE POLICY "Admin can manage page shares"
+  ON public.page_shares FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles p
       WHERE p.id = auth.uid() AND p.role = 'admin'
@@ -535,8 +573,10 @@ CREATE INDEX idx_bookings_session_date ON public.bookings(session_date);
 CREATE INDEX idx_bookings_status ON public.bookings(status);
 CREATE INDEX idx_content_items_category ON public.content_items(category_id);
 CREATE INDEX idx_content_items_published ON public.content_items(is_published);
+CREATE INDEX idx_content_items_share_count ON public.content_items(share_count DESC);
 CREATE INDEX idx_jobs_status ON public.jobs(status);
 CREATE INDEX idx_jobs_posted_by ON public.jobs(posted_by);
+CREATE INDEX idx_jobs_share_count ON public.jobs(share_count DESC);
 
 -- -----------------------------------------------------------------------------
 -- 10. CONTENT_VIEWS — Rastreamento de visitantes únicos por conteúdo

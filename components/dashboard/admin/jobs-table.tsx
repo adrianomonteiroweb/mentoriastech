@@ -14,11 +14,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
-import { AlertTriangle, CheckCircle2, Eye, LinkIcon, MousePointerClick, Pencil, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Eye, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
 import type { JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
   action_counts?: { applied: number; link_issue: number; closed: number }
+}
+
+const JOB_CATEGORY_LABELS: Record<string, string> = {
+  dados: "Dados",
+  ia: "IA",
+  desenvolvimento: "Dev",
+  po: "PO",
+  pm: "PM",
+  qa: "QA",
+  cyber_security: "Cyber Security",
+  devops: "DevOps",
+  design: "Design",
+  pcd: "PCD",
+  afirmativa_pessoas_pretas: "Afirmativa: pessoas pretas",
+  afirmativa_mulheres_tecnologia: "Afirmativa: mulheres na tecnologia",
+  other: "Outra",
 }
 
 interface JobsTableProps {
@@ -71,7 +87,7 @@ export function JobsTable({
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = showActions ? 10 : 9
+  const columnCount = showActions ? 11 : 10
 
   return (
     <div className="rounded-md border">
@@ -86,6 +102,7 @@ export function JobsTable({
             <TableHead>Autor</TableHead>
             <TableHead>Views</TableHead>
             <TableHead>Cliques</TableHead>
+            <TableHead>Compart.</TableHead>
             <TableHead>Status</TableHead>
             {showActions && <TableHead>Acoes</TableHead>}
           </TableRow>
@@ -120,7 +137,7 @@ export function JobsTable({
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs capitalize">
-                    {job.category === "cyber_security" ? "Cyber Security" : job.category === "ia" ? "IA" : job.category === "desenvolvimento" ? "Dev" : job.category === "dados" ? "Dados" : job.category?.toUpperCase() || "—"}
+                    {job.category ? JOB_CATEGORY_LABELS[job.category] || job.category : "—"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>
@@ -134,6 +151,12 @@ export function JobsTable({
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <MousePointerClick className="h-3 w-3" />
                     {job.click_count ?? 0}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Share2 className="h-3 w-3" />
+                    {job.share_count ?? 0}
                   </span>
                 </TableCell>
                 <TableCell>

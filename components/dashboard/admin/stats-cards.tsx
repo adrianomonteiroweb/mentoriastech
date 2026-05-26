@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Users, Briefcase, FileText, CheckCircle2, Clock, AlertTriangle, MousePointerClick } from "lucide-react"
+import { BookOpen, Users, Briefcase, FileText, CheckCircle2, Clock, AlertTriangle, MousePointerClick, Share2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminStats } from "@/lib/types/database"
 
@@ -27,10 +27,14 @@ export function StatsCards() {
     { label: "Vagas Reportadas", value: stats?.reportedJobs, icon: AlertTriangle, color: "text-red-400" },
     { label: "Candidaturas", value: stats?.totalApplications, icon: MousePointerClick, color: "text-teal-400" },
     { label: "Conteudos", value: stats?.publishedContent, icon: FileText, color: "text-purple-400" },
+    { label: "Compartilhamentos", value: stats?.totalShares, icon: Share2, color: "text-primary" },
+    { label: "Compart. Paginas", value: stats?.totalPageShares, icon: Share2, color: "text-cyan-400" },
+    { label: "Compart. Conteudos", value: stats?.totalContentShares, icon: Share2, color: "text-violet-400" },
+    { label: "Compart. Vagas", value: stats?.totalJobShares, icon: Share2, color: "text-emerald-400" },
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
       {cards.map((card) => (
         <Card key={card.label}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">

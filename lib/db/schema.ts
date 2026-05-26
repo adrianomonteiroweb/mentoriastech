@@ -144,6 +144,7 @@ export const contentItems = pgTable("content_items", {
   fileSizeBytes: integer("file_size_bytes"),
   isPublished: boolean("is_published").notNull().default(false),
   viewCount: integer("view_count").notNull().default(0),
+  shareCount: integer("share_count").notNull().default(0),
   createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -161,7 +162,7 @@ export const jobs = pgTable("jobs", {
   location: text("location"),
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] }).notNull().default("remote"),
   level: text("level", { enum: ["internship", "junior", "mid", "senior"] }).notNull().default("junior"),
-  category: text("category", { enum: ["dados", "ia", "desenvolvimento", "po", "pm", "qa", "cyber_security", "devops", "design", "other"] }).notNull().default("other"),
+  category: text("category", { enum: ["dados", "ia", "desenvolvimento", "po", "pm", "qa", "cyber_security", "devops", "design", "pcd", "afirmativa_pessoas_pretas", "afirmativa_mulheres_tecnologia", "other"] }).notNull().default("other"),
   salaryRange: text("salary_range"),
   applicationUrl: text("application_url"),
   isInternational: boolean("is_international").notNull().default(false),
@@ -173,6 +174,7 @@ export const jobs = pgTable("jobs", {
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   viewCount: integer("view_count").notNull().default(0),
   clickCount: integer("click_count").notNull().default(0),
+  shareCount: integer("share_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -183,6 +185,16 @@ export const jobs = pgTable("jobs", {
 export const siteSettings = pgTable("site_settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull().default(sql`'{}'::jsonb`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// PAGE_SHARES — contadores de compartilhamento para páginas públicas sem tabela
+// -----------------------------------------------------------------------------
+export const pageShares = pgTable("page_shares", {
+  path: text("path").primaryKey(),
+  label: text("label").notNull(),
+  shareCount: integer("share_count").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -272,6 +284,7 @@ export type Payment = typeof payments.$inferSelect
 export type ContentCategory = typeof contentCategories.$inferSelect
 export type ContentItem = typeof contentItems.$inferSelect
 export type Job = typeof jobs.$inferSelect
+export type PageShare = typeof pageShares.$inferSelect
 export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
 export type Ad = typeof ads.$inferSelect

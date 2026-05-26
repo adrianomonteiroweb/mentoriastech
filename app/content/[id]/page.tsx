@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react"
 import Link from "next/link"
+import { ShareButton } from "@/components/share-button"
 
 interface ContentLink {
   url: string
@@ -116,7 +117,7 @@ export default function ContentDetailPage() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
             {item.content_type === "pdf" && (
               <FileText className="h-5 w-5 text-red-400" />
             )}
@@ -143,6 +144,19 @@ export default function ContentDetailPage() {
                 {item.content_categories.name}
               </span>
             )}
+            <ShareButton
+              path={`/content/${item.id}`}
+              title={item.title}
+              text={
+                item.description ||
+                "Veja este conteúdo da biblioteca do Adriano Monteiro."
+              }
+              label="Compartilhar"
+              variant="ghost"
+              size="sm"
+              tracking={{ type: "content", id: item.id }}
+              className="ml-auto h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+            />
           </div>
 
           <h1 className="text-lg font-semibold text-foreground mb-2">

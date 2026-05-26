@@ -168,6 +168,9 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
               <SelectItem value="cyber_security">Cyber Security</SelectItem>
               <SelectItem value="devops">DevOps</SelectItem>
               <SelectItem value="design">Design</SelectItem>
+              <SelectItem value="pcd">PCD</SelectItem>
+              <SelectItem value="afirmativa_pessoas_pretas">Afirmativa: pessoas pretas</SelectItem>
+              <SelectItem value="afirmativa_mulheres_tecnologia">Afirmativa: mulheres na tecnologia</SelectItem>
               <SelectItem value="other">Outra</SelectItem>
             </SelectContent>
           </Select>

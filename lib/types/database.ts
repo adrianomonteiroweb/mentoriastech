@@ -37,6 +37,9 @@ export type JobCategory =
   | "cyber_security"
   | "devops"
   | "design"
+  | "pcd"
+  | "afirmativa_pessoas_pretas"
+  | "afirmativa_mulheres_tecnologia"
   | "other"
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
@@ -184,6 +187,7 @@ export interface ContentItem {
   file_size_bytes: number | null
   is_published: boolean
   view_count: number
+  share_count: number
   created_by: string | null
   created_at: string
   updated_at: string
@@ -217,6 +221,7 @@ export interface Job {
   expires_at: string | null
   view_count: number
   click_count: number
+  share_count: number
   created_at: string
   updated_at: string
 }
@@ -298,4 +303,8 @@ export interface AdminStats {
   completedBookings: number
   reportedJobs: number
   totalApplications: number
+  totalPageShares: number
+  totalContentShares: number
+  totalJobShares: number
+  totalShares: number
 }

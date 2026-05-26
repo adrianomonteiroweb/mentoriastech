@@ -17,6 +17,9 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { JobTips } from "@/components/job-tips";
+import { ShareButton } from "@/components/share-button";
+import { cn } from "@/lib/utils";
+import type { JobCategory } from "@/lib/types/database";
 
 interface Job {
   id: string;
@@ -26,7 +29,7 @@ interface Job {
   location: string | null;
   job_type: "remote" | "hybrid" | "onsite";
   level: "internship" | "junior" | "mid" | "senior";
-  category: "dados" | "ia" | "desenvolvimento" | "po" | "pm" | "qa" | "cyber_security" | "devops" | "design" | "other";
+  category: JobCategory;
   salary_range: string | null;
   application_url: string | null;
   is_international: boolean;
@@ -58,6 +61,9 @@ const JOB_CATEGORY_LABELS: Record<string, string> = {
   cyber_security: "Cyber Security",
   devops: "DevOps",
   design: "Design",
+  pcd: "PCD",
+  afirmativa_pessoas_pretas: "Afirmativa: pessoas pretas",
+  afirmativa_mulheres_tecnologia: "Afirmativa: mulheres na tecnologia",
   other: "Outra",
 };
 
@@ -100,6 +106,9 @@ const CATEGORY_TABS = [
   { key: "cyber_security", label: "Cyber Security" },
   { key: "devops", label: "DevOps" },
   { key: "design", label: "Design" },
+  { key: "pcd", label: "PCD" },
+  { key: "afirmativa_pessoas_pretas", label: "Afirm. pessoas pretas" },
+  { key: "afirmativa_mulheres_tecnologia", label: "Afirm. mulheres tech" },
   { key: "other", label: "Outra" },
 ] as const;
 
@@ -239,6 +248,7 @@ export default function JobsPage() {
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  const [targetJobId, setTargetJobId] = useState<string | null>(null);
   const viewedJobs = useRef<Set<string>>(new Set());
 
   function loadJobs() {
@@ -263,6 +273,33 @@ export default function JobsPage() {
     loadJobs();
   }, []);
 
+  useEffect(() => {
+    function syncTargetJob() {
+      const hash = window.location.hash;
+      const next = hash.startsWith("#vaga-")
+        ? decodeURIComponent(hash.slice("#vaga-".length))
+        : null;
+
+      setTargetJobId(next);
+
+      if (next) {
+        setActiveTab("all");
+        setActiveType("all");
+        setActiveScope("all");
+        setActiveCategory("all");
+        setExpandedJobs((prev) => {
+          const expanded = new Set(prev);
+          expanded.add(next);
+          return expanded;
+        });
+      }
+    }
+
+    syncTargetJob();
+    window.addEventListener("hashchange", syncTargetJob);
+    return () => window.removeEventListener("hashchange", syncTargetJob);
+  }, []);
+
   // Rastrear visualização das vagas quando carregam
   useEffect(() => {
     jobs.forEach((job) => {
@@ -272,6 +309,26 @@ export default function JobsPage() {
       }
     });
   }, [jobs]);
+
+  useEffect(() => {
+    if (loading || !targetJobId) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`vaga-${targetJobId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    activeCategory,
+    activeScope,
+    activeTab,
+    activeType,
+    jobs.length,
+    loading,
+    targetJobId,
+  ]);
 
   function hasAction(jobId: string, actionType: string) {
     return userActions.some(
@@ -422,7 +479,13 @@ export default function JobsPage() {
           {filtered.map((job) => (
             <div
               key={job.id}
-              className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30"
+              id={`vaga-${job.id}`}
+              className={cn(
+                "scroll-mt-8 rounded-xl border bg-card p-4 transition-all hover:border-primary/30",
+                targetJobId === job.id
+                  ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10"
+                  : "border-border",
+              )}
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
@@ -505,7 +568,7 @@ export default function JobsPage() {
                 </button>
               )}
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {job.salary_range && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -515,18 +578,31 @@ export default function JobsPage() {
                   )}
                 </div>
 
-                {job.application_url && (
-                  <a
-                    href={job.application_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackJobEvent(job.id, "click")}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Candidatar-se
-                  </a>
-                )}
+                <div className="flex items-center gap-2">
+                  <ShareButton
+                    path={`/jobs#vaga-${job.id}`}
+                    title={`${job.title} na ${job.company}`}
+                    text="Veja esta vaga compartilhada na comunidade de mentorados."
+                    label="Compartilhar"
+                    variant="ghost"
+                    size="sm"
+                    tracking={{ type: "job", id: job.id }}
+                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  />
+
+                  {job.application_url && (
+                    <a
+                      href={job.application_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackJobEvent(job.id, "click")}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Candidatar-se
+                    </a>
+                  )}
+                </div>
               </div>
 
               {job.profiles?.full_name && (

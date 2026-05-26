@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ContentForm } from "@/components/dashboard/admin/content-form"
-import { Trash2, Eye, EyeOff, Pencil } from "lucide-react"
+import { Trash2, Eye, EyeOff, Pencil, Share2 } from "lucide-react"
 import type { ContentItemWithCategory } from "@/lib/types/database"
 
 interface ContentTableProps {
@@ -73,6 +73,7 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
             <TableHead>Tipo</TableHead>
             <TableHead>Categoria</TableHead>
             <TableHead>Views</TableHead>
+            <TableHead>Compart.</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Acoes</TableHead>
           </TableRow>
@@ -81,14 +82,14 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
               <TableRow key={i}>
-                {Array.from({ length: 6 }).map((_, j) => (
+                {Array.from({ length: 7 }).map((_, j) => (
                   <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
                 ))}
               </TableRow>
             ))
           ) : items.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 Nenhum conteudo cadastrado
               </TableCell>
             </TableRow>
@@ -101,6 +102,12 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
                 </TableCell>
                 <TableCell className="text-xs">{item.content_categories?.name || "—"}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{item.view_count}</TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Share2 className="h-3 w-3" />
+                    {item.share_count ?? 0}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <button
                     onClick={() => togglePublish(item.id, item.is_published)}

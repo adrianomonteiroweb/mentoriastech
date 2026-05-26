@@ -1,5 +1,6 @@
 import { PlatformLinks } from "@/components/platform-links"
 import { ProfileHeader } from "@/components/profile-header"
+import { ShareButton } from "@/components/share-button"
 import { SocialLinks } from "@/components/social-links"
 import { UnifiedBookingForm } from "@/components/booking/unified-booking-form"
 import { CalendarDays } from "lucide-react"
@@ -13,6 +14,15 @@ export default function Page() {
         <SocialLinks />
 
         <PlatformLinks />
+
+        <ShareButton
+          path="/"
+          title="Adriano Monteiro | Mentoria Tech"
+          text="Conheça a mentoria em desenvolvimento de software, RPA e carreira em tecnologia."
+          label="Compartilhar página"
+          tracking={{ type: "page", path: "/", label: "Página principal" }}
+          className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
+        />
 
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-2">

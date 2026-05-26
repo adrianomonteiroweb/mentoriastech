@@ -12,6 +12,23 @@ const updateSchema = z.object({
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).optional(),
   level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
+  category: z
+    .enum([
+      "dados",
+      "ia",
+      "desenvolvimento",
+      "po",
+      "pm",
+      "qa",
+      "cyber_security",
+      "devops",
+      "design",
+      "pcd",
+      "afirmativa_pessoas_pretas",
+      "afirmativa_mulheres_tecnologia",
+      "other",
+    ])
+    .optional(),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional().or(z.literal("")),
   is_international: z.boolean().optional(),
@@ -58,6 +75,7 @@ export async function PUT(
     if (parsed.data.location !== undefined) updateData.location = parsed.data.location || null
     if (parsed.data.job_type !== undefined) updateData.jobType = parsed.data.job_type
     if (parsed.data.level !== undefined) updateData.level = parsed.data.level
+    if (parsed.data.category !== undefined) updateData.category = parsed.data.category
     if (parsed.data.salary_range !== undefined) updateData.salaryRange = parsed.data.salary_range || null
     if (parsed.data.application_url !== undefined) updateData.applicationUrl = parsed.data.application_url || null
     if (parsed.data.is_international !== undefined) updateData.isInternational = parsed.data.is_international

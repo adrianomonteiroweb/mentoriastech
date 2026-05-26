@@ -36,6 +36,20 @@
       "when": 1779634889780,
       "tag": "0004_broad_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779825600000,
+      "tag": "0005_track_shares",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779829200000,
+      "tag": "0006_add_affirmative_job_categories",
+      "breakpoints": true
     }
   ]
 }

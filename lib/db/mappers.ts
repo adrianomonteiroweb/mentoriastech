@@ -93,6 +93,7 @@ export function toContentItem(row: DbContentItem): ContentItem {
     file_size_bytes: row.fileSizeBytes,
     is_published: row.isPublished,
     view_count: row.viewCount,
+    share_count: row.shareCount,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
@@ -175,6 +176,7 @@ export function toJob(row: DbJob): Job {
     expires_at: toIso(row.expiresAt),
     view_count: row.viewCount,
     click_count: row.clickCount,
+    share_count: row.shareCount,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }
