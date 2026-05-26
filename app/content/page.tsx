@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { AdBanner } from "@/components/ad-banner"
+import { RandomTipCard } from "@/components/random-tip"
 import { ShareButton } from "@/components/share-button"
 
 interface ContentCategory {
@@ -74,49 +75,54 @@ export default function ContentPage() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="sr-only">Carregando conteúdos</span>
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-12 md:py-20">
-      <div className="w-full max-w-lg flex flex-col gap-8">
+    <main className="flex min-h-screen flex-col items-center px-4 py-10 sm:px-6 md:py-16">
+      <div className="flex w-full max-w-2xl flex-col gap-8">
         <div className="flex flex-col gap-2">
           <Link
             href="/"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+            className="flex min-h-10 w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-3 w-3" />
+            <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground">
             Biblioteca de Conteúdos
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base leading-relaxed text-muted-foreground">
             PDFs, artigos, links e vídeos sobre programação e carreira em tech.
           </p>
         </div>
 
         <AdBanner />
 
+        <RandomTipCard placement="content" />
+
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveCategory(null)}
-              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              aria-pressed={activeCategory === null}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 activeCategory === null
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              <Tag className="h-3 w-3" />
+              <Tag className="h-4 w-4" />
               Todos
             </button>
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.slug)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={activeCategory === cat.slug}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   activeCategory === cat.slug
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -135,7 +141,7 @@ export default function ContentPage() {
             return (
               <div
                 key={item.id}
-                className="rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
+                className="rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
               >
                 <div className="flex items-start gap-3">
                   <Link
@@ -146,27 +152,27 @@ export default function ContentPage() {
                       <Icon className={`h-5 w-5 ${config.color}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-sm font-semibold text-foreground truncate">
+                      <div className="mb-1 flex flex-wrap items-start gap-2">
+                        <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug text-foreground">
                           {item.title}
                         </h2>
-                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
                           {config.label}
                         </span>
                       </div>
                       {item.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
+                        <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                           {item.description}
                         </p>
                       )}
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         {item.content_categories && (
-                          <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          <span className="inline-block rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                             {item.content_categories.name}
                           </span>
                         )}
                         {item.view_count > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                             <Eye className="h-3 w-3" />
                             {item.view_count}
                           </span>
@@ -185,7 +191,7 @@ export default function ContentPage() {
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "content", id: item.id }}
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    className="min-h-10 px-3 text-sm text-muted-foreground hover:text-foreground"
                   />
                 </div>
               </div>
@@ -193,7 +199,7 @@ export default function ContentPage() {
           })}
 
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="py-8 text-center text-base text-muted-foreground">
               Nenhum conteúdo disponível
               {activeCategory ? " nesta categoria" : ""}.
             </p>

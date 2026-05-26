@@ -50,6 +50,13 @@
       "when": 1779829200000,
       "tag": "0006_add_affirmative_job_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779832800000,
+      "tag": "0007_create_tips",
+      "breakpoints": true
     }
   ]
 }

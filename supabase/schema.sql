@@ -488,6 +488,46 @@ CREATE TRIGGER ads_updated_at
   BEFORE UPDATE ON public.ads
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
+-- -----------------------------------------------------------------------------
+-- TIPS — Dicas exibidas nas telas públicas
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.tips (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  placement TEXT NOT NULL DEFAULT 'both' CHECK (placement IN ('content', 'jobs', 'both')),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tips ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read active tips"
+  ON public.tips FOR SELECT
+  USING (is_active = true);
+
+CREATE POLICY "Admin can manage all tips"
+  ON public.tips FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role = 'admin'
+    )
+  );
+
+CREATE TRIGGER tips_updated_at
+  BEFORE UPDATE ON public.tips
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
 -- =============================================================================
 -- SEED DATA — Dados iniciais
 -- =============================================================================
@@ -533,6 +573,14 @@ INSERT INTO public.site_settings (key, value) VALUES
     { "id": "posicionamento-projetos-de-portfolio", "label": "Posicionamento: projetos de portfolio" }
   ]'::jsonb);
 
+-- Dicas iniciais
+INSERT INTO public.tips (title, body, placement, sort_order, is_active) VALUES
+  ('Aumente sua rede no LinkedIn',
+   'Quantas conexões você tem no LinkedIn? Quanto mais conexões, mais você terá chance de aparecer em buscas de recrutadores por se aproximar da rede de conexões deles.',
+   'both',
+   1,
+   true);
+
 INSERT INTO public.content_categories (name, slug, description, sort_order) VALUES
   ('Carreira', 'carreira', 'Dicas e guias sobre carreira em tecnologia', 1),
   ('Programação', 'programacao', 'Tutoriais e materiais sobre programação', 2),
@@ -577,6 +625,7 @@ CREATE INDEX idx_content_items_share_count ON public.content_items(share_count D
 CREATE INDEX idx_jobs_status ON public.jobs(status);
 CREATE INDEX idx_jobs_posted_by ON public.jobs(posted_by);
 CREATE INDEX idx_jobs_share_count ON public.jobs(share_count DESC);
+CREATE INDEX idx_tips_active_placement ON public.tips(is_active, placement);
 
 -- -----------------------------------------------------------------------------
 -- 10. CONTENT_VIEWS — Rastreamento de visitantes únicos por conteúdo

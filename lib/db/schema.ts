@@ -262,6 +262,21 @@ export const ads = pgTable("ads", {
 })
 
 // -----------------------------------------------------------------------------
+// TIPS - dicas exibidas nas telas públicas
+// -----------------------------------------------------------------------------
+export const tips = pgTable("tips", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  placement: text("placement", { enum: ["content", "jobs", "both"] }).notNull().default("both"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // JOB_ACTIONS — ações de mentorados em vagas
 // -----------------------------------------------------------------------------
 export const jobActions = pgTable("job_actions", {
@@ -289,6 +304,8 @@ export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
 export type Ad = typeof ads.$inferSelect
 export type NewAd = typeof ads.$inferInsert
+export type Tip = typeof tips.$inferSelect
+export type NewTip = typeof tips.$inferInsert
 export type SiteSetting = typeof siteSettings.$inferSelect
 export type Session = typeof sessions.$inferSelect
 export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect

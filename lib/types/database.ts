@@ -27,6 +27,7 @@ export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 export type JobActionType = "applied" | "link_issue" | "closed"
 export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
+export type TipPlacement = "content" | "jobs" | "both"
 export type JobCategory =
   | "dados"
   | "ia"
@@ -256,6 +257,21 @@ export interface Ad {
   view_count: number
   click_count: number
   max_clicks: number | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// -----------------------------------------------------------------------------
+// Tips
+// -----------------------------------------------------------------------------
+export interface Tip {
+  id: string
+  title: string
+  body: string
+  placement: TipPlacement
+  sort_order: number
+  is_active: boolean
   created_by: string | null
   created_at: string
   updated_at: string

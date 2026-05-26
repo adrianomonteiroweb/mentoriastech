@@ -7,6 +7,7 @@ import type {
   MentoringSlot as DbMentoringSlot,
   MentoringTopic as DbMentoringTopic,
   Profile as DbProfile,
+  Tip as DbTip,
 } from "@/lib/db/schema"
 import type {
   Ad,
@@ -17,6 +18,7 @@ import type {
   MentoringSlot,
   MentoringTopic,
   Profile,
+  Tip,
 } from "@/lib/types/database"
 
 type BookingMapperRow = Omit<DbBooking, "mentorshipChecklist"> & {
@@ -41,6 +43,20 @@ export function toAd(row: DbAd): Ad {
     view_count: row.viewCount,
     click_count: row.clickCount,
     max_clicks: row.maxClicks ?? null,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toTip(row: DbTip): Tip {
+  return {
+    id: row.id,
+    title: row.title,
+    body: row.body,
+    placement: row.placement,
+    sort_order: row.sortOrder,
+    is_active: row.isActive,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
-import { JobTips } from "@/components/job-tips";
+import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
 import { cn } from "@/lib/utils";
 import type { JobCategory } from "@/lib/types/database";
@@ -275,25 +275,26 @@ export default function JobsPage() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="sr-only">Carregando vagas</span>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-12 md:py-20">
-      <div className="w-full max-w-lg flex flex-col gap-8">
+    <main className="flex min-h-screen flex-col items-center px-4 py-10 sm:px-6 md:py-16">
+      <div className="flex w-full max-w-3xl flex-col gap-8">
         <div className="flex flex-col gap-2">
           <Link
             href="/"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+            className="flex min-h-10 w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-3 w-3" />
+            <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">
+          <h1 className="text-2xl font-semibold text-foreground">
             Quadro de Vagas
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base leading-relaxed text-muted-foreground">
             Vagas compartilhadas pela comunidade de mentorados.
           </p>
         </div>
@@ -301,12 +302,13 @@ export default function JobsPage() {
         <AdBanner />
 
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por nível">
             {LEVEL_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={activeTab === tab.key}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   activeTab === tab.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -316,12 +318,13 @@ export default function JobsPage() {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por modelo e alcance">
             {TYPE_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveType(tab.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={activeType === tab.key}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   activeType === tab.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -330,30 +333,32 @@ export default function JobsPage() {
                 {tab.label}
               </button>
             ))}
-            <span className="w-px bg-border mx-1" />
+            <span className="mx-1 w-px bg-border" aria-hidden="true" />
             {SCOPE_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveScope(tab.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={activeScope === tab.key}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   activeScope === tab.key
                     ? tab.key === "international"
-                      ? "bg-violet-500/20 text-violet-400"
+                      ? "bg-violet-400 text-background"
                       : "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
               >
-                {tab.key === "international" && <Globe className="inline h-3 w-3 mr-1" />}
+                {tab.key === "international" && <Globe className="mr-1 inline h-4 w-4" />}
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
             {CATEGORY_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveCategory(tab.key)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                aria-pressed={activeCategory === tab.key}
+                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   activeCategory === tab.key
                     ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -365,7 +370,7 @@ export default function JobsPage() {
           </div>
         </div>
 
-        <JobTips />
+        <RandomTipCard placement="jobs" />
 
         <div className="flex flex-col gap-3">
           {filtered.map((job) => (
@@ -373,37 +378,37 @@ export default function JobsPage() {
               key={job.id}
               id={`vaga-${job.id}`}
               className={cn(
-                "scroll-mt-8 rounded-xl border bg-card p-4 transition-all hover:border-primary/30",
+                "scroll-mt-24 rounded-lg border bg-card p-4 transition-all hover:border-primary/30",
                 targetJobId === job.id
                   ? "border-primary/60 bg-primary/5 shadow-lg shadow-primary/10"
                   : "border-border",
               )}
             >
-              <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-sm font-semibold text-foreground">
+                  <h2 className="text-base font-semibold leading-snug text-foreground">
                     {job.title}
                   </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Building2 className="h-3 w-3" />
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
                       {job.company}
                     </span>
                     {job.location && (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <MapPin className="h-3 w-3" />
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
                         {job.location}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
                   >
                     {JOB_TYPE_LABELS[job.job_type] || job.job_type}
                   </span>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                     {job.level === "internship"
                       ? "Estágio"
                       : job.level === "junior"
@@ -413,7 +418,7 @@ export default function JobsPage() {
                           : "Sênior"}
                   </span>
                   {job.category && job.category !== "other" && (
-                    <span className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-medium text-orange-400">
+                    <span className="rounded-full bg-orange-400/15 px-2.5 py-1 text-xs font-medium text-orange-300">
                       {JOB_CATEGORY_LABELS[job.category] || job.category}
                     </span>
                   )}
@@ -421,14 +426,14 @@ export default function JobsPage() {
               </div>
 
               {job.is_international && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-400">
-                    <Globe className="h-3 w-3" />
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/40 bg-violet-400/15 px-2.5 py-1 text-xs font-semibold text-violet-200">
+                    <Globe className="h-3.5 w-3.5" />
                     Internacional
                   </span>
                   {job.required_language && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-300">
-                      <Languages className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-violet-400/15 px-2.5 py-1 text-xs font-medium text-violet-200">
+                      <Languages className="h-3.5 w-3.5" />
                       {job.required_language}
                       {job.language_level && ` · ${LANGUAGE_LEVEL_LABELS[job.language_level]}`}
                     </span>
@@ -436,7 +441,7 @@ export default function JobsPage() {
                 </div>
               )}
 
-              <p className={`text-xs text-muted-foreground mb-1 whitespace-pre-line ${
+              <p className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
                 expandedJobs.has(job.id) ? "" : "line-clamp-3"
               }`}>
                 {job.description}
@@ -454,7 +459,7 @@ export default function JobsPage() {
                       return next;
                     });
                   }}
-                  className="text-[11px] font-medium text-primary hover:underline mb-3"
+                  className="mb-3 min-h-9 text-sm font-medium text-primary hover:underline"
                 >
                   {expandedJobs.has(job.id) ? "Ver menos" : "Ver mais"}
                 </button>
@@ -463,14 +468,14 @@ export default function JobsPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   {job.salary_range && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <DollarSign className="h-3 w-3" />
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <DollarSign className="h-4 w-4" />
                       {job.salary_range}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <ShareButton
                     path={`/jobs#vaga-${job.id}`}
                     title={`${job.title} na ${job.company}`}
@@ -479,7 +484,7 @@ export default function JobsPage() {
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "job", id: job.id }}
-                    className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    className="min-h-10 px-3 text-sm text-muted-foreground hover:text-foreground"
                   />
 
                   {job.application_url && (
@@ -488,9 +493,9 @@ export default function JobsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackJobEvent(job.id, "click")}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-4 w-4" />
                       Candidatar-se
                     </a>
                   )}
@@ -498,7 +503,7 @@ export default function JobsPage() {
               </div>
 
               {job.profiles?.full_name && (
-                <p className="mt-2 text-[10px] text-muted-foreground">
+                <p className="mt-3 text-xs text-muted-foreground">
                   Publicado por {job.profiles.full_name}
                 </p>
               )}
@@ -508,13 +513,14 @@ export default function JobsPage() {
                   <button
                     onClick={() => toggleAction(job.id, "applied")}
                     disabled={actionLoading === `${job.id}:applied`}
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    aria-pressed={hasAction(job.id, "applied")}
+                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
                       hasAction(job.id, "applied")
                         ? "bg-green-500/20 text-green-400"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    <CheckCircle2 className="h-3 w-3" />
+                    <CheckCircle2 className="h-4 w-4" />
                     Me candidatei
                   </button>
                   <button
@@ -523,10 +529,11 @@ export default function JobsPage() {
                       hasAction(job.id, "link_issue") ||
                       actionLoading === `${job.id}:link_issue`
                     }
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    aria-pressed={hasAction(job.id, "link_issue")}
+                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
                       hasAction(job.id, "link_issue")
                         ? "bg-yellow-500/20 text-yellow-400"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                     title={
                       hasAction(job.id, "link_issue")
@@ -534,7 +541,7 @@ export default function JobsPage() {
                         : "Reportar link com problemas"
                     }
                   >
-                    <AlertTriangle className="h-3 w-3" />
+                    <AlertTriangle className="h-4 w-4" />
                     Link com problemas
                   </button>
                   <button
@@ -543,10 +550,11 @@ export default function JobsPage() {
                       hasAction(job.id, "closed") ||
                       actionLoading === `${job.id}:closed`
                     }
-                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    aria-pressed={hasAction(job.id, "closed")}
+                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
                       hasAction(job.id, "closed")
                         ? "bg-red-500/20 text-red-400"
-                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                     title={
                       hasAction(job.id, "closed")
@@ -554,7 +562,7 @@ export default function JobsPage() {
                         : "Reportar que não aceita mais candidaturas"
                     }
                   >
-                    <XCircle className="h-3 w-3" />
+                    <XCircle className="h-4 w-4" />
                     Não aceita mais candidaturas
                   </button>
                 </div>
@@ -563,7 +571,7 @@ export default function JobsPage() {
           ))}
 
           {filtered.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="py-8 text-center text-base text-muted-foreground">
               Nenhuma vaga disponível
               {activeTab !== "all" ? " neste nível" : " no momento"}.
             </p>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import Image from "next/image"
-import { MessageCircle, ChevronLeft, ChevronRight } from "lucide-react"
+import { MessageCircle, ChevronLeft, ChevronRight, Megaphone } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
 interface Ad {
@@ -56,6 +56,7 @@ export function AdBanner() {
 
   useEffect(() => {
     if (ads.length <= 1) return
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
     const interval = setInterval(next, 5000)
     return () => clearInterval(interval)
   }, [ads.length, next])
@@ -70,7 +71,7 @@ export function AdBanner() {
 
   return (
     <div className="relative w-full">
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-primary/5 overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-primary/20 bg-gradient-to-r from-primary/5 via-card to-primary/5">
         <div className="flex flex-col sm:flex-row items-center gap-4 p-4">
           {ad.image_url && (
             <div className="relative h-20 w-20 shrink-0 rounded-full overflow-hidden border-2 border-primary/30">
@@ -86,13 +87,13 @@ export function AdBanner() {
           <div className="flex-1 min-w-0 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2 mb-1.5">
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/15 px-2.5 py-1 text-xs font-semibold text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+                <Megaphone className="h-3.5 w-3.5" aria-hidden="true" />
                 Indicação
               </span>
             </div>
-            <h3 className="text-sm font-semibold text-foreground break-words">{ad.title}</h3>
+            <h3 className="break-words text-base font-semibold leading-snug text-foreground">{ad.title}</h3>
             {ad.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-3 break-words leading-relaxed">
+              <p className="mt-2 line-clamp-3 break-words text-sm leading-relaxed text-muted-foreground">
                 {ad.description}
               </p>
             )}
@@ -104,7 +105,7 @@ export function AdBanner() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent(ad.id, "click")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-green-700 shrink-0"
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
             >
               <MessageCircle className="h-4 w-4" />
               Falar no WhatsApp
@@ -115,8 +116,10 @@ export function AdBanner() {
         {ads.length > 1 && (
           <div className="flex items-center justify-center gap-3 pb-3">
             <button
+              type="button"
               onClick={prev}
-              className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Ver anúncio anterior"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -124,18 +127,27 @@ export function AdBanner() {
               {ads.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => setCurrent(i)}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === current
-                      ? "w-4 bg-primary"
-                      : "w-1.5 bg-muted-foreground/30"
-                  }`}
-                />
+                  aria-label={`Ver anúncio ${i + 1}`}
+                  aria-current={i === current}
+                  className="flex h-10 w-6 items-center justify-center rounded-full"
+                >
+                  <span
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === current
+                        ? "w-4 bg-primary"
+                        : "w-1.5 bg-muted-foreground/30"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
             <button
+              type="button"
               onClick={next}
-              className="rounded-full p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              aria-label="Ver próximo anúncio"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
