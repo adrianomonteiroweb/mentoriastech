@@ -225,7 +225,26 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
                     {b.mentee_strengths && <SectionView label="Pontos positivos" text={b.mentee_strengths} />}
                     {b.mentee_growth_areas && <SectionView label="Pontos a desenvolver" text={b.mentee_growth_areas} />}
                     {b.admin_notes && <SectionView label="Anotacoes privadas" text={b.admin_notes} />}
-                    {!b.topics_discussed && !b.mentee_strengths && !b.mentee_growth_areas && !b.admin_notes && (
+                    {!!b.mentorship_checklist?.length && (
+                      <div className="mb-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                          Checklist
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {b.mentorship_checklist.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 text-xs text-foreground">
+                              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+                                {item.checked ? "OK" : "Pendente"}
+                              </Badge>
+                              <span className={item.checked ? "" : "text-muted-foreground"}>
+                                {item.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!b.topics_discussed && !b.mentee_strengths && !b.mentee_growth_areas && !b.admin_notes && !b.mentorship_checklist?.length && (
                       <p className="text-xs text-muted-foreground italic">Nenhuma anotacao registrada.</p>
                     )}
                   </>

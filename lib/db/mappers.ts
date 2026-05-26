@@ -19,6 +19,10 @@ import type {
   Profile,
 } from "@/lib/types/database"
 
+type BookingMapperRow = Omit<DbBooking, "mentorshipChecklist"> & {
+  mentorshipChecklist?: Booking["mentorship_checklist"] | null
+}
+
 function toIso(value: Date | string | null | undefined): string | null {
   if (!value) return null
   return value instanceof Date ? value.toISOString() : value
@@ -95,7 +99,7 @@ export function toContentItem(row: DbContentItem): ContentItem {
   }
 }
 
-export function toBooking(row: DbBooking): Booking {
+export function toBooking(row: BookingMapperRow): Booking {
   return {
     id: row.id,
     mentee_id: row.menteeId,
@@ -115,6 +119,7 @@ export function toBooking(row: DbBooking): Booking {
     mentee_strengths: row.menteeStrengths,
     mentee_growth_areas: row.menteeGrowthAreas,
     admin_notes: row.adminNotes,
+    mentorship_checklist: (row.mentorshipChecklist as Booking["mentorship_checklist"]) ?? null,
     origin_category: row.originCategory,
     origin_description: row.originDescription,
     created_at: toIso(row.createdAt) || "",

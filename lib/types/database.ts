@@ -40,6 +40,12 @@ export type JobCategory =
   | "other"
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
+export interface MentorshipChecklistSnapshotItem {
+  id: string
+  label: string
+  checked: boolean
+}
+
 // -----------------------------------------------------------------------------
 // Profiles
 // -----------------------------------------------------------------------------
@@ -114,6 +120,7 @@ export interface Booking {
   mentee_strengths: string | null
   mentee_growth_areas: string | null
   admin_notes: string | null
+  mentorship_checklist: MentorshipChecklistSnapshotItem[] | null
   origin_category: OriginCategory | null
   origin_description: string | null
   created_at: string
@@ -254,7 +261,7 @@ export interface Ad {
 // -----------------------------------------------------------------------------
 export interface SiteSetting {
   key: string
-  value: Record<string, unknown>
+  value: unknown
   updated_at: string
 }
 

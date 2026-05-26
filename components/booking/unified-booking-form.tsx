@@ -17,7 +17,8 @@ import { DateTimeStep } from "./steps/datetime-step"
 import { ContactStep } from "./steps/contact-step"
 import { ReviewStep } from "./steps/review-step"
 
-// Fallback data when API fails
+// Fallback topics keep the form readable when topic loading fails.
+// Time slots must come from /api/schedule so occupied dates are never offered.
 const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f1", name: "Programação para outras profissões", category: "free", description: null },
   { id: "f2", name: "Carreira em programação", category: "free", description: null },
@@ -27,56 +28,6 @@ const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f6", name: "Automações RPA", category: "free", description: null },
 ]
 
-const DAY_NAMES = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"]
-
-const SCHEDULE_TEMPLATE = [
-  { day: 1, times: ["21:00"] },
-  { day: 2, times: ["21:00"] },
-  { day: 3, times: ["21:00"] },
-  { day: 4, times: ["21:00"] },
-  { day: 5, times: ["21:00"] },
-  { day: 6, times: ["10:00", "14:00"] },
-  { day: 0, times: ["10:00", "14:00"] },
-]
-
-function generateFallbackSlots(): ScheduleSlot[] {
-  const now = new Date()
-  const currentDay = now.getDay()
-  const currentHour = now.getHours()
-  const currentMinute = now.getMinutes()
-  const result: ScheduleSlot[] = []
-
-  for (const entry of SCHEDULE_TEMPLATE) {
-    let diff = entry.day - currentDay
-    if (diff < 0) diff += 7
-
-    const date = new Date(now)
-    date.setDate(now.getDate() + diff)
-    const dateStr = date.toISOString().split("T")[0]
-
-    for (const time of entry.times) {
-      const [h, m] = time.split(":").map(Number)
-      const isToday = diff === 0
-      const isPast = isToday && (currentHour > h || (currentHour === h && currentMinute >= m))
-      if (isPast) continue
-
-      result.push({
-        id: `fallback-${entry.day}-${time}`,
-        dayOfWeek: entry.day,
-        dayName: DAY_NAMES[entry.day],
-        startTime: time,
-        slotType: "free",
-        date: dateStr,
-        bookings: [],
-        isAvailable: true,
-      })
-    }
-  }
-
-  result.sort((a, b) => a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date))
-  return result
-}
-
 export function UnifiedBookingForm() {
   const [state, dispatch] = useReducer(bookingReducer, initialBookingState)
 
@@ -84,28 +35,37 @@ export function UnifiedBookingForm() {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [topics, setTopics] = useState<TopicItem[]>([])
   const [dataLoading, setDataLoading] = useState(true)
-  const [usingFallback, setUsingFallback] = useState(false)
+  const [scheduleLoadError, setScheduleLoadError] = useState(false)
 
   // Load schedule + topics + auth
   useEffect(() => {
-    Promise.all([
-      fetch("/api/schedule").then((r) => r.json()),
-      fetch("/api/topics").then((r) => r.json()),
+    const loadJson = async (url: string) => {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`Falha ao carregar ${url}`)
+      return response.json()
+    }
+
+    Promise.allSettled([
+      loadJson("/api/schedule"),
+      loadJson("/api/topics"),
     ])
-      .then(([scheduleData, topicsData]) => {
-        if (scheduleData.schedule && topicsData.topics) {
+      .then(([scheduleResult, topicsResult]) => {
+        const scheduleData = scheduleResult.status === "fulfilled" ? scheduleResult.value : null
+        const topicsData = topicsResult.status === "fulfilled" ? topicsResult.value : null
+
+        if (Array.isArray(scheduleData?.schedule)) {
           setSlots(scheduleData.schedule)
+          setScheduleLoadError(false)
+        } else {
+          setSlots([])
+          setScheduleLoadError(true)
+        }
+
+        if (Array.isArray(topicsData?.topics)) {
           setTopics(topicsData.topics)
         } else {
-          setUsingFallback(true)
           setTopics(FALLBACK_TOPICS)
-          setSlots(generateFallbackSlots())
         }
-      })
-      .catch(() => {
-        setUsingFallback(true)
-        setTopics(FALLBACK_TOPICS)
-        setSlots(generateFallbackSlots())
       })
       .finally(() => setDataLoading(false))
 
@@ -174,8 +134,11 @@ export function UnifiedBookingForm() {
         body.sessionDate = state.sessionDate
       }
 
-      if (!usingFallback) {
+      if (state.slotId) {
         body.slotId = state.slotId
+      }
+
+      if (state.topicId) {
         body.topicId = state.topicId
       }
 
@@ -222,6 +185,7 @@ export function UnifiedBookingForm() {
           <DateTimeStep
             slots={slots}
             slotsLoading={dataLoading}
+            slotsError={scheduleLoadError}
             selectedSlotId={state.slotId}
             onSelectSlot={(id, date, time, day) =>
               dispatch({ type: "SET_FREE_SLOT", slotId: id, sessionDate: date, startTime: time, dayName: day })

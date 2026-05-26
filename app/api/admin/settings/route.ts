@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
+import {
+  MENTORSHIP_CHECKLIST_SETTING_KEY,
+  normalizeMentorshipChecklistConfig,
+} from "@/lib/mentorship-checklist"
 
 export async function GET() {
   try {
@@ -17,6 +21,10 @@ export async function GET() {
     const settings = Object.fromEntries(
       (data || []).map((s) => [s.key, s.value]),
     )
+
+    if (!settings[MENTORSHIP_CHECKLIST_SETTING_KEY]) {
+      settings[MENTORSHIP_CHECKLIST_SETTING_KEY] = normalizeMentorshipChecklistConfig(null)
+    }
 
     return NextResponse.json({ data: settings })
   } catch (error) {
@@ -36,11 +44,16 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "key e value sao obrigatorios" }, { status: 400 })
     }
 
+    const nextValue =
+      key === MENTORSHIP_CHECKLIST_SETTING_KEY
+        ? normalizeMentorshipChecklistConfig(value, false)
+        : value
+
     const supabase = createAdminClient()
     const { data, error } = await supabase
       .from("site_settings")
       .upsert(
-        { key, value, updated_at: new Date().toISOString() },
+        { key, value: nextValue, updated_at: new Date().toISOString() },
         { onConflict: "key" },
       )
       .select()

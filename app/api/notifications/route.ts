@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { desc, eq } from "drizzle-orm"
 import { bookings, db, jobs, mentoringTopics, profiles } from "@/lib/db"
+import { bookingSelect } from "@/lib/db/booking-select"
 import { getProfile } from "@/lib/utils/auth"
 
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
     const [pendingBookings, pendingJobs] = await Promise.all([
       db
         .select({
-          booking: bookings,
+          booking: bookingSelect,
           topic: mentoringTopics,
           mentee: profiles,
         })

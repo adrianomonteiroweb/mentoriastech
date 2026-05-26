@@ -91,6 +91,9 @@ export const bookings = pgTable("bookings", {
   menteeStrengths: text("mentee_strengths"),
   menteeGrowthAreas: text("mentee_growth_areas"),
   adminNotes: text("admin_notes"),
+  mentorshipChecklist: jsonb("mentorship_checklist").$type<
+    { id: string; label: string; checked: boolean }[]
+  >(),
   originCategory: text("origin_category", {
     enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
   }),

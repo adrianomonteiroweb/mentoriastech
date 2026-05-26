@@ -13,6 +13,11 @@ const DAY_NAMES = [
   "Sabado",
 ]
 
+function normalizeTime(time: string | null | undefined) {
+  if (!time) return ""
+  return time.length === 5 ? `${time}:00` : time
+}
+
 export async function GET() {
   try {
     const [slots, topics] = await Promise.all([
@@ -50,7 +55,15 @@ export async function GET() {
     const horizonStr = horizonOut.toISOString().split("T")[0]
 
     const bookingRows = await db
-      .select()
+      .select({
+        id: bookings.id,
+        menteeId: bookings.menteeId,
+        guestName: bookings.guestName,
+        topicId: bookings.topicId,
+        sessionDate: bookings.sessionDate,
+        startTime: bookings.startTime,
+        status: bookings.status,
+      })
       .from(bookings)
       .where(
         and(
@@ -80,8 +93,14 @@ export async function GET() {
     )
 
     function getSlotBookings(dateStr: string, startTime: string) {
+      const normalizedStartTime = normalizeTime(startTime)
+
       return bookingRows
-        .filter((booking) => booking.sessionDate === dateStr && booking.startTime === startTime)
+        .filter(
+          (booking) =>
+            booking.sessionDate === dateStr &&
+            normalizeTime(booking.startTime) === normalizedStartTime,
+        )
         .map((booking) => ({
           id: booking.id,
           topic: booking.topicId ? topicNames[booking.topicId] || "Tema livre" : "Tema livre",

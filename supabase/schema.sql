@@ -185,6 +185,7 @@ CREATE TABLE public.bookings (
   mentee_strengths TEXT,        -- Pontos positivos do mentorado
   mentee_growth_areas TEXT,     -- Pontos a desenvolver
   admin_notes TEXT,             -- Anotacoes privadas do admin sobre o candidato
+  mentorship_checklist JSONB,    -- Snapshot dos itens marcados na sessao
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -483,6 +484,17 @@ INSERT INTO public.site_settings (key, value) VALUES
   ('pix_config', '{"key": "", "name": "Adriano Monteiro", "city": "Fortaleza", "type": "email"}');
 
 -- Categorias de conteúdo
+-- Checklist inicial de mentoria
+INSERT INTO public.site_settings (key, value) VALUES
+  ('mentorship_checklist', '[
+    { "id": "explicacao-sobre-a-mentoria", "label": "Explicacao sobre a mentoria" },
+    { "id": "apresentacao-do-mentorado", "label": "Apresentacao do mentorado" },
+    { "id": "duvidas-sobre-a-trajetoria-e-dicas", "label": "Duvidas sobre a trajetoria e dicas" },
+    { "id": "posicionamento-linkedin", "label": "Posicionamento: LinkedIn" },
+    { "id": "posicionamento-curriculo", "label": "Posicionamento: curriculo" },
+    { "id": "posicionamento-projetos-de-portfolio", "label": "Posicionamento: projetos de portfolio" }
+  ]'::jsonb);
+
 INSERT INTO public.content_categories (name, slug, description, sort_order) VALUES
   ('Carreira', 'carreira', 'Dicas e guias sobre carreira em tecnologia', 1),
   ('Programação', 'programacao', 'Tutoriais e materiais sobre programação', 2),

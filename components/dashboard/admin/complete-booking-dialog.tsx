@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -19,7 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import { Loader2 } from "lucide-react"
+import {
+  MENTORSHIP_CHECKLIST_SETTING_KEY,
+  createMentorshipChecklistSnapshot,
+  normalizeMentorshipChecklistConfig,
+  normalizeMentorshipChecklistSnapshot,
+  type MentorshipChecklistSnapshotItem,
+} from "@/lib/mentorship-checklist"
 import type {
   BookingWithRelations,
   CareerStatus,
@@ -64,6 +78,7 @@ export function CompleteBookingDialog({
   onCompleted,
 }: CompleteBookingDialogProps) {
   const [saving, setSaving] = useState(false)
+  const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [error, setError] = useState("")
 
   const [topicsDiscussed, setTopicsDiscussed] = useState("")
@@ -76,9 +91,12 @@ export function CompleteBookingDialog({
   const [careerFocus, setCareerFocus] = useState("")
   const [originCategory, setOriginCategory] = useState<OriginCategory | "">("")
   const [originDescription, setOriginDescription] = useState("")
+  const [checklist, setChecklist] = useState<MentorshipChecklistSnapshotItem[]>([])
 
   useEffect(() => {
-    if (!booking) return
+    if (!booking || !open) return
+    let active = true
+
     setError("")
     setTopicsDiscussed(booking.topics_discussed || "")
     setMenteeStrengths(booking.mentee_strengths || "")
@@ -91,13 +109,49 @@ export function CompleteBookingDialog({
       ((booking.origin_category || booking.profiles?.origin_category) as OriginCategory) || "",
     )
     setOriginDescription(booking.origin_description || booking.profiles?.origin_description || "")
-  }, [booking])
+    setChecklist(normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist))
+    setLoadingChecklist(true)
+
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!active) return
+        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist)
+        if (savedChecklist.length) {
+          setChecklist(savedChecklist)
+          return
+        }
+
+        const checklistSetting = json.data?.[MENTORSHIP_CHECKLIST_SETTING_KEY]
+        const configuredChecklist = Array.isArray(checklistSetting)
+          ? normalizeMentorshipChecklistConfig(checklistSetting, false)
+          : normalizeMentorshipChecklistConfig(checklistSetting)
+        setChecklist(createMentorshipChecklistSnapshot(configuredChecklist))
+      })
+      .catch(() => {
+        if (!active) return
+        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist)
+        setChecklist(
+          savedChecklist.length
+            ? savedChecklist
+            : createMentorshipChecklistSnapshot(normalizeMentorshipChecklistConfig(null)),
+        )
+      })
+      .finally(() => {
+        if (active) setLoadingChecklist(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [booking, open])
 
   if (!booking) return null
 
   const hasMentee = !!booking.mentee_id
   const menteeName =
     booking.profiles?.full_name || booking.guest_name || "Mentorado"
+  const checkedChecklistItems = checklist.filter((item) => item.checked).length
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -112,6 +166,7 @@ export function CompleteBookingDialog({
       mentee_strengths: menteeStrengths,
       mentee_growth_areas: menteeGrowthAreas,
       admin_notes: adminNotes,
+      mentorship_checklist: checklist,
       origin_category: originCategory || null,
       origin_description: originDescription || null,
     }
@@ -146,6 +201,12 @@ export function CompleteBookingDialog({
     }
   }
 
+  function toggleChecklistItem(id: string, checked: boolean) {
+    setChecklist((current) =>
+      current.map((item) => (item.id === id ? { ...item, checked } : item)),
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
@@ -157,6 +218,18 @@ export function CompleteBookingDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-6">
+          <Tabs defaultValue="historico" className="grid gap-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="historico">Historico</TabsTrigger>
+              <TabsTrigger value="checklist" className="gap-2">
+                Checklist
+                <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold">
+                  {checkedChecklistItems}/{checklist.length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="historico" className="mt-0 grid gap-6">
           <section className="grid gap-4">
             <h3 className="text-sm font-semibold text-foreground">Sobre a sessão</h3>
 
@@ -313,6 +386,46 @@ export function CompleteBookingDialog({
               </div>
             </div>
           </section>
+            </TabsContent>
+
+            <TabsContent value="checklist" className="mt-0">
+              <section className="grid gap-3">
+                {loadingChecklist ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : checklist.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">
+                    Nenhum item configurado.
+                  </p>
+                ) : (
+                  checklist.map((item) => {
+                    const checkboxId = `mentorship-checklist-${item.id}`
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-3 rounded-md border border-border bg-card px-3 py-3 text-sm"
+                      >
+                        <Checkbox
+                          id={checkboxId}
+                          checked={item.checked}
+                          onCheckedChange={(checked) => toggleChecklistItem(item.id, checked === true)}
+                          className="mt-0.5"
+                        />
+                        <Label
+                          htmlFor={checkboxId}
+                          className={item.checked ? "text-muted-foreground line-through" : "text-foreground"}
+                        >
+                          {item.label}
+                        </Label>
+                      </div>
+                    )
+                  })
+                )}
+              </section>
+            </TabsContent>
+          </Tabs>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

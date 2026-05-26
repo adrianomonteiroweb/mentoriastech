@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import {
   Table,
@@ -28,10 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ExternalLink, Loader2, MessageCircle, Pencil, Trash2 } from "lucide-react"
+import { Check, Copy, ExternalLink, Loader2, MessageCircle, Pencil, Trash2 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { BookingWithRelations, BookingStatus, MentoringTopic } from "@/lib/types/database"
 import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
+
+interface BookingsTableProps {
+  bookingId?: string
+}
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pendente",
@@ -54,6 +59,13 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 }
 
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("pt-BR", { weekday: "long" })
+const REQUESTED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+})
 
 function parseIsoDate(date: string | null | undefined) {
   if (!date) return null
@@ -73,14 +85,23 @@ function formatWeekday(date: string | null | undefined) {
   return WEEKDAY_FORMATTER.format(localDate).replace("-feira", "")
 }
 
-export function BookingsTable() {
+function formatRequestedAt(value: string | null | undefined) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "-"
+  return REQUESTED_AT_FORMATTER.format(date)
+}
+
+export function BookingsTable({ bookingId }: BookingsTableProps) {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [topics, setTopics] = useState<MentoringTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
   const [editingBooking, setEditingBooking] = useState<BookingWithRelations | null>(null)
   const [completingBooking, setCompletingBooking] = useState<BookingWithRelations | null>(null)
+  const [copiedBookingId, setCopiedBookingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState("")
   const [error, setError] = useState("")
   const [form, setForm] = useState({
     topic_id: "",
@@ -95,17 +116,36 @@ export function BookingsTable() {
 
   function loadBookings() {
     setLoading(true)
-    const params = filter !== "all" ? `?status=${filter}` : ""
-    fetch(`/api/admin/bookings${params}`)
-      .then((r) => r.json())
+    setLoadError("")
+    const params = new URLSearchParams()
+    if (bookingId) {
+      params.set("booking_id", bookingId)
+    } else if (filter !== "all") {
+      params.set("status", filter)
+    }
+
+    const query = params.toString()
+
+    fetch(`/api/admin/bookings${query ? `?${query}` : ""}`)
+      .then(async (r) => {
+        const json = await r.json()
+        if (!r.ok) {
+          throw new Error(json.error || "Erro ao carregar agendamentos")
+        }
+        return json
+      })
       .then((json) => setBookings(json.data || []))
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err)
+        setBookings([])
+        setLoadError(err instanceof Error ? err.message : "Erro ao carregar agendamentos")
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
     loadBookings()
-  }, [filter])
+  }, [filter, bookingId])
 
   useEffect(() => {
     fetch("/api/topics")
@@ -180,17 +220,43 @@ export function BookingsTable() {
     loadBookings()
   }
 
+  async function copyEmail(email: string, bookingId: string) {
+    if (!email) return
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(email)
+      } else {
+        const textarea = document.createElement("textarea")
+        textarea.value = email
+        textarea.style.position = "fixed"
+        textarea.style.opacity = "0"
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand("copy")
+        document.body.removeChild(textarea)
+      }
+
+      setCopiedBookingId(bookingId)
+      window.setTimeout(() => setCopiedBookingId((current) => (current === bookingId ? null : current)), 1500)
+    } catch {
+      alert("Nao foi possivel copiar o email.")
+    }
+  }
+
   const getName = (b: BookingWithRelations) =>
     b.profiles?.full_name || b.guest_name || "—"
   const getEmail = (b: BookingWithRelations) =>
-    b.profiles?.email || b.guest_email || "—"
+    b.profiles?.email || b.guest_email || ""
   const getTopic = (b: BookingWithRelations) =>
     b.mentoring_topics?.name || "—"
+  const isSingleBookingFilter = !!bookingId
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Select value={filter} onValueChange={setFilter}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Select value={filter} onValueChange={setFilter} disabled={isSingleBookingFilter}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
@@ -203,7 +269,22 @@ export function BookingsTable() {
             <SelectItem value="completed">Concluidos</SelectItem>
           </SelectContent>
         </Select>
+
+        {isSingleBookingFilter && (
+          <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+            <span>Mostrando apenas o agendamento selecionado na agenda.</span>
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" asChild>
+              <Link href="/admin/bookings">Ver todos</Link>
+            </Button>
+          </div>
+        )}
       </div>
+
+      {loadError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {loadError}
+        </div>
+      )}
 
       <div className="rounded-md border">
         <Table>
@@ -215,6 +296,7 @@ export function BookingsTable() {
               <TableHead>Tema</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="hidden lg:table-cell">Solicitado em</TableHead>
               <TableHead>Data/Hora</TableHead>
               <TableHead>Acoes</TableHead>
             </TableRow>
@@ -223,7 +305,7 @@ export function BookingsTable() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-20" />
                     </TableCell>
@@ -232,7 +314,7 @@ export function BookingsTable() {
               ))
             ) : bookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhum agendamento encontrado
                 </TableCell>
               </TableRow>
@@ -244,7 +326,33 @@ export function BookingsTable() {
                 return (
                   <TableRow key={b.id}>
                     <TableCell className="font-medium">{getName(b)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs">{getEmail(b)}</TableCell>
+                    <TableCell className="hidden md:table-cell text-xs">
+                      {(() => {
+                        const email = getEmail(b)
+                        if (!email) {
+                          return <span className="text-muted-foreground">-</span>
+                        }
+
+                        const copied = copiedBookingId === b.id
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => copyEmail(email, b.id)}
+                            title={copied ? "Email copiado" : "Copiar email"}
+                            aria-label={copied ? `Email ${email} copiado` : `Copiar email ${email}`}
+                            className="inline-flex max-w-[220px] items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-left text-[10px] font-medium text-primary transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            {copied ? (
+                              <Check className="h-3 w-3 shrink-0" />
+                            ) : (
+                              <Copy className="h-3 w-3 shrink-0" />
+                            )}
+                            <span className="truncate">{email}</span>
+                          </button>
+                        )
+                      })()}
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       {(() => {
                         const whatsapp = b.profiles?.whatsapp || b.guest_whatsapp
@@ -273,6 +381,9 @@ export function BookingsTable() {
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[b.status]}`}>
                         {STATUS_LABELS[b.status]}
                       </span>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell text-xs">
+                      <span className="whitespace-nowrap">{formatRequestedAt(b.created_at)}</span>
                     </TableCell>
                     <TableCell className="text-xs">
                       <div className="flex flex-col">

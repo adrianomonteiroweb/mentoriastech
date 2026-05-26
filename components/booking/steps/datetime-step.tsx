@@ -9,6 +9,7 @@ import { StepNavigation } from "../step-navigation"
 interface DateTimeStepProps {
   slots: ScheduleSlot[]
   slotsLoading: boolean
+  slotsError?: boolean
   selectedSlotId: string
   onSelectSlot: (slotId: string, sessionDate: string, startTime: string, dayName: string) => void
   onNext: () => void
@@ -18,6 +19,7 @@ interface DateTimeStepProps {
 export function DateTimeStep({
   slots,
   slotsLoading,
+  slotsError = false,
   selectedSlotId,
   onSelectSlot,
   onNext,
@@ -58,7 +60,9 @@ export function DateTimeStep({
         <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-6 text-center">
           <CalendarDays className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Todos os horários desta semana já foram preenchidos. Volte na próxima semana!
+            {slotsError
+              ? "Não foi possível carregar os horários agora. Tente novamente em instantes."
+              : "Todos os horários disponíveis já foram preenchidos. Volte em breve!"}
           </p>
         </div>
       ) : (

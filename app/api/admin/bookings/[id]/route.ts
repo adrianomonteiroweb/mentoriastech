@@ -3,6 +3,10 @@ import { eq } from "drizzle-orm"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 import { bookings, db, mentoringTopics, profiles } from "@/lib/db"
+import {
+  bookingSelect,
+  isMissingMentorshipChecklistColumnError,
+} from "@/lib/db/booking-select"
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { toBooking } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
@@ -26,6 +30,12 @@ const menteeProfileUpdateSchema = z.object({
     .nullable()
     .optional(),
   origin_description: z.string().nullable().optional(),
+})
+
+const mentorshipChecklistItemSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  checked: z.boolean(),
 })
 
 const updateSchema = z.object({
@@ -52,6 +62,7 @@ const updateSchema = z.object({
   mentee_strengths: z.string().optional(),
   mentee_growth_areas: z.string().optional(),
   admin_notes: z.string().optional(),
+  mentorship_checklist: z.array(mentorshipChecklistItemSchema).optional(),
   origin_category: z
     .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
     .nullable()
@@ -66,7 +77,7 @@ function shouldBlockStatus(status: string | undefined) {
 
 async function loadBooking(id: string) {
   const [row] = await db
-    .select({ booking: bookings, topic: mentoringTopics, profile: profiles })
+    .select({ booking: bookingSelect, topic: mentoringTopics, profile: profiles })
     .from(bookings)
     .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
     .leftJoin(profiles, eq(bookings.menteeId, profiles.id))
@@ -132,6 +143,7 @@ export async function PUT(
     if (parsed.data.mentee_strengths !== undefined) updateData.menteeStrengths = parsed.data.mentee_strengths || null
     if (parsed.data.mentee_growth_areas !== undefined) updateData.menteeGrowthAreas = parsed.data.mentee_growth_areas || null
     if (parsed.data.admin_notes !== undefined) updateData.adminNotes = parsed.data.admin_notes || null
+    if (parsed.data.mentorship_checklist !== undefined) updateData.mentorshipChecklist = parsed.data.mentorship_checklist
     if (parsed.data.origin_category !== undefined) updateData.originCategory = parsed.data.origin_category || null
     if (parsed.data.origin_description !== undefined) updateData.originDescription = parsed.data.origin_description || null
 
@@ -164,11 +176,23 @@ export async function PUT(
       }
     }
 
-    const [data] = await db
-      .update(bookings)
-      .set(updateData)
-      .where(eq(bookings.id, id))
-      .returning()
+    let data
+    try {
+      ;[data] = await db
+        .update(bookings)
+        .set(updateData)
+        .where(eq(bookings.id, id))
+        .returning(bookingSelect)
+    } catch (error) {
+      if (!isMissingMentorshipChecklistColumnError(error)) throw error
+
+      delete updateData.mentorshipChecklist
+      ;[data] = await db
+        .update(bookings)
+        .set(updateData)
+        .where(eq(bookings.id, id))
+        .returning(bookingSelect)
+    }
 
     if (parsed.data.mentee_profile_update && row.booking.menteeId) {
       const profileUpdate: Partial<typeof profiles.$inferInsert> = {
