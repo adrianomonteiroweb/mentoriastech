@@ -28,7 +28,7 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
 
   function loadContent() {
     setLoading(true)
-    fetch("/api/content")
+    fetch("/api/admin/content")
       .then((r) => r.json())
       .then((json) => setItems(json.data || []))
       .catch(console.error)

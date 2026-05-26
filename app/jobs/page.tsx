@@ -112,119 +112,7 @@ const CATEGORY_TABS = [
   { key: "other", label: "Outra" },
 ] as const;
 
-const FALLBACK_JOBS: Job[] = [
-  {
-    id: "fj1",
-    title: "Estagiário(a) de Desenvolvimento Web",
-    company: "TechStart",
-    description:
-      "Vaga de estágio para estudantes de TI. Você vai atuar no desenvolvimento de interfaces web com React e TypeScript, participar de code reviews e aprender boas práticas de desenvolvimento.",
-    location: "Fortaleza, CE",
-    job_type: "hybrid",
-    level: "internship",
-    category: "desenvolvimento",
-    salary_range: "R$ 1.200 - R$ 1.800",
-    application_url: "https://linkedin.com",
-    is_international: false,
-    required_language: null,
-    language_level: null,
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-  {
-    id: "fj2",
-    title: "Desenvolvedor(a) Front-end Júnior",
-    company: "DigitalFlow",
-    description:
-      "Buscamos dev júnior com conhecimento em React, Next.js e Tailwind CSS. Experiência com TypeScript é um diferencial. Trabalho 100% remoto com squad ágil.",
-    location: null,
-    job_type: "remote",
-    level: "junior",
-    category: "desenvolvimento",
-    salary_range: "R$ 3.000 - R$ 4.500",
-    application_url: "https://linkedin.com",
-    is_international: false,
-    required_language: null,
-    language_level: null,
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-  {
-    id: "fj3",
-    title: "Pessoa Desenvolvedora Full-Stack Pleno",
-    company: "Inovare Solutions",
-    description:
-      "Atuação em projetos de média e alta complexidade com Node.js, React e PostgreSQL. Experiência com APIs REST, testes automatizados e CI/CD. Metodologia ágil.",
-    location: "São Paulo, SP",
-    job_type: "remote",
-    level: "mid",
-    category: "desenvolvimento",
-    salary_range: "R$ 8.000 - R$ 12.000",
-    application_url: "https://linkedin.com",
-    is_international: false,
-    required_language: null,
-    language_level: null,
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-  {
-    id: "fj4",
-    title: "Dev Back-end Sênior (Node.js)",
-    company: "ScaleTech",
-    description:
-      "Liderança técnica em arquitetura de microsserviços, mentoria de devs júnior, definição de padrões de código e revisão de PRs. Stack: Node.js, TypeScript, PostgreSQL, AWS.",
-    location: null,
-    job_type: "remote",
-    level: "senior",
-    category: "desenvolvimento",
-    salary_range: "R$ 15.000 - R$ 22.000",
-    application_url: "https://linkedin.com",
-    is_international: false,
-    required_language: null,
-    language_level: null,
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-  {
-    id: "fj5",
-    title: "Trainee de Automação RPA",
-    company: "AutomateNow",
-    description:
-      "Programa de trainee focado em automação de processos com ferramentas de RPA. Treinamento completo oferecido pela empresa. Ideal para quem está migrando de carreira.",
-    location: "Fortaleza, CE",
-    job_type: "onsite",
-    level: "internship",
-    category: "ia",
-    salary_range: "R$ 2.000 - R$ 2.800",
-    application_url: "https://linkedin.com",
-    is_international: false,
-    required_language: null,
-    language_level: null,
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-  {
-    id: "fj6",
-    title: "Software Engineer",
-    company: "GlobalTech Inc.",
-    description:
-      "Join our distributed engineering team building scalable cloud solutions. Work with cutting-edge technologies including React, Node.js, and AWS. Competitive USD salary.",
-    location: null,
-    job_type: "remote",
-    level: "mid",
-    category: "desenvolvimento",
-    salary_range: "USD 4.000 - USD 6.000",
-    application_url: "https://linkedin.com",
-    is_international: true,
-    required_language: "Inglês",
-    language_level: "advanced",
-    created_at: new Date().toISOString(),
-    profiles: { full_name: "Adriano Monteiro" },
-  },
-];
-
 function trackJobEvent(jobId: string, event: "view" | "click") {
-  if (jobId.startsWith("fj")) return; // não rastrear fallback
   fetch(`/api/jobs/${jobId}/track`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -256,15 +144,19 @@ export default function JobsPage() {
       .then((res) => res.json())
       .then((json) => {
         if (json.error || !json.data) {
-          setJobs(FALLBACK_JOBS);
+          setJobs([]);
+          setUserActions([]);
+          setIsAuthenticated(false);
         } else {
-          setJobs(json.data.length > 0 ? json.data : FALLBACK_JOBS);
+          setJobs(json.data || []);
           setUserActions(json.user_actions || []);
           setIsAuthenticated(!!json.is_authenticated);
         }
       })
       .catch(() => {
-        setJobs(FALLBACK_JOBS);
+        setJobs([]);
+        setUserActions([]);
+        setIsAuthenticated(false);
       })
       .finally(() => setLoading(false));
   }

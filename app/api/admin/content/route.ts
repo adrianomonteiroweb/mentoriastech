@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
+import { desc, eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { db, contentItems } from "@/lib/db"
-import { toContentItem } from "@/lib/db/mappers"
+import { contentCategories, contentItems, db } from "@/lib/db"
+import { toContentCategory, toContentItem } from "@/lib/db/mappers"
 import { z } from "zod"
 
 const linkItemSchema = z.object({
@@ -20,6 +21,34 @@ const createSchema = z.object({
   file_size_bytes: z.number().optional(),
   is_published: z.boolean().default(false),
 })
+
+export async function GET() {
+  try {
+    await requireRole("admin")
+
+    const rows = await db
+      .select({ item: contentItems, category: contentCategories })
+      .from(contentItems)
+      .leftJoin(
+        contentCategories,
+        eq(contentItems.categoryId, contentCategories.id),
+      )
+      .orderBy(desc(contentItems.createdAt))
+
+    return NextResponse.json({
+      data: rows.map((row) => ({
+        ...toContentItem(row.item),
+        content_categories: row.category
+          ? toContentCategory(row.category)
+          : null,
+      })),
+    })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
 
 export async function POST(request: Request) {
   try {

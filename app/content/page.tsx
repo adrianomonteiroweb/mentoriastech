@@ -39,75 +39,6 @@ const TYPE_CONFIG = {
   link: { icon: ExternalLink, label: "Link", color: "text-primary" },
 }
 
-const FALLBACK_CATEGORIES: ContentCategory[] = [
-  { id: "c1", name: "Carreira", slug: "carreira" },
-  { id: "c2", name: "Programação", slug: "programacao" },
-  { id: "c3", name: "Entrevistas", slug: "entrevistas" },
-]
-
-const FALLBACK_ITEMS: ContentItem[] = [
-  {
-    id: "f1",
-    title: "Como iniciar na programação em 2025",
-    description: "Guia completo para quem quer começar a programar do zero, com dicas de linguagens, recursos gratuitos e plano de estudos.",
-    content_type: "article",
-    url: null,
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Programação", slug: "programacao" },
-  },
-  {
-    id: "f2",
-    title: "Preparação para entrevistas técnicas",
-    description: "Vídeo com as principais perguntas de entrevistas para desenvolvedores júnior e como se preparar para cada uma delas.",
-    content_type: "video",
-    url: "https://youtube.com",
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Entrevistas", slug: "entrevistas" },
-  },
-  {
-    id: "f3",
-    title: "Roadmap de carreira em tecnologia",
-    description: "PDF com o mapa de carreira desde estágio até sênior, com habilidades esperadas em cada nível.",
-    content_type: "pdf",
-    url: null,
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Carreira", slug: "carreira" },
-  },
-  {
-    id: "f4",
-    title: "Introdução ao Next.js com App Router",
-    description: "Tutorial passo a passo para criar sua primeira aplicação com Next.js, React e TypeScript.",
-    content_type: "video",
-    url: "https://youtube.com",
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Programação", slug: "programacao" },
-  },
-  {
-    id: "f5",
-    title: "Como montar um portfólio que se destaca",
-    description: "Dicas práticas para criar um portfólio de desenvolvedor que chama atenção dos recrutadores.",
-    content_type: "article",
-    url: null,
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Carreira", slug: "carreira" },
-  },
-  {
-    id: "f6",
-    title: "Guia de automações com RPA",
-    description: "Material em PDF sobre como automatizar processos repetitivos usando ferramentas de RPA.",
-    content_type: "pdf",
-    url: null,
-    view_count: 0,
-    created_at: new Date().toISOString(),
-    content_categories: { name: "Programação", slug: "programacao" },
-  },
-]
-
 export default function ContentPage() {
   const [items, setItems] = useState<ContentItem[]>([])
   const [categories, setCategories] = useState<ContentCategory[]>([])
@@ -119,16 +50,16 @@ export default function ContentPage() {
       .then((res) => res.json())
       .then((json) => {
         if (json.error || !json.data) {
-          setItems(FALLBACK_ITEMS)
-          setCategories(FALLBACK_CATEGORIES)
+          setItems([])
+          setCategories([])
         } else {
           setItems(json.data || [])
           setCategories(json.categories || [])
         }
       })
       .catch(() => {
-        setItems(FALLBACK_ITEMS)
-        setCategories(FALLBACK_CATEGORIES)
+        setItems([])
+        setCategories([])
       })
       .finally(() => setLoading(false))
   }, [])
