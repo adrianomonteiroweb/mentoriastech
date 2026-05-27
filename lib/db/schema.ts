@@ -229,6 +229,21 @@ export const pageShares = pgTable("page_shares", {
 })
 
 // -----------------------------------------------------------------------------
+// AUDIT_LOGS - eventos sensiveis sem conteudo completo de PII
+// -----------------------------------------------------------------------------
+export const auditLogs = pgTable("audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  actorId: uuid("actor_id").references(() => profiles.id, { onDelete: "set null" }),
+  targetUserId: uuid("target_user_id").references(() => profiles.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  route: text("route"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // MENTEE_ACCESS_CODES — códigos one-time enviados por email para área Minhas Mentorias
 // -----------------------------------------------------------------------------
 export const menteeAccessCodes = pgTable("mentee_access_codes", {
@@ -323,6 +338,7 @@ export type ContentCategory = typeof contentCategories.$inferSelect
 export type ContentItem = typeof contentItems.$inferSelect
 export type Job = typeof jobs.$inferSelect
 export type PageShare = typeof pageShares.$inferSelect
+export type AuditLog = typeof auditLogs.$inferSelect
 export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
 export type Ad = typeof ads.$inferSelect

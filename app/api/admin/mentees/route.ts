@@ -4,6 +4,7 @@ import { db, profiles, bookings } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
+import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
 
 const createMenteeSchema = z.object({
@@ -37,7 +38,11 @@ export async function POST(request: Request) {
       updateExisting: true,
     })
 
-    return NextResponse.json({ data: toProfile(profile) }, { status: 201 })
+    const data = toProfile(profile)
+    return NextResponse.json(
+      { data: { ...data, resume_url: safeProfileResumeHref(data.id, data.resume_url) } },
+      { status: 201 },
+    )
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -140,7 +145,14 @@ export async function GET(request: Request) {
     const countMap = new Map(bookingCounts.map((r) => [r.menteeId, r.cnt]))
 
     return NextResponse.json({
-      data: rows.map((row) => ({ ...toProfile(row), booking_count: countMap.get(row.id) ?? 0 })),
+      data: rows.map((row) => {
+        const profile = toProfile(row)
+        return {
+          ...profile,
+          resume_url: safeProfileResumeHref(profile.id, profile.resume_url),
+          booking_count: countMap.get(row.id) ?? 0,
+        }
+      }),
       total: totalRows[0]?.value || 0,
       page,
       pageSize,

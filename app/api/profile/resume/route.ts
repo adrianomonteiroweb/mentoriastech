@@ -1,7 +1,81 @@
+import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
+import { db, profiles } from "@/lib/db"
+import { logAuditEvent } from "@/lib/audit"
 import { requireAuth } from "@/lib/utils/auth"
-import { createClient } from "@/lib/supabase/server"
-import { uploadFile, UploadError } from "@/lib/utils/upload"
+import {
+  createSignedResumeDownloadUrl,
+  isLegacyPublicResumeUrl,
+  isProtectedResumePath,
+  safeOwnResumeHref,
+  streamPrivateResume,
+  verifySignedResumeDownload,
+} from "@/lib/utils/resume-access"
+import { deleteFile, uploadPrivateResume, UploadError } from "@/lib/utils/upload"
+
+export async function GET(request: Request) {
+  const requestUrl = new URL(request.url)
+  const signedDownload = verifySignedResumeDownload(requestUrl)
+
+  if (signedDownload) {
+    await logAuditEvent({
+      actorId: signedDownload.signedBy,
+      targetUserId: signedDownload.profileId,
+      action: "resume_downloaded",
+      route: requestUrl.pathname,
+      request,
+      metadata: { scope: signedDownload.scope },
+    })
+    return streamPrivateResume(signedDownload.pathname)
+  }
+
+  try {
+    const user = await requireAuth()
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1)
+
+    if (!profile?.resumeUrl) {
+      return NextResponse.json({ error: "Curriculo nao encontrado" }, { status: 404 })
+    }
+
+    if (isLegacyPublicResumeUrl(profile.resumeUrl)) {
+      return NextResponse.json(
+        { error: "Curriculo antigo precisa ser reenviado." },
+        { status: 410 },
+      )
+    }
+
+    if (!isProtectedResumePath(profile.resumeUrl)) {
+      return NextResponse.json({ error: "Curriculo invalido" }, { status: 404 })
+    }
+
+    const signedUrl = createSignedResumeDownloadUrl({
+      requestUrl: request.url,
+      profileId: user.id,
+      pathname: profile.resumeUrl,
+      signedBy: user.id,
+      scope: "self",
+    })
+
+    await logAuditEvent({
+      actorId: user.id,
+      targetUserId: user.id,
+      action: "resume_signed_url_created",
+      route: requestUrl.pathname,
+      request,
+      metadata: { scope: "self" },
+    })
+
+    return NextResponse.redirect(signedUrl)
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -14,21 +88,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Arquivo nao enviado" }, { status: 400 })
     }
 
-    const result = await uploadFile(file, `resumes/${user.id}`, "resume")
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1)
 
-    // Atualizar URL do currículo no perfil
-    const supabase = await createClient()
-    const { error } = await supabase
-      .from("profiles")
-      .update({ resume_url: result.url })
-      .eq("id", user.id)
+    const previousResume = profile?.resumeUrl || null
+    const result = await uploadPrivateResume(file, user.id)
 
-    if (error) {
-      console.error("[resume] DB update error:", error)
-      return NextResponse.json({ error: "Erro ao salvar curriculo" }, { status: 500 })
+    await db
+      .update(profiles)
+      .set({ resumeUrl: result.pathname, updatedAt: new Date() })
+      .where(eq(profiles.id, user.id))
+
+    if (previousResume && previousResume !== result.pathname) {
+      await deleteFile(previousResume)
     }
 
-    return NextResponse.json({ url: result.url, size: result.size })
+    await logAuditEvent({
+      actorId: user.id,
+      targetUserId: user.id,
+      action: "resume_uploaded",
+      route: new URL(request.url).pathname,
+      request,
+      metadata: { size: result.size, replaced: Boolean(previousResume) },
+    })
+
+    return NextResponse.json({
+      url: safeOwnResumeHref(result.pathname),
+      resume_url: safeOwnResumeHref(result.pathname),
+      size: result.size,
+    })
   } catch (error) {
     if (error instanceof UploadError) {
       return NextResponse.json({ error: error.message }, { status: error.status })

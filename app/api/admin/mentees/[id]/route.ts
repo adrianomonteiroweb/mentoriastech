@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { db, profiles } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
+import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -73,7 +74,13 @@ export async function PUT(
       .where(eq(profiles.id, id))
       .returning()
 
-    return NextResponse.json({ data: toProfile(data) })
+    const profile = toProfile(data)
+    return NextResponse.json({
+      data: {
+        ...profile,
+        resume_url: safeProfileResumeHref(profile.id, profile.resume_url),
+      },
+    })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

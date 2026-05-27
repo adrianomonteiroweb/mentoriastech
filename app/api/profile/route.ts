@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAuth } from "@/lib/utils/auth"
 import { createClient } from "@/lib/supabase/server"
+import { safeOwnResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -25,7 +26,12 @@ export async function GET() {
       return NextResponse.json({ error: "Perfil nao encontrado" }, { status: 404 })
     }
 
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: {
+        ...data,
+        resume_url: safeOwnResumeHref(data.resume_url),
+      },
+    })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -59,7 +65,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Erro ao atualizar perfil" }, { status: 500 })
     }
 
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: {
+        ...data,
+        resume_url: safeOwnResumeHref(data.resume_url),
+      },
+    })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

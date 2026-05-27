@@ -64,15 +64,17 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** curriculos sao enviados para Vercel Blob com `access: "public"`.
 
-- [ ] Separar categorias de upload publicas e privadas.
-- [ ] Alterar upload de curriculo para storage privado ou caminho protegido por rota autenticada.
-- [ ] Gerar URL assinada de curta duracao para admin/HR autorizado.
-- [ ] Remover nome original do arquivo do pathname quando o arquivo contiver PII.
-- [ ] Validar MIME real e extensao, nao apenas `file.type`.
-- [ ] Registrar auditoria de acesso/download de curriculo.
-- [ ] Criar job ou rotina para apagar blobs antigos substituidos.
-- [ ] Adicionar teste: usuario nao autenticado nao acessa curriculo.
-- [ ] Adicionar teste: HR/admin autorizado acessa curriculo via endpoint protegido.
+- [x] Separar categorias de upload publicas e privadas.
+- [x] Alterar upload de curriculo para storage privado ou caminho protegido por rota autenticada.
+- [x] Gerar URL assinada de curta duracao para admin/HR autorizado.
+- [x] Remover nome original do arquivo do pathname quando o arquivo contiver PII.
+- [x] Validar MIME real e extensao, nao apenas `file.type`.
+- [x] Registrar auditoria de acesso/download de curriculo.
+- [x] Criar job ou rotina para apagar blobs antigos substituidos.
+- [x] Adicionar teste: usuario nao autenticado nao acessa curriculo.
+- [x] Adicionar teste: HR/admin autorizado acessa curriculo via endpoint protegido.
+
+**Implementacao:** uploads de curriculo agora usam Vercel Blob privado (`access: "private"`) e salvam apenas o pathname interno em `profiles.resume_url`, sem nome original no caminho. A UI e as APIs retornam somente endpoints protegidos, nunca a URL/pathname do Blob. Downloads passam por URL assinada curta gerada por `/api/profile/resume` ou `/api/admin/mentees/[id]/resume`, e o servidor faz stream do blob privado apos validar a assinatura. A migration `020_private_resumes_audit.sql` cria `audit_logs`, limpa URLs publicas legadas de curriculos e os uploads novos apagam o blob anterior em rotina best-effort. A validacao agora cruza MIME, extensao e assinatura binaria do arquivo.
 
 **Criterio de aceite:** curriculos nao sao acessiveis por URL publica permanente.
 
