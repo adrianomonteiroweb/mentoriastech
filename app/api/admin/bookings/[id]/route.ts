@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 import { bookings, db, mentoringTopics, profiles } from "@/lib/db"
 import {
   bookingSelect,
-  isMissingMentorshipChecklistColumnError,
+  isOptionalBookingMetadataPersistenceError,
 } from "@/lib/db/booking-select"
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { toBooking } from "@/lib/db/mappers"
+import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
 import { requireRole } from "@/lib/utils/auth"
 import {
   bookingCancelledEmail,
@@ -143,7 +144,10 @@ export async function PUT(
     if (parsed.data.mentee_strengths !== undefined) updateData.menteeStrengths = parsed.data.mentee_strengths || null
     if (parsed.data.mentee_growth_areas !== undefined) updateData.menteeGrowthAreas = parsed.data.mentee_growth_areas || null
     if (parsed.data.admin_notes !== undefined) updateData.adminNotes = parsed.data.admin_notes || null
-    if (parsed.data.mentorship_checklist !== undefined) updateData.mentorshipChecklist = parsed.data.mentorship_checklist
+    if (parsed.data.mentorship_checklist !== undefined) {
+      const checklistSnapshot = normalizeMentorshipChecklistSnapshot(parsed.data.mentorship_checklist)
+      ;(updateData as Record<string, unknown>).mentorshipChecklist = sql`${JSON.stringify(checklistSnapshot)}::jsonb`
+    }
     if (parsed.data.origin_category !== undefined) updateData.originCategory = parsed.data.origin_category || null
     if (parsed.data.origin_description !== undefined) updateData.originDescription = parsed.data.origin_description || null
 
@@ -184,9 +188,12 @@ export async function PUT(
         .where(eq(bookings.id, id))
         .returning(bookingSelect)
     } catch (error) {
-      if (!isMissingMentorshipChecklistColumnError(error)) throw error
+      if (!isOptionalBookingMetadataPersistenceError(error)) throw error
 
+      console.warn("[bookings] Retrying update without optional booking metadata:", error)
       delete updateData.mentorshipChecklist
+      delete updateData.originCategory
+      delete updateData.originDescription
       ;[data] = await db
         .update(bookings)
         .set(updateData)
@@ -206,10 +213,25 @@ export async function PUT(
       if (mp.origin_description !== undefined) profileUpdate.originDescription = mp.origin_description || null
 
       if (Object.keys(profileUpdate).length > 1) {
-        await db
-          .update(profiles)
-          .set(profileUpdate)
-          .where(eq(profiles.id, row.booking.menteeId))
+        try {
+          await db
+            .update(profiles)
+            .set(profileUpdate)
+            .where(eq(profiles.id, row.booking.menteeId))
+        } catch (error) {
+          if (!isOptionalBookingMetadataPersistenceError(error)) throw error
+
+          console.warn("[bookings] Retrying profile update without optional origin metadata:", error)
+          delete profileUpdate.originCategory
+          delete profileUpdate.originDescription
+
+          if (Object.keys(profileUpdate).length > 1) {
+            await db
+              .update(profiles)
+              .set(profileUpdate)
+              .where(eq(profiles.id, row.booking.menteeId))
+          }
+        }
       }
     }
 

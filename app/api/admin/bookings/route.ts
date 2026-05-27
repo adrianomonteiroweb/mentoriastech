@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { and, count, desc, eq, gte, lte } from "drizzle-orm"
+import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm"
 import { bookings, db, mentoringSlots, mentoringTopics, profiles } from "@/lib/db"
 import {
   bookingSelect,
-  isMissingMentorshipChecklistColumnError,
+  isOptionalBookingMetadataPersistenceError,
 } from "@/lib/db/booking-select"
 import {
   toBooking,
@@ -11,9 +11,10 @@ import {
   toMentoringTopic,
   toProfile,
 } from "@/lib/db/mappers"
+import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
 import { requireRole } from "@/lib/utils/auth"
 import { z } from "zod"
-import type { BookingStatus, BookingType } from "@/lib/types/database"
+import type { Booking, BookingStatus, BookingType } from "@/lib/types/database"
 
 const BOOKING_TYPES: BookingType[] = ["free", "paid", "private"]
 
@@ -108,6 +109,32 @@ const createSchema = z.object({
   mentorship_checklist: z.array(mentorshipChecklistItemSchema).optional(),
 })
 
+type CreatedBookingRow = {
+  id: string
+  menteeId: string | null
+  guestName: string | null
+  guestEmail: string | null
+  guestWhatsapp: string | null
+  slotId: string | null
+  topicId: string | null
+  sessionDate: string | null
+  startTime: string | null
+  bookingType: BookingType
+  status: BookingStatus
+  notes: string | null
+  googleEventId: string | null
+  googleMeetUrl: string | null
+  topicsDiscussed: string | null
+  menteeStrengths: string | null
+  menteeGrowthAreas: string | null
+  adminNotes: string | null
+  mentorshipChecklist: Booking["mentorship_checklist"] | null
+  originCategory: Booking["origin_category"] | null
+  originDescription: string | null
+  createdAt: Date | string
+  updatedAt: Date | string
+}
+
 export async function POST(request: Request) {
   try {
     await requireRole("admin")
@@ -124,38 +151,77 @@ export async function POST(request: Request) {
         : parsed.data.start_time
       : null
 
-    const insertData: typeof bookings.$inferInsert = {
-      menteeId: parsed.data.mentee_id,
-      topicId: parsed.data.topic_id || null,
-      sessionDate: parsed.data.session_date,
-      startTime: startTime,
-      bookingType: parsed.data.booking_type,
-      status: parsed.data.status,
-      notes: parsed.data.notes || null,
-      topicsDiscussed: parsed.data.topics_discussed || null,
-      menteeStrengths: parsed.data.mentee_strengths || null,
-      menteeGrowthAreas: parsed.data.mentee_growth_areas || null,
-      adminNotes: parsed.data.admin_notes || null,
+    const result = await db.execute<CreatedBookingRow>(sql`
+      insert into bookings (
+        mentee_id,
+        topic_id,
+        session_date,
+        start_time,
+        booking_type,
+        status,
+        notes,
+        topics_discussed,
+        mentee_strengths,
+        mentee_growth_areas,
+        admin_notes
+      )
+      values (
+        ${parsed.data.mentee_id},
+        ${parsed.data.topic_id || null},
+        ${parsed.data.session_date},
+        ${startTime},
+        ${parsed.data.booking_type},
+        ${parsed.data.status},
+        ${parsed.data.notes || null},
+        ${parsed.data.topics_discussed || null},
+        ${parsed.data.mentee_strengths || null},
+        ${parsed.data.mentee_growth_areas || null},
+        ${parsed.data.admin_notes || null}
+      )
+      returning
+        id,
+        mentee_id as "menteeId",
+        guest_name as "guestName",
+        guest_email as "guestEmail",
+        guest_whatsapp as "guestWhatsapp",
+        slot_id as "slotId",
+        topic_id as "topicId",
+        session_date as "sessionDate",
+        start_time as "startTime",
+        booking_type as "bookingType",
+        status,
+        notes,
+        google_event_id as "googleEventId",
+        google_meet_url as "googleMeetUrl",
+        topics_discussed as "topicsDiscussed",
+        mentee_strengths as "menteeStrengths",
+        mentee_growth_areas as "menteeGrowthAreas",
+        admin_notes as "adminNotes",
+        to_jsonb(bookings) -> 'mentorship_checklist' as "mentorshipChecklist",
+        to_jsonb(bookings) ->> 'origin_category' as "originCategory",
+        to_jsonb(bookings) ->> 'origin_description' as "originDescription",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+    `)
+    const data = result.rows[0]
+    if (!data) {
+      return NextResponse.json({ error: "Erro ao criar agendamento" }, { status: 500 })
     }
 
     if (parsed.data.mentorship_checklist !== undefined) {
-      insertData.mentorshipChecklist = parsed.data.mentorship_checklist
-    }
+      const checklistSnapshot = normalizeMentorshipChecklistSnapshot(parsed.data.mentorship_checklist)
 
-    let data
-    try {
-      ;[data] = await db
-        .insert(bookings)
-        .values(insertData)
-        .returning(bookingSelect)
-    } catch (error) {
-      if (!isMissingMentorshipChecklistColumnError(error)) throw error
-
-      delete insertData.mentorshipChecklist
-      ;[data] = await db
-        .insert(bookings)
-        .values(insertData)
-        .returning(bookingSelect)
+      try {
+        await db.execute(sql`
+          update bookings
+          set mentorship_checklist = ${JSON.stringify(checklistSnapshot)}::jsonb
+          where id = ${data.id}
+        `)
+        data.mentorshipChecklist = checklistSnapshot
+      } catch (error) {
+        if (!isOptionalBookingMetadataPersistenceError(error)) throw error
+        console.warn("[bookings] Skipping optional mentorship_checklist on insert:", error)
+      }
     }
 
     return NextResponse.json({ data: toBooking(data) }, { status: 201 })

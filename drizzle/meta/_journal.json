@@ -57,6 +57,13 @@
       "when": 1779832800000,
       "tag": "0007_create_tips",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779836400000,
+      "tag": "0008_allow_custom_job_categories",
+      "breakpoints": true
     }
   ]
 }

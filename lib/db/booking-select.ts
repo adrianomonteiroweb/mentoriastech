@@ -25,8 +25,12 @@ export const bookingSelect = {
   mentorshipChecklist: sql<Booking["mentorship_checklist"]>`
     to_jsonb(bookings) -> 'mentorship_checklist'
   `,
-  originCategory: bookings.originCategory,
-  originDescription: bookings.originDescription,
+  originCategory: sql<Booking["origin_category"]>`
+    to_jsonb(bookings) ->> 'origin_category'
+  `,
+  originDescription: sql<Booking["origin_description"]>`
+    to_jsonb(bookings) ->> 'origin_description'
+  `,
   createdAt: bookings.createdAt,
   updatedAt: bookings.updatedAt,
 }
@@ -37,5 +41,21 @@ export function isMissingMentorshipChecklistColumnError(error: unknown) {
   return (
     message.includes("mentorship_checklist") &&
     (message.includes("does not exist") || message.includes("schema cache"))
+  )
+}
+
+export function isMentorshipChecklistPersistenceError(error: unknown) {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase()
+
+  return message.includes("mentorship_checklist")
+}
+
+export function isOptionalBookingMetadataPersistenceError(error: unknown) {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase()
+
+  return (
+    message.includes("mentorship_checklist") ||
+    message.includes("origin_category") ||
+    message.includes("origin_description")
   )
 }

@@ -15,26 +15,11 @@ import {
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
 import { AlertTriangle, CheckCircle2, Eye, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
+import { getJobCategoryLabel } from "@/lib/job-options"
 import type { JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
   action_counts?: { applied: number; link_issue: number; closed: number }
-}
-
-const JOB_CATEGORY_LABELS: Record<string, string> = {
-  dados: "Dados",
-  ia: "IA",
-  desenvolvimento: "Dev",
-  po: "PO",
-  pm: "PM",
-  qa: "QA",
-  cyber_security: "Cyber Security",
-  devops: "DevOps",
-  design: "Design",
-  pcd: "PCD",
-  afirmativa_pessoas_pretas: "Afirmativa: pessoas pretas",
-  afirmativa_mulheres_tecnologia: "Afirmativa: mulheres na tecnologia",
-  other: "Outra",
 }
 
 interface JobsTableProps {
@@ -136,8 +121,8 @@ export function JobsTable({
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {job.category ? JOB_CATEGORY_LABELS[job.category] || job.category : "—"}
+                  <Badge variant="outline" className="text-xs">
+                    {job.category ? getJobCategoryLabel(job.category) : "—"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>

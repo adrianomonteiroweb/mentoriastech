@@ -28,20 +28,7 @@ export type JobStatus = "pending" | "approved" | "rejected" | "expired"
 export type JobActionType = "applied" | "link_issue" | "closed"
 export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
 export type TipPlacement = "content" | "jobs" | "both"
-export type JobCategory =
-  | "dados"
-  | "ia"
-  | "desenvolvimento"
-  | "po"
-  | "pm"
-  | "qa"
-  | "cyber_security"
-  | "devops"
-  | "design"
-  | "pcd"
-  | "afirmativa_pessoas_pretas"
-  | "afirmativa_mulheres_tecnologia"
-  | "other"
+export type JobCategory = string
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 
 export interface MentorshipChecklistSnapshotItem {

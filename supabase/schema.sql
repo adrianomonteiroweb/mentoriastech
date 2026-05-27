@@ -19,6 +19,8 @@ CREATE TABLE public.profiles (
   career_status TEXT,         -- 'seeking' | 'interning' | 'employed' | 'student' | 'other'
   seniority TEXT,             -- 'junior' | 'mid' | 'senior' | 'undefined'
   career_focus TEXT,          -- Foco de carreira (texto livre)
+  origin_category TEXT,       -- Canal de origem do mentorado
+  origin_description TEXT,    -- Descricao complementar da origem
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -186,6 +188,8 @@ CREATE TABLE public.bookings (
   mentee_growth_areas TEXT,     -- Pontos a desenvolver
   admin_notes TEXT,             -- Anotacoes privadas do admin sobre o candidato
   mentorship_checklist JSONB,    -- Snapshot dos itens marcados na sessao
+  origin_category TEXT,         -- Canal de origem registrado no fechamento
+  origin_description TEXT,      -- Descricao complementar da origem
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -339,7 +343,7 @@ CREATE TABLE public.jobs (
   location TEXT,
   job_type TEXT NOT NULL DEFAULT 'remote' CHECK (job_type IN ('remote', 'hybrid', 'onsite')),
   level TEXT NOT NULL DEFAULT 'junior' CHECK (level IN ('internship', 'junior', 'mid', 'senior')),
-  category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('dados', 'ia', 'desenvolvimento', 'po', 'pm', 'qa', 'cyber_security', 'devops', 'design', 'pcd', 'afirmativa_pessoas_pretas', 'afirmativa_mulheres_tecnologia', 'other')),
+  category TEXT NOT NULL DEFAULT 'other' CHECK (category ~ '^[a-z0-9_]{1,60}$'),
   salary_range TEXT,
   application_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (

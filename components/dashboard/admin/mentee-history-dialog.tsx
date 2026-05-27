@@ -124,7 +124,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
         const res = await fetch("/api/admin/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...form, mentee_id: mentee.id }),
+          body: JSON.stringify({ ...form, mentee_id: mentee.id, status: "completed" }),
         })
         if (!res.ok) {
           const data = await res.json()

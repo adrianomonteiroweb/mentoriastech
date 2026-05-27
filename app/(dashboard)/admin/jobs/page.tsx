@@ -27,7 +27,7 @@ export default function AdminJobsPage() {
       <div className="flex flex-col gap-6 p-4 md:p-6">
         {showForm && (
           <div className="rounded-lg border p-4">
-            <JobForm onSuccess={handleSuccess} />
+            <JobForm adminMode onSuccess={handleSuccess} />
           </div>
         )}
         <JobsTable showAll adminMode refreshKey={refreshKey} />

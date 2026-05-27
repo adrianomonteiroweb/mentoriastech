@@ -21,8 +21,10 @@ import type {
   Tip,
 } from "@/lib/types/database"
 
-type BookingMapperRow = Omit<DbBooking, "mentorshipChecklist"> & {
+type BookingMapperRow = Omit<DbBooking, "mentorshipChecklist" | "createdAt" | "updatedAt"> & {
   mentorshipChecklist?: Booking["mentorship_checklist"] | null
+  createdAt: Date | string
+  updatedAt: Date | string
 }
 
 function toIso(value: Date | string | null | undefined): string | null {

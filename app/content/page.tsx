@@ -10,11 +10,14 @@ import {
   ArrowLeft,
   Tag,
   ExternalLink,
+  Lightbulb,
 } from "lucide-react"
 import Link from "next/link"
 import { AdBanner } from "@/components/ad-banner"
 import { RandomTipCard } from "@/components/random-tip"
 import { ShareButton } from "@/components/share-button"
+import { Button } from "@/components/ui/button"
+import { useUserPreferences } from "@/hooks/use-user-preferences"
 
 interface ContentCategory {
   id: string
@@ -45,6 +48,7 @@ export default function ContentPage() {
   const [categories, setCategories] = useState<ContentCategory[]>([])
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const { hydrated, preferences, updatePreference } = useUserPreferences()
 
   useEffect(() => {
     fetch("/api/content")
@@ -100,6 +104,21 @@ export default function ContentPage() {
         </div>
 
         <AdBanner />
+
+        {hydrated && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => updatePreference("showTips", !preferences.showTips)}
+              className="min-h-10"
+            >
+              <Lightbulb className="h-4 w-4" />
+              {preferences.showTips ? "Ocultar dicas" : "Mostrar dicas"}
+            </Button>
+          </div>
+        )}
 
         <RandomTipCard placement="content" />
 

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
-import { desc, eq, inArray } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
+import { jobCategorySchema } from "@/lib/job-validation"
 import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
 import { z } from "zod"
 
@@ -12,23 +13,7 @@ const createSchema = z.object({
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).default("remote"),
   level: z.enum(["internship", "junior", "mid", "senior"]).default("junior"),
-  category: z
-    .enum([
-      "dados",
-      "ia",
-      "desenvolvimento",
-      "po",
-      "pm",
-      "qa",
-      "cyber_security",
-      "devops",
-      "design",
-      "pcd",
-      "afirmativa_pessoas_pretas",
-      "afirmativa_mulheres_tecnologia",
-      "other",
-    ])
-    .default("other"),
+  category: jobCategorySchema.default("other"),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional(),
   is_international: z.boolean().default(false),

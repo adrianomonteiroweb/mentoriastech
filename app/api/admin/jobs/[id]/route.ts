@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
+import { jobCategorySchema } from "@/lib/job-validation"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -12,23 +13,7 @@ const updateSchema = z.object({
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).optional(),
   level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
-  category: z
-    .enum([
-      "dados",
-      "ia",
-      "desenvolvimento",
-      "po",
-      "pm",
-      "qa",
-      "cyber_security",
-      "devops",
-      "design",
-      "pcd",
-      "afirmativa_pessoas_pretas",
-      "afirmativa_mulheres_tecnologia",
-      "other",
-    ])
-    .optional(),
+  category: jobCategorySchema.optional(),
   salary_range: z.string().optional(),
   application_url: z.string().url().optional().or(z.literal("")),
   is_international: z.boolean().optional(),

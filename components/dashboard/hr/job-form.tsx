@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +10,13 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Loader2, Send, CheckCircle2 } from "lucide-react"
+import {
+  CUSTOM_JOB_CATEGORY_VALUE,
+  getJobCategoryLabel,
+  isDefaultJobCategory,
+  mergeJobCategoryOptions,
+  normalizeJobCategory,
+} from "@/lib/job-options"
 import type { Job } from "@/lib/types/database"
 
 interface JobFormProps {
@@ -20,13 +27,19 @@ interface JobFormProps {
 
 export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
   const isEditing = Boolean(job)
+  const initialCategory = job?.category || "other"
+  const initialUsesCustomCategory = initialCategory !== "other" && !isDefaultJobCategory(initialCategory)
   const [title, setTitle] = useState(job?.title || "")
   const [company, setCompany] = useState(job?.company || "")
   const [description, setDescription] = useState(job?.description || "")
   const [location, setLocation] = useState(job?.location || "")
   const [jobType, setJobType] = useState(job?.job_type || "remote")
   const [level, setLevel] = useState(job?.level || "junior")
-  const [category, setCategory] = useState(job?.category || "other")
+  const [category, setCategory] = useState(initialCategory)
+  const [usesCustomCategory, setUsesCustomCategory] = useState(initialUsesCustomCategory)
+  const [customCategoryName, setCustomCategoryName] = useState(
+    initialUsesCustomCategory ? getJobCategoryLabel(initialCategory) : "",
+  )
   const [salaryRange, setSalaryRange] = useState(job?.salary_range || "")
   const [applicationUrl, setApplicationUrl] = useState(job?.application_url || "")
   const [isInternational, setIsInternational] = useState(job?.is_international || false)
@@ -35,6 +48,41 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const [savedCategories, setSavedCategories] = useState<string[]>([])
+  const categoryOptions = useMemo(
+    () => mergeJobCategoryOptions([category, ...savedCategories]),
+    [category, savedCategories],
+  )
+  const selectedCategoryValue = usesCustomCategory ? CUSTOM_JOB_CATEGORY_VALUE : category
+
+  useEffect(() => {
+    const endpoint = adminMode ? "/api/admin/jobs" : "/api/jobs?mine=true"
+
+    fetch(endpoint)
+      .then((response) => response.json())
+      .then((json) => {
+        const categories = Array.from(
+          new Set(
+            ((json.data || []) as Job[])
+              .map((item) => item.category)
+              .filter(Boolean),
+          ),
+        )
+
+        setSavedCategories(categories)
+      })
+      .catch(() => setSavedCategories([]))
+  }, [adminMode])
+
+  function handleCategoryChange(value: string) {
+    if (value === CUSTOM_JOB_CATEGORY_VALUE) {
+      setUsesCustomCategory(true)
+      return
+    }
+
+    setUsesCustomCategory(false)
+    setCategory(value)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,6 +90,14 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
     setError("")
 
     try {
+      const categoryForSubmit = usesCustomCategory
+        ? normalizeJobCategory(customCategoryName)
+        : category
+
+      if (!categoryForSubmit) {
+        throw new Error("Informe uma categoria personalizada valida")
+      }
+
       const endpoint = isEditing
         ? adminMode
           ? `/api/admin/jobs/${job!.id}`
@@ -58,7 +114,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
           location: location || undefined,
           job_type: jobType,
           level,
-          category,
+          category: categoryForSubmit,
           salary_range: salaryRange || undefined,
           application_url: applicationUrl || undefined,
           is_international: isInternational,
@@ -80,6 +136,9 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         setLocation("")
         setSalaryRange("")
         setApplicationUrl("")
+        setCategory("other")
+        setUsesCustomCategory(false)
+        setCustomCategoryName("")
       }
       onSuccess?.()
     } catch (err) {
@@ -107,7 +166,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="title">Titulo da vaga</Label>
           <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Dev Full-Stack" />
@@ -123,7 +182,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} placeholder="Requisitos, responsabilidades, beneficios..." />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="location">Localizacao</Label>
           <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Fortaleza, CE" />
@@ -141,7 +200,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label>Nivel</Label>
           <Select value={level} onValueChange={(value) => setLevel(value as typeof level)}>
@@ -156,24 +215,26 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>Categoria</Label>
-          <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
+          <Select value={selectedCategoryValue} onValueChange={handleCategoryChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="dados">Dados</SelectItem>
-              <SelectItem value="ia">IA</SelectItem>
-              <SelectItem value="desenvolvimento">Desenvolvimento</SelectItem>
-              <SelectItem value="po">PO</SelectItem>
-              <SelectItem value="pm">PM</SelectItem>
-              <SelectItem value="qa">QA</SelectItem>
-              <SelectItem value="cyber_security">Cyber Security</SelectItem>
-              <SelectItem value="devops">DevOps</SelectItem>
-              <SelectItem value="design">Design</SelectItem>
-              <SelectItem value="pcd">PCD</SelectItem>
-              <SelectItem value="afirmativa_pessoas_pretas">Afirmativa: pessoas pretas</SelectItem>
-              <SelectItem value="afirmativa_mulheres_tecnologia">Afirmativa: mulheres na tecnologia</SelectItem>
-              <SelectItem value="other">Outra</SelectItem>
+              {categoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+              <SelectItem value={CUSTOM_JOB_CATEGORY_VALUE}>Nova categoria</SelectItem>
             </SelectContent>
           </Select>
+          {usesCustomCategory && (
+            <Input
+              id="custom-category"
+              value={customCategoryName}
+              onChange={(e) => setCustomCategoryName(e.target.value)}
+              required
+              placeholder="Ex: Produto e Growth"
+            />
+          )}
         </div>
       </div>
 
@@ -188,7 +249,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
       </div>
 
       {isInternational && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="lang">Idioma exigido</Label>
             <Input id="lang" value={requiredLanguage} onChange={(e) => setRequiredLanguage(e.target.value)} placeholder="Inglês" />

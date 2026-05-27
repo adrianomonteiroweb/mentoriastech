@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,11 +13,19 @@ import {
   XCircle,
   Globe,
   Languages,
+  Lightbulb,
+  SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
+import { Button } from "@/components/ui/button";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
+import {
+  getJobCategoryLabel,
+  mergeJobCategoryOptions,
+} from "@/lib/job-options";
 import { cn } from "@/lib/utils";
 import type { JobCategory } from "@/lib/types/database";
 
@@ -51,22 +59,6 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   onsite: "bg-blue-500/10 text-blue-400",
 };
 
-const JOB_CATEGORY_LABELS: Record<string, string> = {
-  dados: "Dados",
-  ia: "IA",
-  desenvolvimento: "Desenvolvimento",
-  po: "PO",
-  pm: "PM",
-  qa: "QA",
-  cyber_security: "Cyber Security",
-  devops: "DevOps",
-  design: "Design",
-  pcd: "PCD",
-  afirmativa_pessoas_pretas: "Afirmativa: pessoas pretas",
-  afirmativa_mulheres_tecnologia: "Afirmativa: mulheres na tecnologia",
-  other: "Outra",
-};
-
 const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
   basic: "Básico",
   intermediate: "Intermediário",
@@ -95,23 +87,6 @@ const SCOPE_TABS = [
   { key: "international", label: "Internacional" },
 ] as const;
 
-const CATEGORY_TABS = [
-  { key: "all", label: "Todas" },
-  { key: "dados", label: "Dados" },
-  { key: "ia", label: "IA" },
-  { key: "desenvolvimento", label: "Dev" },
-  { key: "po", label: "PO" },
-  { key: "pm", label: "PM" },
-  { key: "qa", label: "QA" },
-  { key: "cyber_security", label: "Cyber Security" },
-  { key: "devops", label: "DevOps" },
-  { key: "design", label: "Design" },
-  { key: "pcd", label: "PCD" },
-  { key: "afirmativa_pessoas_pretas", label: "Afirm. pessoas pretas" },
-  { key: "afirmativa_mulheres_tecnologia", label: "Afirm. mulheres tech" },
-  { key: "other", label: "Outra" },
-] as const;
-
 function trackJobEvent(jobId: string, event: "view" | "click") {
   fetch(`/api/jobs/${jobId}/track`, {
     method: "POST",
@@ -137,7 +112,18 @@ export default function JobsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
   const [targetJobId, setTargetJobId] = useState<string | null>(null);
+  const { hydrated, preferences, updatePreference } = useUserPreferences();
   const viewedJobs = useRef<Set<string>>(new Set());
+  const categoryTabs = useMemo(
+    () => [
+      { key: "all", label: "Todas" },
+      ...mergeJobCategoryOptions(jobs.map((job) => job.category)).map((category) => ({
+        key: category.value,
+        label: category.label,
+      })),
+    ],
+    [jobs],
+  );
 
   function loadJobs() {
     fetch("/api/jobs")
@@ -262,6 +248,23 @@ export default function JobsPage() {
     }
   }
 
+  function resetFilters() {
+    setActiveTab("all");
+    setActiveType("all");
+    setActiveScope("all");
+    setActiveCategory("all");
+  }
+
+  function toggleJobFilters() {
+    const nextValue = !preferences.showJobFilters;
+
+    updatePreference("showJobFilters", nextValue);
+
+    if (!nextValue) {
+      resetFilters();
+    }
+  }
+
   const filtered = jobs.filter((job) => {
     if (activeTab !== "all" && job.level !== activeTab) return false;
     if (activeType !== "all" && job.job_type !== activeType) return false;
@@ -301,74 +304,101 @@ export default function JobsPage() {
 
         <AdBanner />
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por nível">
-            {LEVEL_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                aria-pressed={activeTab === tab.key}
-                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        {hydrated && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={toggleJobFilters}
+              className="min-h-10"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {preferences.showJobFilters ? "Ocultar filtros" : "Mostrar filtros"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => updatePreference("showTips", !preferences.showTips)}
+              className="min-h-10"
+            >
+              <Lightbulb className="h-4 w-4" />
+              {preferences.showTips ? "Ocultar dicas" : "Mostrar dicas"}
+            </Button>
           </div>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por modelo e alcance">
-            {TYPE_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveType(tab.key)}
-                aria-pressed={activeType === tab.key}
-                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  activeType === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-            <span className="mx-1 w-px bg-border" aria-hidden="true" />
-            {SCOPE_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveScope(tab.key)}
-                aria-pressed={activeScope === tab.key}
-                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  activeScope === tab.key
-                    ? tab.key === "international"
-                      ? "bg-violet-400 text-background"
-                      : "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {tab.key === "international" && <Globe className="mr-1 inline h-4 w-4" />}
-                {tab.label}
-              </button>
-            ))}
+        )}
+
+        {hydrated && preferences.showJobFilters && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por nível">
+              {LEVEL_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  aria-pressed={activeTab === tab.key}
+                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    activeTab === tab.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por modelo e alcance">
+              {TYPE_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveType(tab.key)}
+                  aria-pressed={activeType === tab.key}
+                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    activeType === tab.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+              <span className="mx-1 w-px bg-border" aria-hidden="true" />
+              {SCOPE_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveScope(tab.key)}
+                  aria-pressed={activeScope === tab.key}
+                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    activeScope === tab.key
+                      ? tab.key === "international"
+                        ? "bg-violet-400 text-background"
+                        : "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {tab.key === "international" && <Globe className="mr-1 inline h-4 w-4" />}
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+              {categoryTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveCategory(tab.key)}
+                  aria-pressed={activeCategory === tab.key}
+                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    activeCategory === tab.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
-            {CATEGORY_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveCategory(tab.key)}
-                aria-pressed={activeCategory === tab.key}
-                className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  activeCategory === tab.key
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         <RandomTipCard placement="jobs" />
 
@@ -419,7 +449,7 @@ export default function JobsPage() {
                   </span>
                   {job.category && job.category !== "other" && (
                     <span className="rounded-full bg-orange-400/15 px-2.5 py-1 text-xs font-medium text-orange-300">
-                      {JOB_CATEGORY_LABELS[job.category] || job.category}
+                      {getJobCategoryLabel(job.category)}
                     </span>
                   )}
                 </div>

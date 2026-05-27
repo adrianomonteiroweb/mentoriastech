@@ -1,8 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useId, useState } from "react"
-import { Lightbulb, RefreshCw } from "lucide-react"
+import { EyeOff, Lightbulb, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useUserPreferences } from "@/hooks/use-user-preferences"
 import { cn } from "@/lib/utils"
 import type { TipPlacement } from "@/lib/types/database"
 
@@ -32,6 +33,7 @@ const LABELS: Record<PublicPlacement, { heading: string; refresh: string }> = {
 
 export function RandomTipCard({ placement, className }: RandomTipCardProps) {
   const titleId = useId()
+  const { hydrated, preferences, updatePreference } = useUserPreferences()
   const [tip, setTip] = useState<RandomTip | null>(null)
   const [loading, setLoading] = useState(true)
   const [loaded, setLoaded] = useState(false)
@@ -51,8 +53,14 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
   }, [placement])
 
   useEffect(() => {
+    if (!hydrated || !preferences.showTips) return
+
     loadTip()
-  }, [loadTip])
+  }, [hydrated, loadTip, preferences.showTips])
+
+  if (!hydrated || !preferences.showTips) {
+    return null
+  }
 
   if (!loaded && loading) {
     return (
@@ -93,7 +101,17 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => updatePreference("showTips", false)}
+          className="min-h-10"
+        >
+          <EyeOff className="h-4 w-4" />
+          Ocultar dicas
+        </Button>
         <Button
           type="button"
           size="sm"
