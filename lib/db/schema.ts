@@ -39,6 +39,15 @@ export const profiles = pgTable("profiles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const userRoles = pgTable("user_roles", {
+  userId: uuid("user_id").primaryKey().references(() => profiles.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["admin", "mentee", "hr"] }).notNull().default("mentee"),
+  assignedBy: uuid("assigned_by").references(() => profiles.id, { onDelete: "set null" }),
+  assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 // -----------------------------------------------------------------------------
 // MENTORING_SLOTS — horários disponíveis
 // -----------------------------------------------------------------------------
@@ -315,6 +324,7 @@ export const jobActions = pgTable("job_actions", {
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect
 export type NewProfile = typeof profiles.$inferInsert
+export type UserRoleAssignment = typeof userRoles.$inferSelect
 export type MentoringSlot = typeof mentoringSlots.$inferSelect
 export type MentoringTopic = typeof mentoringTopics.$inferSelect
 export type Booking = typeof bookings.$inferSelect

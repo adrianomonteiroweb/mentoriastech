@@ -22,9 +22,11 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 - [x] Revisar a policy `Users can update own profile` em `supabase/schema.sql`.
 - [x] Impedir que usuarios comuns atualizem `role`, `email`, `password_hash` e campos administrativos.
 - [x] Criar trigger no banco para rejeitar mudanca de `role` quando o ator nao for admin.
-- [ ] Separar roles em tabela dedicada, se for manter Supabase Auth como fonte principal.
-- [ ] Adicionar teste de RLS tentando atualizar `profiles.role` como usuario `mentee`.
-- [ ] Adicionar teste garantindo que admin autorizado ainda consegue alterar role quando necessario.
+- [x] Separar roles em tabela dedicada, se for manter Supabase Auth como fonte principal.
+- [x] Adicionar teste de RLS tentando atualizar `profiles.role` como usuario `mentee`.
+- [x] Adicionar teste garantindo que admin autorizado ainda consegue alterar role quando necessario.
+
+**Implementacao:** `public.user_roles` passa a ser a tabela dedicada para autorizacao nas policies Supabase/RLS, com sincronizacao para `profiles.role` para manter compatibilidade com codigo existente. O schema Drizzle/Neon tambem recebeu `user_roles` e trigger de sincronizacao. O teste SQL `supabase/tests/profiles_role_rls.sql` cobre bloqueio de escalada por `mentee` e alteracao autorizada por `admin`.
 
 **Criterio de aceite:** nenhuma requisicao autenticada como `mentee` consegue mudar `role`, mesmo usando client Supabase direto.
 

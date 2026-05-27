@@ -78,6 +78,13 @@
       "when": 1779843600000,
       "tag": "0010_create_booking_history_sync_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779847200000,
+      "tag": "0011_separate_user_roles",
+      "breakpoints": true
     }
   ]
 }

@@ -61,6 +61,15 @@ export interface Profile {
   booking_count?: number
 }
 
+export interface UserRoleAssignment {
+  user_id: string
+  role: UserRole
+  assigned_by: string | null
+  assigned_at: string
+  created_at: string
+  updated_at: string
+}
+
 // -----------------------------------------------------------------------------
 // Mentoring Slots
 // -----------------------------------------------------------------------------
