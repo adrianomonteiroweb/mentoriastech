@@ -123,12 +123,12 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** POST/PUT/DELETE sensiveis usam cookie e podem ser acionados por origem maliciosa.
 
-- [ ] Validar `Origin` e `Host` em todas as API routes autenticadas com mutacao.
+- [x] Validar `Origin` e `Host` em todas as API routes autenticadas com mutacao.
 - [ ] Adicionar CSRF token para formularios/admin dashboard, se necessario.
 - [ ] Manter cookies `httpOnly`, `secure` em producao e avaliar `sameSite: "strict"` para sessoes sensiveis.
 - [ ] Bloquear requests com `Content-Type` inesperado em JSON endpoints.
-- [ ] Adicionar teste de mutation com `Origin` externo.
-- [ ] Adicionar teste de mutation com `Origin` valido.
+- [x] Adicionar teste de mutation com `Origin` externo.
+- [x] Adicionar teste de mutation com `Origin` valido.
 
 **Criterio de aceite:** rotas autenticadas de escrita rejeitam chamadas cross-site nao autorizadas.
 
@@ -150,14 +150,14 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** falta de CSP, HSTS, frame protection e politicas de browser.
 
-- [ ] Configurar `Content-Security-Policy` em `next.config.mjs` ou middleware.
-- [ ] Incluir `frame-ancestors 'none'` ou origem permitida para prevenir clickjacking.
-- [ ] Incluir `Strict-Transport-Security` em producao.
-- [ ] Incluir `Referrer-Policy`.
-- [ ] Incluir `Permissions-Policy`.
-- [ ] Avaliar `X-Content-Type-Options: nosniff`.
+- [x] Configurar `Content-Security-Policy` em `next.config.mjs` ou middleware.
+- [x] Incluir `frame-ancestors 'none'` ou origem permitida para prevenir clickjacking.
+- [x] Incluir `Strict-Transport-Security` em producao.
+- [x] Incluir `Referrer-Policy`.
+- [x] Incluir `Permissions-Policy`.
+- [x] Avaliar `X-Content-Type-Options: nosniff`.
 - [ ] Validar que CSP permite apenas scripts, imagens e conexoes necessarias.
-- [ ] Adicionar teste ou script que verifica headers em rotas principais.
+- [x] Adicionar teste ou script que verifica headers em rotas principais.
 
 **Criterio de aceite:** paginas publicas e dashboard retornam headers de seguranca consistentes em producao.
 

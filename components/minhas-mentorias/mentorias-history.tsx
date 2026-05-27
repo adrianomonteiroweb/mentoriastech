@@ -141,7 +141,7 @@ function BookingCard({ booking }: { booking: MenteeBookingItem }) {
                   href={whatsapp}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-1.5 text-xs text-[#4ade80] hover:bg-[#25D366]/20"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#25D366]/40 bg-[#25D366]/10 px-3 py-1.5 text-xs text-[#15803d] hover:bg-[#25D366]/20 dark:text-[#4ade80]"
                 >
                   <MessageCircle className="h-3.5 w-3.5" />
                   WhatsApp
@@ -195,8 +195,8 @@ export function MentoriasHistory({ email, bookings }: Props) {
 
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1 text-xs text-amber-200">
-            <p className="font-semibold text-amber-100">Como ler estas anotações</p>
+          <div className="flex flex-col gap-1 text-xs text-amber-800 dark:text-amber-200">
+            <p className="font-semibold text-amber-900 dark:text-amber-100">Como ler estas anotações</p>
             <p className="leading-relaxed">
               Trate este registro como um <strong>guia</strong>: leia com calma e
               verifique se há erros, interpretações equivocadas sobre você ou sobre

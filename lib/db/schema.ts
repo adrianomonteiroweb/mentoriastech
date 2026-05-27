@@ -103,6 +103,22 @@ export const bookings = pgTable("bookings", {
 })
 
 // -----------------------------------------------------------------------------
+// BOOKING_HISTORY_SYNC_QUEUE - fila de sincronizacao offline-first do historico
+// -----------------------------------------------------------------------------
+export const bookingHistorySyncQueue = pgTable("booking_history_sync_queue", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  requestedBy: uuid("requested_by").references(() => profiles.id, { onDelete: "set null" }),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  status: text("status", { enum: ["pending", "processed", "failed"] }).notNull().default("pending"),
+  error: text("error"),
+  clientCreatedAt: timestamp("client_created_at", { withTimezone: true }),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // PAYMENTS — pagamentos
 // -----------------------------------------------------------------------------
 export const payments = pgTable("payments", {
@@ -302,6 +318,7 @@ export type NewProfile = typeof profiles.$inferInsert
 export type MentoringSlot = typeof mentoringSlots.$inferSelect
 export type MentoringTopic = typeof mentoringTopics.$inferSelect
 export type Booking = typeof bookings.$inferSelect
+export type BookingHistorySyncQueueItem = typeof bookingHistorySyncQueue.$inferSelect
 export type Payment = typeof payments.$inferSelect
 export type ContentCategory = typeof contentCategories.$inferSelect
 export type ContentItem = typeof contentItems.$inferSelect

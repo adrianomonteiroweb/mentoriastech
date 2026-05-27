@@ -71,6 +71,13 @@
       "when": 1779840000000,
       "tag": "0009_add_fixed_tips",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779843600000,
+      "tag": "0010_create_booking_history_sync_queue",
+      "breakpoints": true
     }
   ]
 }

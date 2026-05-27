@@ -4,6 +4,8 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { PWARegister } from '@/components/pwa-register'
 import { InstallPrompt } from '@/components/install-prompt'
+import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeColorMeta, ThemeToggle } from '@/components/theme-toggle'
 
 const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
@@ -29,7 +31,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0d1117',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d1117' },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -43,11 +48,21 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${_inter.variable} ${_jetbrains.variable} font-sans antialiased`}>
-        {children}
-        <PWARegister />
-        <InstallPrompt />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+          storageKey="adriano-theme"
+        >
+          <ThemeColorMeta />
+          {children}
+          <ThemeToggle />
+          <PWARegister />
+          <InstallPrompt />
+        </ThemeProvider>
       </body>
     </html>
   )
