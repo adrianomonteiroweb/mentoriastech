@@ -26,7 +26,7 @@ export default function AdminSettingsPage() {
       .then((json) => {
         const settings = json.data || {}
         if (settings.google_calendar) {
-          setCalendarConnected(!!settings.google_calendar.refresh_token)
+          setCalendarConnected(!!settings.google_calendar.is_connected)
         }
         const checklistSetting = settings[MENTORSHIP_CHECKLIST_SETTING_KEY]
         setChecklist(

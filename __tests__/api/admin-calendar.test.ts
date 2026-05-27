@@ -6,7 +6,9 @@ const {
   mockGetConsentUrl,
   mockExchangeCodeForTokens,
   mockCreateCalendarEvent,
-  mockUpsert,
+  mockDbTransaction,
+  mockPrivateValues,
+  mockPublicValues,
 } = vi.hoisted(() => ({
   mockRequireRole: vi.fn().mockResolvedValue(undefined),
   mockGetConsentUrl: vi.fn().mockReturnValue("https://accounts.google.com/consent?test=1"),
@@ -14,8 +16,13 @@ const {
     refresh_token: "mock-refresh-token",
     access_token: "mock-access-token",
   }),
-  mockCreateCalendarEvent: vi.fn().mockResolvedValue("event-new-123"),
-  mockUpsert: vi.fn().mockResolvedValue({ error: null }),
+  mockCreateCalendarEvent: vi.fn().mockResolvedValue({
+    eventId: "event-new-123",
+    meetLink: "https://meet.google.com/test",
+  }),
+  mockDbTransaction: vi.fn(),
+  mockPrivateValues: vi.fn(),
+  mockPublicValues: vi.fn(),
 }))
 
 vi.mock("@/lib/utils/auth", () => ({
@@ -31,10 +38,40 @@ vi.mock("@/lib/google-calendar", () => ({
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(() => ({
     from: vi.fn(() => ({
-      upsert: mockUpsert,
+      select: vi.fn(),
     })),
   })),
 }))
+
+vi.mock("@/lib/db", () => {
+  const sitePrivateSettings = { key: "site_private_settings.key", __name: "site_private_settings" }
+  const siteSettings = { key: "site_settings.key", __name: "site_settings" }
+
+  mockDbTransaction.mockImplementation(async (callback) => {
+    const tx = {
+      insert: vi.fn((table: { __name: string }) => ({
+        values: table.__name === "site_private_settings" ? mockPrivateValues : mockPublicValues,
+      })),
+    }
+
+    mockPrivateValues.mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    })
+    mockPublicValues.mockReturnValue({
+      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+    })
+
+    return callback(tx)
+  })
+
+  return {
+    db: {
+      transaction: mockDbTransaction,
+    },
+    sitePrivateSettings,
+    siteSettings,
+  }
+})
 
 // Import route handlers
 import { GET as AuthGET, POST as AuthPOST } from "@/app/api/admin/calendar/auth/route"
@@ -107,19 +144,34 @@ describe("POST /api/admin/calendar/auth", () => {
     )
   })
 
-  it("should save refresh_token to site_settings", async () => {
+  it("should save refresh_token privately and only metadata publicly", async () => {
     await AuthPOST(
       makePostRequest("http://localhost/api/admin/calendar/auth", { code: "auth-code-789" }),
     )
 
-    expect(mockUpsert).toHaveBeenCalledWith(
+    expect(mockPrivateValues).toHaveBeenCalledWith(
       expect.objectContaining({
         key: "google_calendar",
         value: expect.objectContaining({
           refresh_token: "mock-refresh-token",
         }),
       }),
-      { onConflict: "key" },
+    )
+    expect(mockPublicValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "google_calendar",
+        value: expect.objectContaining({
+          is_connected: true,
+          connected_at: expect.any(String),
+        }),
+      }),
+    )
+    expect(mockPublicValues).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: expect.objectContaining({
+          refresh_token: expect.any(String),
+        }),
+      }),
     )
   })
 

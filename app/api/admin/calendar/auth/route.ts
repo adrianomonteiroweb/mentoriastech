@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireRole } from "@/lib/utils/auth"
 import { getConsentUrl, exchangeCodeForTokens } from "@/lib/google-calendar"
-import { createAdminClient } from "@/lib/supabase/admin"
-import { db, siteSettings } from "@/lib/db"
+import { db, sitePrivateSettings, siteSettings } from "@/lib/db"
 
 // GET: Gera URL de consentimento OAuth
 export async function GET(request: Request) {
@@ -41,36 +40,48 @@ export async function POST(request: Request) {
       )
     }
 
-    // Salvar refresh_token nas configurações do site
-    const value = {
+    const connectedAt = new Date().toISOString()
+    const updatedAt = new Date()
+    const privateValue = {
       refresh_token: tokens.refresh_token,
-      connected_at: new Date().toISOString(),
+      connected_at: connectedAt,
+    }
+    const publicValue = {
+      is_connected: true,
+      connected_at: connectedAt,
     }
 
-    await db
-      .insert(siteSettings)
-      .values({
-        key: "google_calendar",
-        value,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: siteSettings.key,
-        set: {
-          value,
-          updatedAt: new Date(),
-        },
-      })
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(sitePrivateSettings)
+        .values({
+          key: "google_calendar",
+          value: privateValue,
+          updatedAt,
+        })
+        .onConflictDoUpdate({
+          target: sitePrivateSettings.key,
+          set: {
+            value: privateValue,
+            updatedAt,
+          },
+        })
 
-    const supabase = createAdminClient()
-    await supabase.from("site_settings").upsert(
-      {
-        key: "google_calendar",
-        value,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" },
-    )
+      await tx
+        .insert(siteSettings)
+        .values({
+          key: "google_calendar",
+          value: publicValue,
+          updatedAt,
+        })
+        .onConflictDoUpdate({
+          target: siteSettings.key,
+          set: {
+            value: publicValue,
+            updatedAt,
+          },
+        })
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {

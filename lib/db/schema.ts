@@ -188,6 +188,12 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+export const sitePrivateSettings = pgTable("site_private_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull().default(sql`'{}'::jsonb`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
 // -----------------------------------------------------------------------------
 // PAGE_SHARES — contadores de compartilhamento para páginas públicas sem tabela
 // -----------------------------------------------------------------------------
@@ -307,6 +313,7 @@ export type NewAd = typeof ads.$inferInsert
 export type Tip = typeof tips.$inferSelect
 export type NewTip = typeof tips.$inferInsert
 export type SiteSetting = typeof siteSettings.$inferSelect
+export type SitePrivateSetting = typeof sitePrivateSettings.$inferSelect
 export type Session = typeof sessions.$inferSelect
 export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect
 export type MenteeAccessSession = typeof menteeAccessSessions.$inferSelect

@@ -1,6 +1,6 @@
 import { google } from "googleapis"
 import { eq } from "drizzle-orm"
-import { db, siteSettings } from "@/lib/db"
+import { db, sitePrivateSettings, siteSettings } from "@/lib/db"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 function getOAuth2Client(redirectUri?: string) {
@@ -17,6 +17,19 @@ function getOAuth2Client(redirectUri?: string) {
 async function getRefreshToken() {
   if (process.env.GOOGLE_REFRESH_TOKEN) {
     return process.env.GOOGLE_REFRESH_TOKEN
+  }
+
+  try {
+    const [setting] = await db
+      .select()
+      .from(sitePrivateSettings)
+      .where(eq(sitePrivateSettings.key, "google_calendar"))
+      .limit(1)
+
+    const privateToken = (setting?.value as { refresh_token?: string } | undefined)?.refresh_token
+    if (privateToken) return privateToken
+  } catch {
+    // Fall back below for installations that have not applied the private settings migration.
   }
 
   try {

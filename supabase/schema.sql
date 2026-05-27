@@ -27,6 +27,50 @@ CREATE TABLE public.profiles (
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+CREATE OR REPLACE FUNCTION public.current_user_is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = auth.uid()
+      AND p.role = 'admin'
+  );
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.current_user_profile_role()
+RETURNS TEXT AS $$
+  SELECT p.role
+  FROM public.profiles p
+  WHERE p.id = auth.uid()
+  LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.prevent_profile_protected_field_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF auth.role() = 'service_role' OR public.current_user_is_admin() THEN
+    RETURN NEW;
+  END IF;
+
+  IF OLD.role IS DISTINCT FROM NEW.role THEN
+    RAISE EXCEPTION 'Nao e permitido alterar role do proprio perfil'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF OLD.email IS DISTINCT FROM NEW.email THEN
+    RAISE EXCEPTION 'Nao e permitido alterar email por este fluxo'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF to_jsonb(OLD)->>'password_hash' IS DISTINCT FROM to_jsonb(NEW)->>'password_hash' THEN
+    RAISE EXCEPTION 'Nao e permitido alterar credenciais por este fluxo'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
 -- Qualquer usuário autenticado pode ler seu próprio perfil
 CREATE POLICY "Users can read own profile"
   ON public.profiles FOR SELECT
@@ -56,17 +100,16 @@ CREATE POLICY "HR can read mentee profiles"
 CREATE POLICY "Users can update own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+  WITH CHECK (
+    auth.uid() = id
+    AND role = public.current_user_profile_role()
+  );
 
 -- Admin pode atualizar qualquer perfil
 CREATE POLICY "Admin can update all profiles"
   ON public.profiles FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
 
 -- Trigger para criar perfil automaticamente ao signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -98,6 +141,10 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER protect_profile_fields
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_profile_protected_field_changes();
 
 -- -----------------------------------------------------------------------------
 -- 2. MENTORING_SLOTS — Horários disponíveis para mentoria
@@ -405,24 +452,34 @@ CREATE TABLE public.site_settings (
 
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
--- Todos podem ler configurações
-CREATE POLICY "Anyone can read settings"
+-- Todos podem ler apenas configuracoes publicas
+CREATE POLICY "Anyone can read public settings"
   ON public.site_settings FOR SELECT
-  USING (true);
+  USING (key IN ('pix_config', 'mentorship_checklist'));
 
 -- Admin gerencia configurações
 CREATE POLICY "Admin can manage settings"
   ON public.site_settings FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid() AND p.role = 'admin'
-    )
-  );
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
 
 -- -----------------------------------------------------------------------------
 -- PAGE_SHARES — Contadores de compartilhamento para páginas públicas
 -- -----------------------------------------------------------------------------
+-- Configuracoes privadas, como refresh tokens OAuth.
+CREATE TABLE public.site_private_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.site_private_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can manage private settings"
+  ON public.site_private_settings FOR ALL
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
+
 CREATE TABLE public.page_shares (
   path TEXT PRIMARY KEY,
   label TEXT NOT NULL,

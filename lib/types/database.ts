@@ -273,10 +273,10 @@ export interface SiteSetting {
   updated_at: string
 }
 
-// Google Calendar config stored in site_settings
+// Google Calendar metadata stored in site_settings. Secrets live in site_private_settings.
 export interface GoogleCalendarConfig {
-  refresh_token: string
-  connected_at: string
+  is_connected: boolean
+  connected_at: string | null
 }
 
 // -----------------------------------------------------------------------------

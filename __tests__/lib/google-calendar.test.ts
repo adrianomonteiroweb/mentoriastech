@@ -30,6 +30,32 @@ vi.mock("googleapis", () => ({
   },
 }))
 
+vi.mock("@/lib/db", () => ({
+  db: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue([]),
+        })),
+      })),
+    })),
+  },
+  sitePrivateSettings: { key: "site_private_settings.key" },
+  siteSettings: { key: "site_settings.key" },
+}))
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn(() => ({
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({ data: null }),
+        })),
+      })),
+    })),
+  })),
+}))
+
 import {
   getConsentUrl,
   exchangeCodeForTokens,
@@ -200,7 +226,7 @@ describe("createCalendarEvent", () => {
 
   it("should return eventId from response", async () => {
     const result = await createCalendarEvent(baseParams)
-    expect(result).toBe("event-123")
+    expect(result).toEqual({ eventId: "event-123", meetLink: null })
   })
 })
 
