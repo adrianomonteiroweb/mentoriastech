@@ -1,5 +1,3 @@
-import { randomUUID } from "crypto"
-import bcrypt from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { db, profiles } from "@/lib/db"
 
@@ -42,12 +40,10 @@ export async function ensureMenteeProfile({
     return updatedProfile || existingProfile
   }
 
-  const passwordHash = await bcrypt.hash(randomUUID(), 10)
   const [profile] = await db
     .insert(profiles)
     .values({
       email: normalizedEmail,
-      passwordHash,
       role: "mentee",
       fullName,
       whatsapp,

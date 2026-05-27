@@ -86,11 +86,6 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  IF to_jsonb(OLD)->>'password_hash' IS DISTINCT FROM to_jsonb(NEW)->>'password_hash' THEN
-    RAISE EXCEPTION 'Nao e permitido alterar credenciais por este fluxo'
-      USING ERRCODE = '42501';
-  END IF;
-
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

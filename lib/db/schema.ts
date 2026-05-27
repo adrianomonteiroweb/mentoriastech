@@ -17,7 +17,6 @@ import {
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["admin", "mentee", "hr"] }).notNull().default("mentee"),
   fullName: text("full_name"),
   whatsapp: text("whatsapp"),
@@ -230,16 +229,6 @@ export const pageShares = pgTable("page_shares", {
 })
 
 // -----------------------------------------------------------------------------
-// SESSIONS — sessões de auth (cookie-based)
-// -----------------------------------------------------------------------------
-export const sessions = pgTable("sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-})
-
-// -----------------------------------------------------------------------------
 // MENTEE_ACCESS_CODES — códigos one-time enviados por email para área Minhas Mentorias
 // -----------------------------------------------------------------------------
 export const menteeAccessCodes = pgTable("mentee_access_codes", {
@@ -342,6 +331,5 @@ export type Tip = typeof tips.$inferSelect
 export type NewTip = typeof tips.$inferInsert
 export type SiteSetting = typeof siteSettings.$inferSelect
 export type SitePrivateSetting = typeof sitePrivateSettings.$inferSelect
-export type Session = typeof sessions.$inferSelect
 export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect
 export type MenteeAccessSession = typeof menteeAccessSessions.$inferSelect

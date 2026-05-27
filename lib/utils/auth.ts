@@ -1,10 +1,11 @@
-import { and, eq, gt } from "drizzle-orm"
-import { cookies } from "next/headers"
-import { db, profiles, sessions } from "@/lib/db"
+import { eq } from "drizzle-orm"
+import { db, profiles } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
+import { createClient } from "@/lib/supabase/server"
+import { LEGACY_SESSION_COOKIE } from "@/lib/utils/auth-cookies"
 import type { Profile, UserRole } from "@/lib/types/database"
 
-export const SESSION_COOKIE = "session_id"
+export const SESSION_COOKIE = LEGACY_SESSION_COOKIE
 
 export interface AuthUser {
   id: string
@@ -12,26 +13,18 @@ export interface AuthUser {
 }
 
 /**
- * Obtem a sessao do usuario autenticado.
+ * Obtem a sessao do usuario autenticado via Supabase Auth.
  * Retorna null se nao autenticado ou se a sessao expirou.
  */
 export async function getSession(): Promise<AuthUser | null> {
-  const cookieStore = await cookies()
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
-  if (!sessionId) return null
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.getUser()
 
-  const [row] = await db
-    .select({ session: sessions, profile: profiles })
-    .from(sessions)
-    .innerJoin(profiles, eq(sessions.userId, profiles.id))
-    .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, new Date())))
-    .limit(1)
-
-  if (!row?.profile) return null
+  if (error || !data.user) return null
 
   return {
-    id: row.profile.id,
-    email: row.profile.email,
+    id: data.user.id,
+    email: data.user.email ?? "",
   }
 }
 

@@ -1,6 +1,6 @@
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-const SESSION_COOKIE = "session_id"
 const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/hr", "/mentee"]
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 
@@ -53,12 +53,56 @@ function withSecurityHeaders(response: NextResponse) {
   return response
 }
 
-export function middleware(request: NextRequest) {
+function copyCookies(source: NextResponse, target: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie))
+  return target
+}
+
+async function getVerifiedSupabaseUser(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  let response = NextResponse.next({
+    request: {
+      headers: new Headers(request.headers),
+    },
+  })
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return { response, user: null }
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        )
+        response = NextResponse.next({
+          request: {
+            headers: new Headers(request.headers),
+          },
+        })
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        )
+      },
+    },
+  })
+
+  const { data, error } = await supabase.auth.getUser()
+
+  return { response, user: error ? null : data.user }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value)
   const isProtected = PROTECTED_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
   )
+  const isAuthPage = pathname === "/login" || pathname === "/register"
 
   if (pathname.startsWith("/api/") && !hasTrustedMutationOrigin(request)) {
     return withSecurityHeaders(
@@ -66,20 +110,26 @@ export function middleware(request: NextRequest) {
     )
   }
 
-  if (isProtected && !hasSession) {
+  if (!isProtected && !isAuthPage) {
+    return withSecurityHeaders(NextResponse.next())
+  }
+
+  const { response, user } = await getVerifiedSupabaseUser(request)
+
+  if (isProtected && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
-    return withSecurityHeaders(NextResponse.redirect(url))
+    return withSecurityHeaders(copyCookies(response, NextResponse.redirect(url)))
   }
 
-  if (hasSession && (pathname === "/login" || pathname === "/register")) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
-    return withSecurityHeaders(NextResponse.redirect(url))
+    return withSecurityHeaders(copyCookies(response, NextResponse.redirect(url)))
   }
 
-  return withSecurityHeaders(NextResponse.next())
+  return withSecurityHeaders(response)
 }
 
 export const config = {

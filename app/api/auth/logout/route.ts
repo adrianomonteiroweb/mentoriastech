@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-import { eq } from "drizzle-orm"
-import { db, sessions } from "@/lib/db"
-import { SESSION_COOKIE } from "@/lib/utils/auth"
+import { createClient } from "@/lib/supabase/server"
+import { LEGACY_SESSION_COOKIE } from "@/lib/utils/auth-cookies"
 
 export async function POST() {
-  const cookieStore = await cookies()
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
+  const supabase = await createClient()
+  const { error } = await supabase.auth.signOut()
 
-  if (sessionId) {
-    await db.delete(sessions).where(eq(sessions.id, sessionId))
+  if (error && error.name !== "AuthSessionMissingError") {
+    console.error("[auth/logout] Error:", error)
   }
 
-  cookieStore.delete(SESSION_COOKIE)
+  const response = NextResponse.json({ success: true })
+  response.cookies.delete(LEGACY_SESSION_COOKIE)
 
-  return NextResponse.json({ success: true })
+  return response
 }

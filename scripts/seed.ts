@@ -4,7 +4,6 @@ config()
 
 import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
-import bcrypt from "bcryptjs"
 import {
   profiles,
   mentoringSlots,
@@ -28,12 +27,10 @@ async function main() {
   // -----------------------------------------------------------------------------
   // 1. Admin user (Adriano Monteiro)
   // -----------------------------------------------------------------------------
-  const adminPassword = await bcrypt.hash("123456", 10)
   const [admin] = await db
     .insert(profiles)
     .values({
       email: "adrianomonteiroweb@gmail.com",
-      passwordHash: adminPassword,
       fullName: "Adriano Monteiro",
       role: "admin",
     })
@@ -238,7 +235,7 @@ async function main() {
   console.log("\n✅ Seed completo!")
   console.log("\n👤 Login admin:")
   console.log("   Email: adrianomonteiroweb@gmail.com")
-  console.log("   Senha: 123456")
+  console.log("   Senha: definida no Supabase Auth")
 }
 
 main().catch((err) => {

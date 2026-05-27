@@ -48,13 +48,15 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** registro via Supabase Auth e login por cookie proprio podem causar sessao, RLS e permissoes inconsistentes.
 
-- [ ] Decidir fonte unica de autenticacao: Supabase Auth ou auth propria.
-- [ ] Se usar Supabase Auth, remover `password_hash` proprio e fazer login via Supabase.
+- [x] Decidir fonte unica de autenticacao: Supabase Auth ou auth propria.
+- [x] Se usar Supabase Auth, remover `password_hash` proprio e fazer login via Supabase.
 - [ ] Se usar auth propria, remover fluxos Supabase Auth do registro e ajustar RLS para nao depender de `auth.uid()`.
-- [ ] Revisar middleware para validar sessao real, nao apenas existencia do cookie.
-- [ ] Rotacionar sessoes antigas apos a migracao.
+- [x] Revisar middleware para validar sessao real, nao apenas existencia do cookie.
+- [x] Rotacionar sessoes antigas apos a migracao.
 - [ ] Adicionar MFA obrigatoria para `admin` e recomendada para `hr`.
-- [ ] Adicionar teste de login, logout, expiracao e acesso a rotas protegidas.
+- [x] Adicionar teste de login, logout, expiracao e acesso a rotas protegidas.
+
+**Implementacao:** Supabase Auth passa a ser a fonte unica para login, logout e validacao de sessao. O endpoint `/api/auth/login` usa `signInWithPassword`, `/api/auth/logout` usa `signOut`, `getSession()` usa `auth.getUser()` e o middleware valida usuario real nas rotas protegidas em vez de confiar no cookie legado `session_id`. As migrations `019_unify_auth_model.sql` e `0012_unify_auth_model.sql` removem `password_hash` e a tabela propria `sessions`, invalidando sessoes antigas desse modelo. Testes cobrem login, logout, sessao expirada e acesso a rotas protegidas.
 
 **Criterio de aceite:** o mesmo usuario, sessao e role sao usados por API routes, dashboard e politicas de banco.
 
