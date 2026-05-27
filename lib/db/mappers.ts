@@ -59,6 +59,7 @@ export function toTip(row: DbTip): Tip {
     placement: row.placement,
     sort_order: row.sortOrder,
     is_active: row.isActive,
+    is_fixed: row.isFixed,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",

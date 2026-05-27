@@ -11,6 +11,7 @@ const updateSchema = z.object({
   placement: z.enum(["content", "jobs", "both"]).optional(),
   sort_order: z.number().int().optional(),
   is_active: z.boolean().optional(),
+  is_fixed: z.boolean().optional(),
 })
 
 export async function PUT(
@@ -27,6 +28,25 @@ export async function PUT(
       return NextResponse.json({ error: "Dados inválidos" }, { status: 400 })
     }
 
+    const [existing] = await db.select().from(tips).where(eq(tips.id, id)).limit(1)
+
+    if (!existing) {
+      return NextResponse.json({ error: "Dica não encontrada" }, { status: 404 })
+    }
+
+    const nextIsFixed = parsed.data.is_fixed ?? existing.isFixed
+    const nextIsActive =
+      parsed.data.is_fixed === true && parsed.data.is_active === undefined
+        ? true
+        : parsed.data.is_active ?? existing.isActive
+
+    if (nextIsFixed && !nextIsActive) {
+      return NextResponse.json(
+        { error: "Dicas fixas não podem ser ocultadas" },
+        { status: 400 },
+      )
+    }
+
     const updateData: Partial<typeof tips.$inferInsert> = {
       updatedAt: new Date(),
     }
@@ -36,6 +56,10 @@ export async function PUT(
     if (parsed.data.placement !== undefined) updateData.placement = parsed.data.placement
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
     if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
+    if (parsed.data.is_fixed !== undefined) updateData.isFixed = parsed.data.is_fixed
+    if (parsed.data.is_fixed === true && parsed.data.is_active === undefined) {
+      updateData.isActive = true
+    }
 
     const [data] = await db
       .update(tips)
@@ -63,11 +87,20 @@ export async function DELETE(
     await requireRole("admin")
     const { id } = await params
 
-    const [deleted] = await db.delete(tips).where(eq(tips.id, id)).returning()
+    const [existing] = await db.select().from(tips).where(eq(tips.id, id)).limit(1)
 
-    if (!deleted) {
+    if (!existing) {
       return NextResponse.json({ error: "Dica não encontrada" }, { status: 404 })
     }
+
+    if (existing.isFixed) {
+      return NextResponse.json(
+        { error: "Dicas fixas não podem ser removidas" },
+        { status: 400 },
+      )
+    }
+
+    await db.delete(tips).where(eq(tips.id, id))
 
     return NextResponse.json({ success: true })
   } catch (error) {

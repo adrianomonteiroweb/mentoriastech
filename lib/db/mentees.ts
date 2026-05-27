@@ -7,12 +7,14 @@ interface EnsureMenteeInput {
   email: string
   fullName: string
   whatsapp?: string | null
+  updateExisting?: boolean
 }
 
 export async function ensureMenteeProfile({
   email,
   fullName,
   whatsapp,
+  updateExisting = false,
 }: EnsureMenteeInput) {
   const normalizedEmail = email.trim().toLowerCase()
 
@@ -23,6 +25,10 @@ export async function ensureMenteeProfile({
     .limit(1)
 
   if (existingProfile) {
+    if (!updateExisting) {
+      return existingProfile
+    }
+
     const [updatedProfile] = await db
       .update(profiles)
       .set({

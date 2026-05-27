@@ -277,6 +277,7 @@ export const tips = pgTable("tips", {
   placement: text("placement", { enum: ["content", "jobs", "both"] }).notNull().default("both"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  isFixed: boolean("is_fixed").notNull().default(false),
   createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

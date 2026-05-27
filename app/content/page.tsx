@@ -115,7 +115,7 @@ export default function ContentPage() {
               className="min-h-10"
             >
               <Lightbulb className="h-4 w-4" />
-              {preferences.showTips ? "Ocultar dicas" : "Mostrar dicas"}
+              {preferences.showTips ? "Ocultar dicas extras" : "Mostrar dicas extras"}
             </Button>
           </div>
         )}

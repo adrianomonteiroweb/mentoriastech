@@ -117,13 +117,18 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
                   {item.sort_order}
                 </TableCell>
                 <TableCell>
-                  {item.is_active ? (
-                    <Badge className="bg-green-500/10 text-green-600">Ativa</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Inativa
-                    </Badge>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {item.is_fixed && (
+                      <Badge className="bg-primary/10 text-primary">Fixa</Badge>
+                    )}
+                    {item.is_active ? (
+                      <Badge className="bg-green-500/10 text-green-600">Ativa</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Inativa
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">
@@ -139,18 +144,20 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
                       size="sm"
                       variant="outline"
                       onClick={() => toggleActive(item.id, item.is_active)}
+                      disabled={item.is_fixed}
                     >
                       {item.is_active ? (
                         <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
-                      {item.is_active ? "Desativar" : "Ativar"}
+                      {item.is_fixed ? "Fixa" : item.is_active ? "Desativar" : "Ativar"}
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => deleteItem(item.id)}
+                      disabled={item.is_fixed}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />

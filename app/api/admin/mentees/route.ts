@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       email: parsed.data.email,
       fullName: parsed.data.full_name,
       whatsapp: parsed.data.whatsapp || null,
+      updateExisting: true,
     })
 
     return NextResponse.json({ data: toProfile(profile) }, { status: 201 })

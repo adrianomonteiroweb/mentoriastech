@@ -13,6 +13,7 @@ interface RandomTip {
   id: string
   title: string
   body: string
+  is_fixed: boolean
 }
 
 interface RandomTipCardProps {
@@ -41,7 +42,12 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
   const loadTip = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/tips/random?placement=${placement}`)
+      const params = new URLSearchParams({ placement })
+      if (!preferences.showTips) {
+        params.set("fixed", "true")
+      }
+
+      const response = await fetch(`/api/tips/random?${params.toString()}`)
       const json = await response.json()
       setTip(json.data || null)
     } catch {
@@ -50,15 +56,15 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
       setLoading(false)
       setLoaded(true)
     }
-  }, [placement])
+  }, [placement, preferences.showTips])
 
   useEffect(() => {
-    if (!hydrated || !preferences.showTips) return
+    if (!hydrated) return
 
     loadTip()
-  }, [hydrated, loadTip, preferences.showTips])
+  }, [hydrated, loadTip])
 
-  if (!hydrated || !preferences.showTips) {
+  if (!hydrated) {
     return null
   }
 
@@ -73,6 +79,10 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
   }
 
   if (!tip) return null
+
+  if (!preferences.showTips && !tip.is_fixed) {
+    return null
+  }
 
   return (
     <section
@@ -90,7 +100,7 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase text-primary">
-            {LABELS[placement].heading}
+            {tip.is_fixed ? "Dica fixa" : LABELS[placement].heading}
           </p>
           <h2 id={titleId} className="mt-1 text-base font-semibold leading-snug text-foreground">
             {tip.title}
@@ -102,16 +112,18 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
       </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => updatePreference("showTips", false)}
-          className="min-h-10"
-        >
-          <EyeOff className="h-4 w-4" />
-          Ocultar dicas
-        </Button>
+        {!tip.is_fixed && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => updatePreference("showTips", false)}
+            className="min-h-10"
+          >
+            <EyeOff className="h-4 w-4" />
+            Ocultar dicas extras
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"

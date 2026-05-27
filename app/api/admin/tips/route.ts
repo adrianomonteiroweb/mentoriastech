@@ -11,6 +11,7 @@ const createSchema = z.object({
   placement: z.enum(["content", "jobs", "both"]).default("both"),
   sort_order: z.number().int().default(0),
   is_active: z.boolean().default(true),
+  is_fixed: z.boolean().default(false),
 })
 
 export async function GET() {
@@ -50,7 +51,8 @@ export async function POST(request: Request) {
         body: parsed.data.body,
         placement: parsed.data.placement,
         sortOrder: parsed.data.sort_order,
-        isActive: parsed.data.is_active,
+        isActive: parsed.data.is_fixed ? true : parsed.data.is_active,
+        isFixed: parsed.data.is_fixed,
         createdBy: admin.id,
       })
       .returning()

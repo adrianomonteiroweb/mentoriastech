@@ -64,6 +64,13 @@
       "when": 1779836400000,
       "tag": "0008_allow_custom_job_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779840000000,
+      "tag": "0009_add_fixed_tips",
+      "breakpoints": true
     }
   ]
 }

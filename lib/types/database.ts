@@ -259,6 +259,7 @@ export interface Tip {
   placement: TipPlacement
   sort_order: number
   is_active: boolean
+  is_fixed: boolean
   created_by: string | null
   created_at: string
   updated_at: string

@@ -2,6 +2,8 @@
 
 Este checklist organiza os pontos levantados na revisao defensiva da plataforma, com foco em reduzir risco de roubo de dados, abuso de contas, exposicao indevida de PII e falhas de conformidade com LGPD.
 
+**Status atualizado em 2026-05-27:** itens marcados consideram as migrations e codigo presentes neste repositorio, nao a aplicacao manual em producao/stage.
+
 ## Como Usar
 
 - Prioridade **P0**: corrigir antes de novas funcionalidades sensiveis.
@@ -17,9 +19,9 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** usuario alterar o proprio `role` no Supabase e ganhar acesso `admin` ou `hr`.
 
-- [ ] Revisar a policy `Users can update own profile` em `supabase/schema.sql`.
-- [ ] Impedir que usuarios comuns atualizem `role`, `email`, `password_hash` e campos administrativos.
-- [ ] Criar trigger no banco para rejeitar mudanca de `role` quando o ator nao for admin.
+- [x] Revisar a policy `Users can update own profile` em `supabase/schema.sql`.
+- [x] Impedir que usuarios comuns atualizem `role`, `email`, `password_hash` e campos administrativos.
+- [x] Criar trigger no banco para rejeitar mudanca de `role` quando o ator nao for admin.
 - [ ] Separar roles em tabela dedicada, se for manter Supabase Auth como fonte principal.
 - [ ] Adicionar teste de RLS tentando atualizar `profiles.role` como usuario `mentee`.
 - [ ] Adicionar teste garantindo que admin autorizado ainda consegue alterar role quando necessario.
@@ -30,11 +32,11 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** `site_settings` tem leitura publica e pode conter `refresh_token` do Google Calendar.
 
-- [ ] Remover leitura publica ampla de `site_settings`.
-- [ ] Mover `google_calendar.refresh_token` para secret store/env var ou tabela privada sem acesso anonimo.
-- [ ] Se a tabela continuar existindo, criar allowlist de chaves publicas que podem ser lidas.
-- [ ] Redigir valores sensiveis no endpoint `/api/admin/settings`.
-- [ ] Criar migracao para remover tokens ja salvos em texto claro, apos migrar para local seguro.
+- [x] Remover leitura publica ampla de `site_settings`.
+- [x] Mover `google_calendar.refresh_token` para secret store/env var ou tabela privada sem acesso anonimo.
+- [x] Se a tabela continuar existindo, criar allowlist de chaves publicas que podem ser lidas.
+- [x] Redigir valores sensiveis no endpoint `/api/admin/settings`.
+- [x] Criar migracao para remover tokens ja salvos em texto claro, apos migrar para local seguro.
 - [ ] Adicionar teste garantindo que anonimo nao le `google_calendar`.
 - [ ] Adicionar teste garantindo que admin recebe apenas metadados seguros, como `connected_at` e `is_connected`.
 
@@ -109,10 +111,10 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** endpoint publico de booking pode sobrescrever nome/WhatsApp de perfil existente apenas por email.
 
-- [ ] Alterar `ensureMenteeProfile` para nao atualizar dados de perfil existente em fluxo publico.
-- [ ] Salvar nome/WhatsApp do formulario apenas no booking quando usuario nao estiver autenticado.
-- [ ] Atualizar perfil somente apos login ou verificacao por codigo enviado ao email.
-- [ ] Criar teste: booking publico com email existente nao altera `profiles.whatsapp`.
+- [x] Alterar `ensureMenteeProfile` para nao atualizar dados de perfil existente em fluxo publico.
+- [x] Salvar nome/WhatsApp do formulario apenas no booking quando usuario nao estiver autenticado.
+- [x] Atualizar perfil somente apos login ou verificacao por codigo enviado ao email.
+- [x] Criar teste: booking publico com email existente nao altera `profiles.whatsapp`.
 - [ ] Criar teste: usuario autenticado consegue atualizar seu proprio perfil via endpoint correto.
 
 **Criterio de aceite:** dados permanentes do perfil nao sao modificados por terceiros que apenas conhecem o email.
@@ -266,6 +268,21 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Criterio de aceite:** build de producao falha quando houver erro de tipo relevante.
 
+### 17. Separar stage de producao com dados anonimizados
+
+**Risco:** testes manuais em producao podem alterar dados reais, expor PII e quebrar operacao.
+
+- [x] Criar fluxo versionado para gerar stage a partir de dump atual de producao.
+- [x] Exigir URLs separadas para producao e stage antes de restaurar.
+- [x] Anonimizar emails, nomes, WhatsApp, links pessoais, sessoes e tokens privados apos restore.
+- [x] Ignorar dumps temporarios no Git.
+- [ ] Executar o fluxo com credenciais reais e validar no Supabase stage.
+- [ ] Configurar variaveis do deploy stage para apontar apenas para `STAGE_DATABASE_URL`.
+- [ ] Criar rotina de refresh periodico do stage quando necessario.
+- [ ] Adicionar smoke test pos-refresh para login, bookings, conteudos, vagas e admin.
+
+**Criterio de aceite:** QA e testes manuais rodam em stage com massa parecida com producao, mas sem PII real e sem risco de escrita no banco de producao.
+
 ---
 
 ## Ordem Recomendada de Execucao
@@ -276,4 +293,5 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 4. Implementar rate limit, MFA e CSRF/origin checks.
 5. Implementar fluxo LGPD de exclusao em "Minhas mentorias".
 6. Adicionar headers, escape de email e validacao de URLs.
-7. Criar auditoria, limites de consulta e hardening de build.
+7. Manter stage anonimizado atualizado para tirar testes manuais de producao.
+8. Criar auditoria, limites de consulta e hardening de build.

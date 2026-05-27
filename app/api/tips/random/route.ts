@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const placement = searchParams.get("placement")
+    const fixed = searchParams.get("fixed")
 
     if (placement !== "content" && placement !== "jobs") {
       return NextResponse.json(
@@ -22,6 +23,8 @@ export async function GET(request: Request) {
         and(
           eq(tips.isActive, true),
           or(eq(tips.placement, placement), eq(tips.placement, "both")),
+          fixed === "true" ? eq(tips.isFixed, true) : undefined,
+          fixed === "false" ? eq(tips.isFixed, false) : undefined,
         ),
       )
       .orderBy(sql`random()`)

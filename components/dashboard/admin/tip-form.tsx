@@ -28,8 +28,16 @@ export function TipForm({ tip, onSuccess }: TipFormProps) {
   const [placement, setPlacement] = useState<TipPlacement>(tip?.placement ?? "both")
   const [sortOrder, setSortOrder] = useState(tip?.sort_order ?? 0)
   const [isActive, setIsActive] = useState(tip?.is_active ?? true)
+  const [isFixed, setIsFixed] = useState(tip?.is_fixed ?? false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  function handleFixedChange(value: boolean) {
+    setIsFixed(value)
+    if (value) {
+      setIsActive(true)
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -47,6 +55,7 @@ export function TipForm({ tip, onSuccess }: TipFormProps) {
           placement,
           sort_order: sortOrder,
           is_active: isActive,
+          is_fixed: isFixed,
         }),
       })
 
@@ -61,6 +70,7 @@ export function TipForm({ tip, onSuccess }: TipFormProps) {
         setPlacement("both")
         setSortOrder(0)
         setIsActive(true)
+        setIsFixed(false)
       }
 
       onSuccess?.()
@@ -129,9 +139,31 @@ export function TipForm({ tip, onSuccess }: TipFormProps) {
           </Select>
         </div>
 
-        <div className="flex items-center gap-3 pt-6">
-          <Switch id="tip-active" checked={isActive} onCheckedChange={setIsActive} />
-          <Label htmlFor="tip-active">Dica ativa</Label>
+        <div className="grid gap-3 pt-6 sm:grid-cols-2">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="tip-fixed"
+              checked={isFixed}
+              onCheckedChange={handleFixedChange}
+            />
+            <Label htmlFor="tip-fixed">Dica fixa</Label>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Switch
+              id="tip-active"
+              checked={isActive}
+              onCheckedChange={setIsActive}
+              disabled={isFixed}
+            />
+            <Label htmlFor="tip-active">Dica ativa</Label>
+          </div>
+
+          {isFixed && (
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Dicas fixas continuam visíveis mesmo quando o usuário oculta dicas extras.
+            </p>
+          )}
         </div>
       </div>
 

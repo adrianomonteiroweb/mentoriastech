@@ -559,6 +559,7 @@ CREATE TABLE public.tips (
   placement TEXT NOT NULL DEFAULT 'both' CHECK (placement IN ('content', 'jobs', 'both')),
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  is_fixed BOOLEAN NOT NULL DEFAULT false,
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -585,9 +586,41 @@ CREATE POLICY "Admin can manage all tips"
     )
   );
 
+CREATE OR REPLACE FUNCTION public.prevent_fixed_tip_hiding()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_fixed = true AND NEW.is_active = false THEN
+    RAISE EXCEPTION 'Dicas fixas nao podem ser ocultadas'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.prevent_fixed_tip_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.is_fixed = true THEN
+    RAISE EXCEPTION 'Dicas fixas nao podem ser removidas'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
 CREATE TRIGGER tips_updated_at
   BEFORE UPDATE ON public.tips
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+CREATE TRIGGER prevent_fixed_tip_hiding
+  BEFORE INSERT OR UPDATE ON public.tips
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_fixed_tip_hiding();
+
+CREATE TRIGGER prevent_fixed_tip_delete
+  BEFORE DELETE ON public.tips
+  FOR EACH ROW EXECUTE FUNCTION public.prevent_fixed_tip_delete();
 
 -- =============================================================================
 -- SEED DATA — Dados iniciais
@@ -635,11 +668,12 @@ INSERT INTO public.site_settings (key, value) VALUES
   ]'::jsonb);
 
 -- Dicas iniciais
-INSERT INTO public.tips (title, body, placement, sort_order, is_active) VALUES
+INSERT INTO public.tips (title, body, placement, sort_order, is_active, is_fixed) VALUES
   ('Aumente sua rede no LinkedIn',
    'Quantas conexões você tem no LinkedIn? Quanto mais conexões, mais você terá chance de aparecer em buscas de recrutadores por se aproximar da rede de conexões deles.',
    'both',
    1,
+   true,
    true);
 
 INSERT INTO public.content_categories (name, slug, description, sort_order) VALUES
@@ -687,6 +721,7 @@ CREATE INDEX idx_jobs_status ON public.jobs(status);
 CREATE INDEX idx_jobs_posted_by ON public.jobs(posted_by);
 CREATE INDEX idx_jobs_share_count ON public.jobs(share_count DESC);
 CREATE INDEX idx_tips_active_placement ON public.tips(is_active, placement);
+CREATE INDEX idx_tips_fixed_placement ON public.tips(is_fixed, placement);
 
 -- -----------------------------------------------------------------------------
 -- 10. CONTENT_VIEWS — Rastreamento de visitantes únicos por conteúdo
