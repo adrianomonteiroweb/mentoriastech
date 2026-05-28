@@ -3,7 +3,7 @@ import { asc } from "drizzle-orm"
 import { z } from "zod"
 import { db, tips } from "@/lib/db"
 import { toTip } from "@/lib/db/mappers"
-import { requireRole } from "@/lib/utils/auth"
+import { AuthError, requireRole } from "@/lib/utils/auth"
 
 const createSchema = z.object({
   title: z.string().min(2).max(120),
@@ -25,9 +25,11 @@ export async function GET() {
 
     return NextResponse.json({ data: rows.map(toTip) })
   } catch (error) {
-    const status = (error as { status?: number }).status || 500
-    const message = (error as Error).message || "Erro interno"
-    return NextResponse.json({ error: message }, { status })
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    console.error("[admin/tips] GET error:", error)
+    return NextResponse.json({ error: "Erro ao carregar dicas" }, { status: 500 })
   }
 }
 
@@ -59,8 +61,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ data: toTip(data) }, { status: 201 })
   } catch (error) {
-    const status = (error as { status?: number }).status || 500
-    const message = (error as Error).message || "Erro interno"
-    return NextResponse.json({ error: message }, { status })
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    console.error("[admin/tips] POST error:", error)
+    return NextResponse.json({ error: "Erro ao criar dica" }, { status: 500 })
   }
 }

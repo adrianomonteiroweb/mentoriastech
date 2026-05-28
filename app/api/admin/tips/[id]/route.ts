@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { db, tips } from "@/lib/db"
 import { toTip } from "@/lib/db/mappers"
-import { requireRole } from "@/lib/utils/auth"
+import { AuthError, requireRole } from "@/lib/utils/auth"
 
 const updateSchema = z.object({
   title: z.string().min(2).max(120).optional(),
@@ -73,9 +73,11 @@ export async function PUT(
 
     return NextResponse.json({ data: toTip(data) })
   } catch (error) {
-    const status = (error as { status?: number }).status || 500
-    const message = (error as Error).message || "Erro interno"
-    return NextResponse.json({ error: message }, { status })
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    console.error("[admin/tips] PUT error:", error)
+    return NextResponse.json({ error: "Erro ao atualizar dica" }, { status: 500 })
   }
 }
 
@@ -104,8 +106,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    const status = (error as { status?: number }).status || 500
-    const message = (error as Error).message || "Erro interno"
-    return NextResponse.json({ error: message }, { status })
+    if (error instanceof AuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status })
+    }
+    console.error("[admin/tips] DELETE error:", error)
+    return NextResponse.json({ error: "Erro ao remover dica" }, { status: 500 })
   }
 }
