@@ -509,12 +509,19 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
           </Select>
         </div>
 
-        {hasActiveFilters && (
-          <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
-            Limpar filtros
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={clearFilters}>
+              <X className="h-4 w-4 mr-1" />
+              Limpar filtros
+            </Button>
+          )}
+          {!loading && (
+            <p className="text-xs text-muted-foreground">
+              Exibindo {mentees.length} resultado{mentees.length !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-md border">

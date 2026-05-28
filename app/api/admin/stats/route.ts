@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
-import { count, countDistinct, eq, inArray, sql } from "drizzle-orm"
+import { count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { bookings, contentItems, db, jobActions, jobs, pageShares, profiles } from "@/lib/db"
-import type { AdminStats } from "@/lib/types/database"
+import { bookings, contentItems, db, jobActions, jobs, mentoringTopics, pageShares, profiles } from "@/lib/db"
+import type { AdminStats, TopicRanking } from "@/lib/types/database"
 
 export async function GET() {
   try {
@@ -38,6 +38,26 @@ export async function GET() {
     const contentSharesTotal = totalContentShares[0]?.value || 0
     const jobSharesTotal = totalJobShares[0]?.value || 0
 
+    const topicRankingRows = await db
+      .select({
+        topicId: mentoringTopics.id,
+        topicName: mentoringTopics.name,
+        category: mentoringTopics.category,
+        bookingCount: count(bookings.id),
+      })
+      .from(mentoringTopics)
+      .leftJoin(bookings, eq(bookings.topicId, mentoringTopics.id))
+      .where(eq(mentoringTopics.isActive, true))
+      .groupBy(mentoringTopics.id, mentoringTopics.name, mentoringTopics.category)
+      .orderBy(desc(count(bookings.id)))
+
+    const topicRanking: TopicRanking[] = topicRankingRows.map((row) => ({
+      topicId: row.topicId,
+      topicName: row.topicName,
+      category: row.category as "free" | "paid",
+      bookingCount: row.bookingCount,
+    }))
+
     const stats: AdminStats = {
       totalBookings: totalBookings[0]?.value || 0,
       pendingBookings: pendingBookings[0]?.value || 0,
@@ -53,7 +73,7 @@ export async function GET() {
       totalShares: pageSharesTotal + contentSharesTotal + jobSharesTotal,
     }
 
-    return NextResponse.json({ data: stats })
+    return NextResponse.json({ data: stats, topicRanking })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

@@ -75,6 +75,12 @@ export function JobsTable({
   const columnCount = showActions ? 11 : 10
 
   return (
+    <div className="flex flex-col gap-2">
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Exibindo {visibleJobs.length} resultado{visibleJobs.length !== 1 ? "s" : ""}
+        </p>
+      )}
     <div className="rounded-md border">
       <Table>
         <TableHeader>
@@ -227,6 +233,7 @@ export function JobsTable({
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   )
 }

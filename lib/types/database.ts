@@ -306,6 +306,13 @@ export interface PaginatedResponse<T> {
 // -----------------------------------------------------------------------------
 // Admin Stats
 // -----------------------------------------------------------------------------
+export interface TopicRanking {
+  topicId: string
+  topicName: string
+  category: "free" | "paid"
+  bookingCount: number
+}
+
 export interface AdminStats {
   totalBookings: number
   pendingBookings: number

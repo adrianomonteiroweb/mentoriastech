@@ -16,7 +16,11 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Ban, CheckCircle2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { MentoringSlot } from "@/lib/types/database"
 import { buildRRule, describeRRule } from "@/lib/rrule-utils"
 
@@ -48,13 +52,24 @@ export function SlotsTable() {
 
   useEffect(() => { loadSlots() }, [])
 
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
+
   async function toggleActive(id: string, isActive: boolean) {
-    await fetch(`/api/admin/slots/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: !isActive }),
-    })
-    loadSlots()
+    setTogglingIds((prev) => new Set(prev).add(id))
+    try {
+      await fetch(`/api/admin/slots/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: !isActive }),
+      })
+      loadSlots()
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
   }
 
   async function deleteSlot(id: string) {
@@ -216,6 +231,12 @@ export function SlotsTable() {
         </Dialog>
       </div>
 
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Exibindo {slots.length} resultado{slots.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -238,7 +259,7 @@ export function SlotsTable() {
               ))
             ) : (
               slots.map((slot) => (
-                <TableRow key={slot.id}>
+                <TableRow key={slot.id} className={!slot.is_active ? "opacity-60" : undefined}>
                   <TableCell>
                     {slot.rrule
                       ? describeRRule(slot.rrule)
@@ -252,12 +273,34 @@ export function SlotsTable() {
                     <Badge variant="outline" className="capitalize text-xs">{slot.slot_type}</Badge>
                   </TableCell>
                   <TableCell>
-                    <button
-                      onClick={() => toggleActive(slot.id, slot.is_active)}
-                      className={`text-xs font-medium ${slot.is_active ? "text-green-500" : "text-muted-foreground"}`}
-                    >
-                      {slot.is_active ? "Ativo" : "Inativo"}
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={slot.is_active}
+                              disabled={togglingIds.has(slot.id)}
+                              onCheckedChange={() => toggleActive(slot.id, slot.is_active)}
+                            />
+                            {slot.is_active ? (
+                              <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+                                <CheckCircle2 className="h-3.5 w-3.5" /> Ativo
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-xs font-medium text-destructive">
+                                <Ban className="h-3.5 w-3.5" /> Bloqueado
+                              </span>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {slot.is_active
+                            ? "Clique para bloquear — não aparecerá na agenda dos mentorados"
+                            : "Clique para desbloquear — voltará a aparecer na agenda"
+                          }
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell>
                     <Button size="sm" variant="ghost" onClick={() => deleteSlot(slot.id)}>

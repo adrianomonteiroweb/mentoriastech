@@ -71,6 +71,12 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
   }
 
   return (
+    <div className="flex flex-col gap-2">
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Exibindo {items.length} resultado{items.length !== 1 ? "s" : ""}
+        </p>
+      )}
     <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
@@ -185,6 +191,7 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   )
 }

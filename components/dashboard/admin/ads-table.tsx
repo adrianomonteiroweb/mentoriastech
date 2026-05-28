@@ -66,6 +66,12 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
   }
 
   return (
+    <div className="flex flex-col gap-2">
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Exibindo {items.length} resultado{items.length !== 1 ? "s" : ""}
+        </p>
+      )}
     <div className="rounded-md border">
       <Table>
         <TableHeader>
@@ -220,6 +226,7 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
           )}
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   )
 }

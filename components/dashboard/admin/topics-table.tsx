@@ -62,6 +62,12 @@ export function TopicsTable() {
         </Button>
       </div>
 
+      {!loading && (
+        <p className="text-xs text-muted-foreground">
+          Exibindo {topics.length} resultado{topics.length !== 1 ? "s" : ""}
+        </p>
+      )}
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
