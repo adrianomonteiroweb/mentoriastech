@@ -117,10 +117,12 @@ export default function JobsPage() {
   const categoryTabs = useMemo(
     () => [
       { key: "all", label: "Todas" },
-      ...mergeJobCategoryOptions(jobs.map((job) => job.category)).map((category) => ({
-        key: category.value,
-        label: category.label,
-      })),
+      ...mergeJobCategoryOptions(jobs.map((job) => job.category)).map(
+        (category) => ({
+          key: category.value,
+          label: category.label,
+        }),
+      ),
     ],
     [jobs],
   );
@@ -270,7 +272,8 @@ export default function JobsPage() {
     if (activeType !== "all" && job.job_type !== activeType) return false;
     if (activeScope === "national" && job.is_international) return false;
     if (activeScope === "international" && !job.is_international) return false;
-    if (activeCategory !== "all" && job.category !== activeCategory) return false;
+    if (activeCategory !== "all" && job.category !== activeCategory)
+      return false;
     return true;
   });
 
@@ -298,7 +301,7 @@ export default function JobsPage() {
             Quadro de Vagas
           </h1>
           <p className="text-base leading-relaxed text-muted-foreground">
-            Vagas compartilhadas pela comunidade de mentorados.
+            Vagas compartilhadas para a comunidade de mentorados.
           </p>
         </div>
 
@@ -314,24 +317,34 @@ export default function JobsPage() {
               className="min-h-10"
             >
               <SlidersHorizontal className="h-4 w-4" />
-              {preferences.showJobFilters ? "Ocultar filtros" : "Mostrar filtros"}
+              {preferences.showJobFilters
+                ? "Ocultar filtros"
+                : "Mostrar filtros"}
             </Button>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => updatePreference("showTips", !preferences.showTips)}
+              onClick={() =>
+                updatePreference("showTips", !preferences.showTips)
+              }
               className="min-h-10"
             >
               <Lightbulb className="h-4 w-4" />
-              {preferences.showTips ? "Ocultar dicas extras" : "Mostrar dicas extras"}
+              {preferences.showTips
+                ? "Ocultar dicas extras"
+                : "Mostrar dicas extras"}
             </Button>
           </div>
         )}
 
         {hydrated && preferences.showJobFilters && (
           <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por nível">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por nível"
+            >
               {LEVEL_TABS.map((tab) => (
                 <button
                   key={tab.key}
@@ -347,7 +360,11 @@ export default function JobsPage() {
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por modelo e alcance">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por modelo e alcance"
+            >
               {TYPE_TABS.map((tab) => (
                 <button
                   key={tab.key}
@@ -376,12 +393,18 @@ export default function JobsPage() {
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {tab.key === "international" && <Globe className="mr-1 inline h-4 w-4" />}
+                  {tab.key === "international" && (
+                    <Globe className="mr-1 inline h-4 w-4" />
+                  )}
                   {tab.label}
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+            <div
+              className="flex flex-wrap gap-2"
+              role="group"
+              aria-label="Filtrar por categoria"
+            >
               {categoryTabs.map((tab) => (
                 <button
                   key={tab.key}
@@ -465,15 +488,18 @@ export default function JobsPage() {
                     <span className="inline-flex items-center gap-1 rounded-full bg-violet-400/15 px-2.5 py-1 text-xs font-medium text-violet-200">
                       <Languages className="h-3.5 w-3.5" />
                       {job.required_language}
-                      {job.language_level && ` · ${LANGUAGE_LEVEL_LABELS[job.language_level]}`}
+                      {job.language_level &&
+                        ` · ${LANGUAGE_LEVEL_LABELS[job.language_level]}`}
                     </span>
                   )}
                 </div>
               )}
 
-              <p className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
-                expandedJobs.has(job.id) ? "" : "line-clamp-3"
-              }`}>
+              <p
+                className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
+                  expandedJobs.has(job.id) ? "" : "line-clamp-3"
+                }`}
+              >
                 {job.description}
               </p>
               {job.description && job.description.length > 150 && (
@@ -510,7 +536,7 @@ export default function JobsPage() {
                     path={`/jobs#vaga-${job.id}`}
                     title={`${job.title} na ${job.company}`}
                     text="Veja esta vaga compartilhada na comunidade de mentorados."
-                    label="Compartilhar"
+                    label="Compartilhe com alguém"
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "job", id: job.id }}

@@ -1,52 +1,52 @@
-"use client"
+"use client";
 
-import { useEffect, useState, type MouseEvent } from "react"
-import { Check, Share2 } from "lucide-react"
+import { useEffect, useState, type MouseEvent } from "react";
+import { Check, Share2 } from "lucide-react";
 
-import { Button, type ButtonProps } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { Button, type ButtonProps } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ShareTracking =
   | { type: "page"; path: string; label: string }
   | { type: "content"; id: string }
-  | { type: "job"; id: string }
+  | { type: "job"; id: string };
 
 type ShareButtonProps = {
-  path: string
-  title: string
-  text?: string
-  label?: string
-  copiedLabel?: string
-  labelVisibility?: "always" | "desktop" | "sr-only"
-  className?: string
-  variant?: ButtonProps["variant"]
-  size?: ButtonProps["size"]
-  tracking?: ShareTracking
-}
+  path: string;
+  title: string;
+  text?: string;
+  label?: string;
+  copiedLabel?: string;
+  labelVisibility?: "always" | "desktop" | "sr-only";
+  className?: string;
+  variant?: ButtonProps["variant"];
+  size?: ButtonProps["size"];
+  tracking?: ShareTracking;
+};
 
 function getAbsoluteUrl(path: string) {
-  return new URL(path, window.location.origin).toString()
+  return new URL(path, window.location.origin).toString();
 }
 
 async function copyToClipboard(value: string) {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value)
-    return
+    await navigator.clipboard.writeText(value);
+    return;
   }
 
-  const textarea = document.createElement("textarea")
-  textarea.value = value
-  textarea.setAttribute("readonly", "")
-  textarea.style.position = "fixed"
-  textarea.style.left = "-9999px"
-  document.body.appendChild(textarea)
-  textarea.select()
-  document.execCommand("copy")
-  document.body.removeChild(textarea)
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
 }
 
 function trackShare(tracking?: ShareTracking) {
-  if (!tracking) return
+  if (!tracking) return;
 
   const payload =
     tracking.type === "page"
@@ -58,21 +58,21 @@ function trackShare(tracking?: ShareTracking) {
       : {
           target_type: tracking.type,
           target_id: tracking.id,
-        }
+        };
 
   fetch("/api/share", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
     keepalive: true,
-  }).catch(() => {})
+  }).catch(() => {});
 }
 
 export function ShareButton({
   path,
   title,
   text,
-  label = "Compartilhar",
+  label = "Compartilhe com alguém",
   copiedLabel = "Link copiado",
   labelVisibility = "always",
   className,
@@ -80,42 +80,42 @@ export function ShareButton({
   size = "sm",
   tracking,
 }: ShareButtonProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!copied) return
+    if (!copied) return;
 
-    const timeout = window.setTimeout(() => setCopied(false), 1800)
-    return () => window.clearTimeout(timeout)
-  }, [copied])
+    const timeout = window.setTimeout(() => setCopied(false), 1800);
+    return () => window.clearTimeout(timeout);
+  }, [copied]);
 
   async function handleShare(event: MouseEvent<HTMLButtonElement>) {
-    event.preventDefault()
-    event.stopPropagation()
+    event.preventDefault();
+    event.stopPropagation();
 
-    const url = getAbsoluteUrl(path)
-    const shareData: ShareData = { title, text, url }
-    trackShare(tracking)
+    const url = getAbsoluteUrl(path);
+    const shareData: ShareData = { title, text, url };
+    trackShare(tracking);
 
     try {
       if (navigator.share) {
-        await navigator.share(shareData)
-        return
+        await navigator.share(shareData);
+        return;
       }
 
-      await copyToClipboard(url)
-      setCopied(true)
+      await copyToClipboard(url);
+      setCopied(true);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        return
+        return;
       }
 
-      await copyToClipboard(url)
-      setCopied(true)
+      await copyToClipboard(url);
+      setCopied(true);
     }
   }
 
-  const currentLabel = copied ? copiedLabel : label
+  const currentLabel = copied ? copiedLabel : label;
 
   return (
     <Button
@@ -137,5 +137,5 @@ export function ShareButton({
         {currentLabel}
       </span>
     </Button>
-  )
+  );
 }

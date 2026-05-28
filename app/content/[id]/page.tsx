@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   Eye,
   FileText,
@@ -11,75 +11,77 @@ import {
   ArrowLeft,
   Download,
   ExternalLink,
-} from "lucide-react"
-import Link from "next/link"
-import { ShareButton } from "@/components/share-button"
+} from "lucide-react";
+import Link from "next/link";
+import { ShareButton } from "@/components/share-button";
 
 interface ContentLink {
-  url: string
-  label: string
+  url: string;
+  label: string;
 }
 
 interface ContentItem {
-  id: string
-  title: string
-  description: string | null
-  content_type: "pdf" | "article" | "video" | "link"
-  url: string | null
-  links: ContentLink[] | null
-  article_body: string | null
-  file_size_bytes: number | null
-  created_at: string
-  content_categories: { name: string; slug: string } | null
+  id: string;
+  title: string;
+  description: string | null;
+  content_type: "pdf" | "article" | "video" | "link";
+  url: string | null;
+  links: ContentLink[] | null;
+  article_body: string | null;
+  file_size_bytes: number | null;
+  created_at: string;
+  content_categories: { name: string; slug: string } | null;
 }
 
 function extractYouTubeId(url: string): string | null {
   const match = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?#]+)/,
-  )
-  return match ? match[1] : null
+  );
+  return match ? match[1] : null;
 }
 
 function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function ContentDetailPage() {
-  const params = useParams()
-  const [item, setItem] = useState<ContentItem | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const params = useParams();
+  const [item, setItem] = useState<ContentItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [viewCount, setViewCount] = useState<number | null>(null)
+  const [viewCount, setViewCount] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!params.id) return
+    if (!params.id) return;
     fetch(`/api/content/${params.id}`)
       .then((res) => res.json())
       .then((json) => {
         if (json.error) {
-          setError(json.error)
+          setError(json.error);
         } else {
-          setItem(json.data)
-          setViewCount(json.data.view_count ?? 0)
+          setItem(json.data);
+          setViewCount(json.data.view_count ?? 0);
           fetch(`/api/content/${params.id}/view`, { method: "POST" })
             .then((r) => r.json())
-            .then((v) => { if (v.view_count != null) setViewCount(v.view_count) })
-            .catch(() => {})
+            .then((v) => {
+              if (v.view_count != null) setViewCount(v.view_count);
+            })
+            .catch(() => {});
         }
       })
       .catch(() => setError("Erro ao carregar conteudo"))
-      .finally(() => setLoading(false))
-  }, [params.id])
+      .finally(() => setLoading(false));
+  }, [params.id]);
 
   if (loading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center px-4">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </main>
-    )
+    );
   }
 
   if (error || !item) {
@@ -95,13 +97,13 @@ export default function ContentDetailPage() {
           Voltar para a biblioteca
         </Link>
       </main>
-    )
+    );
   }
 
   const videoId =
     item.content_type === "video" && item.url
       ? extractYouTubeId(item.url)
-      : null
+      : null;
 
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-12 md:py-20">
@@ -151,7 +153,7 @@ export default function ContentDetailPage() {
                 item.description ||
                 "Veja este conteúdo da biblioteca do Adriano Monteiro."
               }
-              label="Compartilhar"
+              label="Compartilhe com alguém"
               variant="ghost"
               size="sm"
               tracking={{ type: "content", id: item.id }}
@@ -216,35 +218,39 @@ export default function ContentDetailPage() {
           )}
 
           {/* Link: multiple external resources */}
-          {item.content_type === "link" && item.links && item.links.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {item.links.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-start gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary hover:border-primary/30 w-full"
-                >
-                  <ExternalLink className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <span className="break-words min-w-0">{link.label}</span>
-                </a>
-              ))}
-            </div>
-          )}
+          {item.content_type === "link" &&
+            item.links &&
+            item.links.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {item.links.map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary hover:border-primary/30 w-full"
+                  >
+                    <ExternalLink className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <span className="break-words min-w-0">{link.label}</span>
+                  </a>
+                ))}
+              </div>
+            )}
 
           {/* Link: fallback single url (legacy) */}
-          {item.content_type === "link" && (!item.links || item.links.length === 0) && item.url && (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 w-fit"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Abrir link
-            </a>
-          )}
+          {item.content_type === "link" &&
+            (!item.links || item.links.length === 0) &&
+            item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 w-fit"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir link
+              </a>
+            )}
 
           {/* Article external link */}
           {item.content_type === "article" && item.url && (
@@ -280,11 +286,10 @@ export default function ContentDetailPage() {
           )}
           <span>·</span>
           <span>
-            Publicado em{" "}
-            {new Date(item.created_at).toLocaleDateString("pt-BR")}
+            Publicado em {new Date(item.created_at).toLocaleDateString("pt-BR")}
           </span>
         </p>
       </div>
     </main>
-  )
+  );
 }

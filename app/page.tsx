@@ -1,9 +1,9 @@
-import { PlatformLinks } from "@/components/platform-links"
-import { ProfileHeader } from "@/components/profile-header"
-import { ShareButton } from "@/components/share-button"
-import { SocialLinks } from "@/components/social-links"
-import { UnifiedBookingForm } from "@/components/booking/unified-booking-form"
-import { CalendarDays } from "lucide-react"
+import { PlatformLinks } from "@/components/platform-links";
+import { ProfileHeader } from "@/components/profile-header";
+import { ShareButton } from "@/components/share-button";
+import { SocialLinks } from "@/components/social-links";
+import { UnifiedBookingForm } from "@/components/booking/unified-booking-form";
+import { CalendarDays } from "lucide-react";
 
 export default function Page() {
   return (
@@ -19,7 +19,7 @@ export default function Page() {
           path="/"
           title="Adriano Monteiro | Mentoria Tech"
           text="Conheça a mentoria em desenvolvimento de software, RPA e carreira em tecnologia."
-          label="Compartilhar página"
+          label="Compartilhe com alguém"
           tracking={{ type: "page", path: "/", label: "Página principal" }}
           className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
         />
@@ -59,5 +59,5 @@ export default function Page() {
         </footer>
       </div>
     </main>
-  )
+  );
 }

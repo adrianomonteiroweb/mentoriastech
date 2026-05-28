@@ -57,7 +57,7 @@ export function ThemeToggle() {
     setMounted(true)
   }, [])
 
-  const Icon = resolvedTheme === "dark" ? Moon : Sun
+  const Icon = !mounted || resolvedTheme === "dark" ? Moon : Sun
   const currentTheme = mounted ? theme || "system" : "system"
 
   return (

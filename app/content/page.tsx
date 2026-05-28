@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
   Eye,
   FileText,
@@ -11,29 +11,29 @@ import {
   Tag,
   ExternalLink,
   Lightbulb,
-} from "lucide-react"
-import Link from "next/link"
-import { AdBanner } from "@/components/ad-banner"
-import { RandomTipCard } from "@/components/random-tip"
-import { ShareButton } from "@/components/share-button"
-import { Button } from "@/components/ui/button"
-import { useUserPreferences } from "@/hooks/use-user-preferences"
+} from "lucide-react";
+import Link from "next/link";
+import { AdBanner } from "@/components/ad-banner";
+import { RandomTipCard } from "@/components/random-tip";
+import { ShareButton } from "@/components/share-button";
+import { Button } from "@/components/ui/button";
+import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 interface ContentCategory {
-  id: string
-  name: string
-  slug: string
+  id: string;
+  name: string;
+  slug: string;
 }
 
 interface ContentItem {
-  id: string
-  title: string
-  description: string | null
-  content_type: "pdf" | "article" | "video" | "link"
-  url: string | null
-  view_count: number
-  created_at: string
-  content_categories: { name: string; slug: string } | null
+  id: string;
+  title: string;
+  description: string | null;
+  content_type: "pdf" | "article" | "video" | "link";
+  url: string | null;
+  view_count: number;
+  created_at: string;
+  content_categories: { name: string; slug: string } | null;
 }
 
 const TYPE_CONFIG = {
@@ -41,39 +41,37 @@ const TYPE_CONFIG = {
   video: { icon: Youtube, label: "Vídeo", color: "text-red-500" },
   article: { icon: BookOpen, label: "Artigo", color: "text-blue-400" },
   link: { icon: ExternalLink, label: "Link", color: "text-primary" },
-}
+};
 
 export default function ContentPage() {
-  const [items, setItems] = useState<ContentItem[]>([])
-  const [categories, setCategories] = useState<ContentCategory[]>([])
-  const [activeCategory, setActiveCategory] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const { hydrated, preferences, updatePreference } = useUserPreferences()
+  const [items, setItems] = useState<ContentItem[]>([]);
+  const [categories, setCategories] = useState<ContentCategory[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { hydrated, preferences, updatePreference } = useUserPreferences();
 
   useEffect(() => {
     fetch("/api/content")
       .then((res) => res.json())
       .then((json) => {
         if (json.error || !json.data) {
-          setItems([])
-          setCategories([])
+          setItems([]);
+          setCategories([]);
         } else {
-          setItems(json.data || [])
-          setCategories(json.categories || [])
+          setItems(json.data || []);
+          setCategories(json.categories || []);
         }
       })
       .catch(() => {
-        setItems([])
-        setCategories([])
+        setItems([]);
+        setCategories([]);
       })
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = activeCategory
-    ? items.filter(
-        (item) => item.content_categories?.slug === activeCategory,
-      )
-    : items
+    ? items.filter((item) => item.content_categories?.slug === activeCategory)
+    : items;
 
   if (loading) {
     return (
@@ -81,7 +79,7 @@ export default function ContentPage() {
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <span className="sr-only">Carregando conteúdos</span>
       </main>
-    )
+    );
   }
 
   return (
@@ -111,11 +109,15 @@ export default function ContentPage() {
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => updatePreference("showTips", !preferences.showTips)}
+              onClick={() =>
+                updatePreference("showTips", !preferences.showTips)
+              }
               className="min-h-10"
             >
               <Lightbulb className="h-4 w-4" />
-              {preferences.showTips ? "Ocultar dicas extras" : "Mostrar dicas extras"}
+              {preferences.showTips
+                ? "Ocultar dicas extras"
+                : "Mostrar dicas extras"}
             </Button>
           </div>
         )}
@@ -155,8 +157,8 @@ export default function ContentPage() {
 
         <div className="flex flex-col gap-3">
           {filtered.map((item) => {
-            const config = TYPE_CONFIG[item.content_type]
-            const Icon = config.icon
+            const config = TYPE_CONFIG[item.content_type];
+            const Icon = config.icon;
             return (
               <div
                 key={item.id}
@@ -206,7 +208,7 @@ export default function ContentPage() {
                       item.description ||
                       "Veja este conteúdo da biblioteca do Adriano Monteiro."
                     }
-                    label="Compartilhar"
+                    label="Compartilhe com alguém"
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "content", id: item.id }}
@@ -214,7 +216,7 @@ export default function ContentPage() {
                   />
                 </div>
               </div>
-            )
+            );
           })}
 
           {filtered.length === 0 && (
@@ -224,8 +226,7 @@ export default function ContentPage() {
             </p>
           )}
         </div>
-
       </div>
     </main>
-  )
+  );
 }
