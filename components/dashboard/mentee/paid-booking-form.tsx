@@ -9,7 +9,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Loader2, Send, CheckCircle2 } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
 import type { MentoringTopic } from "@/lib/types/database"
 
 export function PaidBookingForm() {
@@ -41,27 +40,26 @@ export function PaidBookingForm() {
     setError("")
 
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      )
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("Nao autenticado")
-
       const topic = topics.find((t) => t.id === topicId)
 
-      const { error: insertError } = await supabase.from("bookings").insert({
-        mentee_id: user.id,
-        topic_id: topicId,
-        session_date: date,
-        start_time: time + ":00",
-        booking_type: bookingType,
-        status: "pending",
-        notes: `${topic?.name || "Mentoria"} - ${notes}`,
+      const res = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicId,
+          topic: topic?.name || "Mentoria",
+          day: "",
+          time: time + ":00",
+          sessionDate: date,
+          bookingType,
+          notes: `${topic?.name || "Mentoria"} - ${notes}`,
+        }),
       })
 
-      if (insertError) throw new Error(insertError.message)
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.error || "Erro ao solicitar")
+      }
 
       setSuccess(true)
     } catch (err) {

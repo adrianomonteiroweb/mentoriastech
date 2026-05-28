@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import { Loader2, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -13,7 +12,6 @@ export default function RegisterPage() {
   const [whatsapp, setWhatsapp] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
@@ -27,58 +25,22 @@ export default function RegisterPage() {
       return
     }
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, fullName, whatsapp }),
     })
 
-    if (error) {
-      setError(error.message)
+    const data = await res.json().catch(() => null)
+
+    if (!res.ok) {
+      setError(data?.error || "Erro ao criar conta.")
       setLoading(false)
       return
     }
 
-    // Atualizar perfil com whatsapp (o trigger já criou o profile)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase
-        .from("profiles")
-        .update({ whatsapp, full_name: fullName })
-        .eq("id", user.id)
-    }
-
-    setSuccess(true)
-    setLoading(false)
-  }
-
-  if (success) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm flex flex-col gap-4 text-center">
-          <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-full bg-primary/10">
-            <UserPlus className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-xl font-semibold text-foreground">
-            Conta criada!
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Verifique seu e-mail para confirmar a conta e depois faca login.
-          </p>
-          <Link
-            href="/login"
-            className="mt-2 text-sm font-medium text-primary hover:underline"
-          >
-            Ir para o login
-          </Link>
-        </div>
-      </main>
-    )
+    router.push("/dashboard")
+    router.refresh()
   }
 
   return (

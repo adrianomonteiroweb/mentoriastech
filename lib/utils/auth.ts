@@ -1,37 +1,27 @@
+import { cookies } from "next/headers"
 import { eq } from "drizzle-orm"
 import { db, profiles } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
-import { createClient } from "@/lib/supabase/server"
-import { LEGACY_SESSION_COOKIE } from "@/lib/utils/auth-cookies"
+import { verifyToken } from "@/lib/auth/jwt"
+import { AUTH_COOKIE } from "@/lib/auth/cookies"
 import type { Profile, UserRole } from "@/lib/types/database"
-
-export const SESSION_COOKIE = LEGACY_SESSION_COOKIE
 
 export interface AuthUser {
   id: string
   email: string
 }
 
-/**
- * Obtem a sessao do usuario autenticado via Supabase Auth.
- * Retorna null se nao autenticado ou se a sessao expirou.
- */
 export async function getSession(): Promise<AuthUser | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
+  const cookieStore = await cookies()
+  const token = cookieStore.get(AUTH_COOKIE)?.value
+  if (!token) return null
 
-  if (error || !data.user) return null
+  const payload = await verifyToken(token)
+  if (!payload) return null
 
-  return {
-    id: data.user.id,
-    email: data.user.email ?? "",
-  }
+  return { id: payload.sub, email: payload.email as string }
 }
 
-/**
- * Obtem o perfil completo do usuario autenticado.
- * Retorna null se nao autenticado ou perfil nao encontrado.
- */
 export async function getProfile(): Promise<Profile | null> {
   const user = await getSession()
   if (!user) return null
@@ -45,10 +35,6 @@ export async function getProfile(): Promise<Profile | null> {
   return profile ? toProfile(profile) : null
 }
 
-/**
- * Exige autenticacao. Retorna o user ou lanca erro.
- * Usar em API routes.
- */
 export async function requireAuth() {
   const user = await getSession()
   if (!user) {
@@ -57,10 +43,6 @@ export async function requireAuth() {
   return user
 }
 
-/**
- * Exige uma role especifica. Retorna o profile ou lanca erro.
- * Usar em API routes admin/HR.
- */
 export async function requireRole(...roles: UserRole[]) {
   const user = await requireAuth()
 
@@ -77,9 +59,6 @@ export async function requireRole(...roles: UserRole[]) {
   return toProfile(profile)
 }
 
-/**
- * Erro de autenticacao com status HTTP.
- */
 export class AuthError extends Error {
   status: number
 
@@ -90,10 +69,6 @@ export class AuthError extends Error {
   }
 }
 
-/**
- * Handler helper para API routes com autenticacao.
- * Captura AuthError e retorna JSON com status correto.
- */
 export function withAuth(
   handler: (request: Request) => Promise<Response>,
 ) {

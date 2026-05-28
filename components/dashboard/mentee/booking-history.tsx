@@ -5,8 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CalendarDays, Clock, BookOpen } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
-import type { BookingWithRelations, BookingStatus } from "@/lib/types/database"
+import type { BookingStatus } from "@/lib/types/database"
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
   pending: "Pendente",
@@ -18,24 +17,25 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   cancelled: "Cancelado",
 }
 
+interface BookingRow {
+  id: string
+  session_date: string | null
+  start_time: string | null
+  booking_type: string
+  status: BookingStatus
+  mentoring_topics: { name: string } | null
+}
+
 export function BookingHistory() {
-  const [bookings, setBookings] = useState<BookingWithRelations[]>([])
+  const [bookings, setBookings] = useState<BookingRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    )
-
-    supabase
-      .from("bookings")
-      .select("*, mentoring_topics(name)")
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setBookings((data as BookingWithRelations[]) || [])
-        setLoading(false)
-      })
+    fetch("/api/mentee/bookings")
+      .then((r) => r.json())
+      .then(({ data }) => setBookings(data || []))
+      .catch(() => setBookings([]))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) {

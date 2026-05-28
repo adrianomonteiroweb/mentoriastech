@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useReducer, useCallback, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
 import {
   bookingReducer,
   initialBookingState,
@@ -69,26 +68,21 @@ export function UnifiedBookingForm() {
       })
       .finally(() => setDataLoading(false))
 
-    // Check auth
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, email, whatsapp")
-          .eq("id", user.id)
-          .single()
-
-        dispatch({
-          type: "SET_AUTH",
-          isAuthenticated: true,
-          menteeId: user.id,
-          name: profile?.full_name || "",
-          email: profile?.email || user.email || "",
-          whatsapp: profile?.whatsapp || "",
-        })
-      }
-    })
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then(({ user }) => {
+        if (user) {
+          dispatch({
+            type: "SET_AUTH",
+            isAuthenticated: true,
+            menteeId: user.id,
+            name: user.full_name || "",
+            email: user.email || "",
+            whatsapp: user.whatsapp || "",
+          })
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Only free topics

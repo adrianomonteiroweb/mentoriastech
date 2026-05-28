@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { createClient } from "@/lib/supabase/server"
-import { LEGACY_SESSION_COOKIE } from "@/lib/utils/auth-cookies"
+import { eq } from "drizzle-orm"
+import bcrypt from "bcryptjs"
+import { db, profiles } from "@/lib/db"
+import { signToken } from "@/lib/auth/jwt"
+import { AUTH_COOKIE, authCookieOptions } from "@/lib/auth/cookies"
 
 const loginSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(1),
 })
+
+const GENERIC_ERROR = "Email ou senha incorretos."
 
 export async function POST(request: Request) {
   try {
@@ -18,26 +23,39 @@ export async function POST(request: Request) {
     }
 
     const email = parsed.data.email.toLowerCase()
-    const supabase = await createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: parsed.data.password,
-    })
 
-    if (error || !data.user) {
-      return NextResponse.json(
-        { error: "Email ou senha incorretos." },
-        { status: 401 },
-      )
+    const [user] = await db
+      .select({
+        id: profiles.id,
+        email: profiles.email,
+        role: profiles.role,
+        passwordHash: profiles.passwordHash,
+      })
+      .from(profiles)
+      .where(eq(profiles.email, email))
+      .limit(1)
+
+    if (!user || !user.passwordHash) {
+      // Constant-time: still run bcrypt compare to prevent timing attacks
+      await bcrypt.compare(parsed.data.password, "$2b$12$invalid.hash.placeholder.for.timing")
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 })
     }
 
-    const response = NextResponse.json({
-      data: {
-        id: data.user.id,
-        email: data.user.email ?? email,
-      },
+    const valid = await bcrypt.compare(parsed.data.password, user.passwordHash)
+    if (!valid) {
+      return NextResponse.json({ error: GENERIC_ERROR }, { status: 401 })
+    }
+
+    const token = await signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
     })
-    response.cookies.delete(LEGACY_SESSION_COOKIE)
+
+    const response = NextResponse.json({
+      data: { id: user.id, email: user.email },
+    })
+    response.cookies.set(AUTH_COOKIE, token, authCookieOptions())
 
     return response
   } catch (error) {

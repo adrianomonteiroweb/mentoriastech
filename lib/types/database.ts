@@ -1,5 +1,4 @@
-// Types TypeScript para todas as tabelas do Supabase
-// Gerados a partir de supabase/schema.sql
+// Types TypeScript para todas as tabelas do banco de dados
 
 export type UserRole = "admin" | "mentee" | "hr"
 export type SlotType = "free" | "paid" | "private"

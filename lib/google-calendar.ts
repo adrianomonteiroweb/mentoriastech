@@ -1,7 +1,6 @@
 import { google } from "googleapis"
 import { eq } from "drizzle-orm"
 import { db, sitePrivateSettings, siteSettings } from "@/lib/db"
-import { createAdminClient } from "@/lib/supabase/admin"
 
 function getOAuth2Client(redirectUri?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID
@@ -42,21 +41,10 @@ async function getRefreshToken() {
     const dbToken = (setting?.value as { refresh_token?: string } | undefined)?.refresh_token
     if (dbToken) return dbToken
   } catch {
-    // Fall back to Supabase settings below for older installations.
+    // Fall back to public site_settings below for older installations.
   }
 
-  try {
-    const supabase = createAdminClient()
-    const { data } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "google_calendar")
-      .single()
-
-    return (data?.value as { refresh_token?: string } | undefined)?.refresh_token || null
-  } catch {
-    return null
-  }
+  return null
 }
 
 /**

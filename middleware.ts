@@ -1,6 +1,7 @@
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { jwtVerify } from "jose"
 
+const AUTH_COOKIE = "auth_token"
 const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/hr", "/mentee"]
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 
@@ -10,7 +11,7 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
   "font-src 'self' data:",
-  "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.supabase.co https://*.vercel-storage.com https://*.public.blob.vercel-storage.com",
+  "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.vercel-storage.com https://*.public.blob.vercel-storage.com",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -53,48 +54,25 @@ function withSecurityHeaders(response: NextResponse) {
   return response
 }
 
-function copyCookies(source: NextResponse, target: NextResponse) {
-  source.cookies.getAll().forEach((cookie) => target.cookies.set(cookie))
-  return target
-}
+async function verifyAuthCookie(
+  request: NextRequest,
+): Promise<{ userId: string } | null> {
+  const token = request.cookies.get(AUTH_COOKIE)?.value
+  if (!token) return null
 
-async function getVerifiedSupabaseUser(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  let response = NextResponse.next({
-    request: {
-      headers: new Headers(request.headers),
-    },
-  })
+  const secret = process.env.AUTH_SECRET
+  if (!secret) return null
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return { response, user: null }
+  try {
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(secret),
+    )
+    if (!payload.sub) return null
+    return { userId: payload.sub }
+  } catch {
+    return null
   }
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll()
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        )
-        response = NextResponse.next({
-          request: {
-            headers: new Headers(request.headers),
-          },
-        })
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        )
-      },
-    },
-  })
-
-  const { data, error } = await supabase.auth.getUser()
-
-  return { response, user: error ? null : data.user }
 }
 
 export async function middleware(request: NextRequest) {
@@ -114,22 +92,22 @@ export async function middleware(request: NextRequest) {
     return withSecurityHeaders(NextResponse.next())
   }
 
-  const { response, user } = await getVerifiedSupabaseUser(request)
+  const auth = await verifyAuthCookie(request)
 
-  if (isProtected && !user) {
+  if (isProtected && !auth) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
-    return withSecurityHeaders(copyCookies(response, NextResponse.redirect(url)))
+    return withSecurityHeaders(NextResponse.redirect(url))
   }
 
-  if (user && isAuthPage) {
+  if (auth && isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/dashboard"
-    return withSecurityHeaders(copyCookies(response, NextResponse.redirect(url)))
+    return withSecurityHeaders(NextResponse.redirect(url))
   }
 
-  return withSecurityHeaders(response)
+  return withSecurityHeaders(NextResponse.next())
 }
 
 export const config = {

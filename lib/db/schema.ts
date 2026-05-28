@@ -30,6 +30,7 @@ export const profiles = pgTable("profiles", {
   }),
   seniority: text("seniority", { enum: ["junior", "mid", "senior", "undefined"] }),
   careerFocus: text("career_focus"),
+  passwordHash: text("password_hash"),
   originCategory: text("origin_category", {
     enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
   }),
