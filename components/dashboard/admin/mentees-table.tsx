@@ -151,6 +151,8 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     origin_description: "",
   })
 
+  const [total, setTotal] = useState(0)
+
   const [addingMentee, setAddingMentee] = useState(false)
   const [savingNew, setSavingNew] = useState(false)
   const [newError, setNewError] = useState("")
@@ -181,10 +183,14 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     if (seniorityFilter !== "all") params.set("seniority", seniorityFilter)
     if (originFilter !== "all") params.set("origin", originFilter)
 
+    params.set("pageSize", "200")
     const query = params.toString()
-    fetch(`/api/admin/mentees${query ? `?${query}` : ""}`)
+    fetch(`/api/admin/mentees?${query}`)
       .then((r) => r.json())
-      .then((json) => setMentees(json.data || []))
+      .then((json) => {
+        setMentees(json.data || [])
+        setTotal(json.total ?? json.data?.length ?? 0)
+      })
       .catch(console.error)
       .finally(() => setLoading(false))
   }
@@ -518,7 +524,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
           )}
           {!loading && (
             <p className="text-xs text-muted-foreground">
-              Exibindo {mentees.length} resultado{mentees.length !== 1 ? "s" : ""}
+              Exibindo {mentees.length} de {total} resultado{total !== 1 ? "s" : ""}
             </p>
           )}
         </div>

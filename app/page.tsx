@@ -52,10 +52,16 @@ export default function Page() {
           </section>
         </div>
 
-        <footer className="text-center">
+        <footer className="flex flex-col items-center gap-1 text-center">
           <p className="text-xs text-muted-foreground">
             {"Adriano Monteiro"} &middot; {new Date().getFullYear()}
           </p>
+          <a
+            href="/login"
+            className="text-[10px] text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+          >
+            Área de admin
+          </a>
         </footer>
       </div>
     </main>

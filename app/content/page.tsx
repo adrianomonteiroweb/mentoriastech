@@ -174,7 +174,7 @@ export default function ContentPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="mb-1 flex flex-wrap items-start gap-2">
-                        <h2 className="min-w-0 flex-1 text-base font-semibold leading-snug text-foreground">
+                        <h2 className="min-w-0 flex-1 break-words text-base font-semibold leading-snug text-foreground">
                           {item.title}
                         </h2>
                         <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
@@ -209,6 +209,7 @@ export default function ContentPage() {
                       "Veja este conteúdo da biblioteca do Adriano Monteiro."
                     }
                     label="Compartilhe com alguém"
+                    labelVisibility="desktop"
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "content", id: item.id }}

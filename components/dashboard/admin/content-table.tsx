@@ -71,15 +71,15 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
           Exibindo {items.length} resultado{items.length !== 1 ? "s" : ""}
         </p>
       )}
-    <div className="rounded-md border">
+    <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Titulo</TableHead>
             <TableHead>Tipo</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Views</TableHead>
-            <TableHead>Compart.</TableHead>
+            <TableHead className="hidden sm:table-cell">Categoria</TableHead>
+            <TableHead className="hidden sm:table-cell">Views</TableHead>
+            <TableHead className="hidden md:table-cell">Compart.</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Acoes</TableHead>
           </TableRow>
@@ -102,13 +102,13 @@ export function ContentTable({ refreshKey = 0 }: ContentTableProps) {
           ) : (
             items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.title}</TableCell>
+                <TableCell className="max-w-[200px] truncate font-medium">{item.title}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">{typeLabels[item.content_type]}</Badge>
                 </TableCell>
-                <TableCell className="text-xs">{item.content_categories?.name || "—"}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{item.view_count}</TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell text-xs">{item.content_categories?.name || "—"}</TableCell>
+                <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{item.view_count}</TableCell>
+                <TableCell className="hidden md:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Share2 className="h-3 w-3" />
                     {item.share_count ?? 0}

@@ -292,19 +292,19 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead className="hidden md:table-cell">Email</TableHead>
               <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
-              <TableHead>Tema</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead className="hidden sm:table-cell">Tema</TableHead>
+              <TableHead className="hidden sm:table-cell">Tipo</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden lg:table-cell">Solicitado em</TableHead>
-              <TableHead>Data/Hora</TableHead>
-              <TableHead>Acoes</TableHead>
+              <TableHead className="hidden md:table-cell">Data/Hora</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -377,8 +377,8 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         )
                       })()}
                     </TableCell>
-                    <TableCell className="text-xs">{getTopic(b)}</TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell text-xs">{getTopic(b)}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <Badge variant="outline" className="text-xs capitalize">
                         {b.booking_type}
                       </Badge>
@@ -391,7 +391,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                     <TableCell className="hidden lg:table-cell text-xs">
                       <span className="whitespace-nowrap">{formatRequestedAt(b.created_at)}</span>
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="hidden md:table-cell text-xs">
                       <div className="flex flex-col">
                         {weekday && (
                           <span className="font-medium text-foreground">
@@ -407,7 +407,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         {b.status === "pending" && (
                           <Button size="sm" variant="outline" className="text-xs h-7"
                             onClick={() => updateStatus(b.id, "confirmed")}>

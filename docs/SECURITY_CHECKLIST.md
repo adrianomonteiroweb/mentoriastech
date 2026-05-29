@@ -2,7 +2,7 @@
 
 Este checklist organiza os pontos levantados na revisao defensiva da plataforma, com foco em reduzir risco de roubo de dados, abuso de contas, exposicao indevida de PII e falhas de conformidade com LGPD.
 
-**Status atualizado em 2026-05-27:** itens marcados consideram as migrations e codigo presentes neste repositorio, nao a aplicacao manual em producao/stage.
+**Status atualizado em 2026-05-28:** itens marcados consideram as migrations e codigo presentes neste repositorio, nao a aplicacao manual em producao/stage.
 
 ## Como Usar
 
@@ -171,12 +171,14 @@ Este checklist organiza os pontos levantados na revisao defensiva da plataforma,
 
 **Risco:** campos de usuario sao interpolados em HTML de email.
 
-- [ ] Criar helper `escapeHtml`.
-- [ ] Escapar nome, email, WhatsApp, tema, observacoes e qualquer texto livre.
-- [ ] Validar links antes de inserir em atributos `href`.
-- [ ] Manter apenas HTML controlado pela aplicacao sem escape.
+- [x] Criar helper `escapeHtml`.
+- [x] Escapar nome, email, WhatsApp, tema, observacoes e qualquer texto livre.
+- [x] Validar links antes de inserir em atributos `href`.
+- [x] Manter apenas HTML controlado pela aplicacao sem escape.
 - [ ] Adicionar teste snapshot com caracteres especiais e tentativa de tag HTML.
 - [ ] Adicionar teste garantindo que links `mailto:` e WhatsApp continuam funcionando.
+
+**Implementacao:** helper `escapeHtml` em `lib/escape-html.ts` converte `& < > " '` para entidades HTML. Todas as funcoes de template em `lib/email-templates.ts` agora escapam campos de usuario (nome, email, WhatsApp, tema, notas, URL do Google Meet) antes de interpolar no HTML. Apenas markup controlado pela aplicacao permanece sem escape.
 
 **Criterio de aceite:** dados enviados por usuario aparecem como texto no email, nunca como HTML executavel.
 

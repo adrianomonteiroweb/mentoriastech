@@ -537,6 +537,7 @@ export default function JobsPage() {
                     title={`${job.title} na ${job.company}`}
                     text="Veja esta vaga compartilhada na comunidade de mentorados."
                     label="Compartilhe com alguém"
+                    labelVisibility="desktop"
                     variant="ghost"
                     size="sm"
                     tracking={{ type: "job", id: job.id }}

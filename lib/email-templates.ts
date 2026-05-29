@@ -1,3 +1,4 @@
+import { escapeHtml } from "@/lib/escape-html"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
 const BRAND_BG = "#0d1117"
@@ -81,21 +82,28 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
 
   const typeLabel = params.bookingType === "free" ? "Gratuita" : params.bookingType === "paid" ? "Paga" : "Particular"
 
+  const safeName = escapeHtml(params.name)
+  const safeEmail = escapeHtml(params.email)
+  const safeWhatsapp = escapeHtml(params.whatsapp)
+  const safeTopic = escapeHtml(params.topic)
+  const safeDay = escapeHtml(params.day)
+  const safeTime = escapeHtml(params.time)
+
   const rows = [
-    { label: "Nome", value: params.name },
-    { label: "E-mail", value: `<a href="mailto:${params.email}" style="color: #0d9488; text-decoration: none;">${params.email}</a>` },
-    { label: "WhatsApp", value: `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${params.whatsapp}</a>` },
+    { label: "Nome", value: safeName },
+    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #0d9488; text-decoration: none;">${safeEmail}</a>` },
+    { label: "WhatsApp", value: `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>` },
     { label: "Tipo", value: typeBadge(params.bookingType) },
-    { label: "Tema", value: `<span style="display: inline-block; background: ${BRAND_GREEN}; color: ${BRAND_GREEN_TEXT}; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${params.topic}</span>` },
-    { label: "Dia", value: params.day },
-    { label: "Horário", value: params.time },
+    { label: "Tema", value: `<span style="display: inline-block; background: ${BRAND_GREEN}; color: ${BRAND_GREEN_TEXT}; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${safeTopic}</span>` },
+    { label: "Dia", value: safeDay },
+    { label: "Horário", value: safeTime },
   ]
 
   if (params.notes) {
-    rows.push({ label: "Observações", value: params.notes })
+    rows.push({ label: "Observações", value: escapeHtml(params.notes) })
   }
 
-  const subject = `Nova solicitação de mentoria ${typeLabel} - ${params.name} - ${params.topic}`
+  const subject = `Nova solicitação de mentoria ${typeLabel} - ${safeName} - ${safeTopic}`
 
   const html = baseLayout(
     `Nova Solicitação de Mentoria ${typeLabel}`,
@@ -126,9 +134,10 @@ interface StatusChangeParams {
 
 function meetRow(url?: string | null) {
   if (!url) return null
+  const safeUrl = escapeHtml(url)
   return {
     label: "Google Meet",
-    value: `<a href="${url}" style="color: #0d9488; text-decoration: none;">Entrar na reuniao</a>`,
+    value: `<a href="${safeUrl}" style="color: #0d9488; text-decoration: none;">Entrar na reuniao</a>`,
   }
 }
 
@@ -144,10 +153,13 @@ function formatTimeBR(timeStr?: string) {
 }
 
 export function bookingConfirmedEmail(params: StatusChangeParams) {
-  const subject = `Mentoria confirmada! - ${params.topicName}`
+  const safeName = escapeHtml(params.menteeName)
+  const safeTopic = escapeHtml(params.topicName)
+
+  const subject = `Mentoria confirmada! - ${safeTopic}`
 
   const rows = [
-    { label: "Tema", value: params.topicName },
+    { label: "Tema", value: safeTopic },
     { label: "Tipo", value: typeBadge(params.bookingType) },
     { label: "Data", value: formatDateBR(params.sessionDate) },
     { label: "Horário", value: formatTimeBR(params.startTime) },
@@ -158,7 +170,7 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
 
   const html = baseLayout(
     "Sua mentoria foi confirmada! ✓",
-    `Olá, ${params.menteeName}!`,
+    `Olá, ${safeName}!`,
     infoTable(rows) +
       actionBox(
         params.bookingType === "free"
@@ -171,17 +183,20 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
 }
 
 export function bookingPaymentPendingEmail(params: StatusChangeParams) {
-  const subject = `Pagamento pendente - Mentoria: ${params.topicName}`
+  const safeName = escapeHtml(params.menteeName)
+  const safeTopic = escapeHtml(params.topicName)
+
+  const subject = `Pagamento pendente - Mentoria: ${safeTopic}`
 
   const rows = [
-    { label: "Tema", value: params.topicName },
+    { label: "Tema", value: safeTopic },
     { label: "Data", value: formatDateBR(params.sessionDate) },
     { label: "Horário", value: formatTimeBR(params.startTime) },
   ]
 
   const html = baseLayout(
     "Pagamento pendente",
-    `Olá, ${params.menteeName}!`,
+    `Olá, ${safeName}!`,
     `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
       Sua mentoria foi confirmada e está aguardando pagamento.
     </p>` +
@@ -195,10 +210,13 @@ export function bookingPaymentPendingEmail(params: StatusChangeParams) {
 }
 
 export function bookingScheduledEmail(params: StatusChangeParams) {
-  const subject = `Mentoria agendada! - ${params.topicName}`
+  const safeName = escapeHtml(params.menteeName)
+  const safeTopic = escapeHtml(params.topicName)
+
+  const subject = `Mentoria agendada! - ${safeTopic}`
 
   const rows = [
-    { label: "Tema", value: params.topicName },
+    { label: "Tema", value: safeTopic },
     { label: "Data", value: formatDateBR(params.sessionDate) },
     { label: "Horário", value: formatTimeBR(params.startTime) },
   ]
@@ -208,7 +226,7 @@ export function bookingScheduledEmail(params: StatusChangeParams) {
 
   const html = baseLayout(
     "Mentoria agendada! 📅",
-    `Olá, ${params.menteeName}!`,
+    `Olá, ${safeName}!`,
     `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
       Sua mentoria está confirmada e agendada. Você receberá um convite no Google Calendar com o link da reunião.
     </p>` +
@@ -222,13 +240,16 @@ export function bookingScheduledEmail(params: StatusChangeParams) {
 }
 
 export function bookingCompletedEmail(params: StatusChangeParams) {
-  const subject = `Mentoria concluída - ${params.topicName}`
+  const safeName = escapeHtml(params.menteeName)
+  const safeTopic = escapeHtml(params.topicName)
+
+  const subject = `Mentoria concluída - ${safeTopic}`
 
   const html = baseLayout(
     "Mentoria concluída! 🎉",
-    `Olá, ${params.menteeName}!`,
+    `Olá, ${safeName}!`,
     `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
-      Obrigado por participar da mentoria sobre <strong>${params.topicName}</strong>!
+      Obrigado por participar da mentoria sobre <strong>${safeTopic}</strong>!
     </p>
     <p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
       Espero que a sessão tenha sido útil. Se tiver mais dúvidas ou quiser agendar outra mentoria, acesse a plataforma.
@@ -242,13 +263,16 @@ export function bookingCompletedEmail(params: StatusChangeParams) {
 }
 
 export function bookingCancelledEmail(params: StatusChangeParams) {
-  const subject = `Mentoria cancelada - ${params.topicName}`
+  const safeName = escapeHtml(params.menteeName)
+  const safeTopic = escapeHtml(params.topicName)
+
+  const subject = `Mentoria cancelada - ${safeTopic}`
 
   const html = baseLayout(
     "Mentoria cancelada",
-    `Olá, ${params.menteeName}!`,
+    `Olá, ${safeName}!`,
     `<p style="color: #374151; font-size: 14px; margin: 0 0 16px 0; line-height: 1.6;">
-      Infelizmente, a mentoria sobre <strong>${params.topicName}</strong>${params.sessionDate ? ` do dia ${formatDateBR(params.sessionDate)}` : ""} foi cancelada.
+      Infelizmente, a mentoria sobre <strong>${safeTopic}</strong>${params.sessionDate ? ` do dia ${formatDateBR(params.sessionDate)}` : ""} foi cancelada.
     </p>` +
       actionBox(
         `<strong>Quer reagendar?</strong> Acesse a plataforma e solicite uma nova mentoria. Estamos à disposição!`,
