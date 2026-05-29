@@ -82,8 +82,8 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Dica</TableHead>
-            <TableHead>Tela</TableHead>
-            <TableHead>Ordem</TableHead>
+            <TableHead className="hidden sm:table-cell">Tela</TableHead>
+            <TableHead className="hidden sm:table-cell">Ordem</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
@@ -108,18 +108,18 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
           ) : (
             items.map((item) => (
               <TableRow key={item.id}>
-                <TableCell className="min-w-[280px]">
+                <TableCell className="min-w-[160px] sm:min-w-[280px]">
                   <p className="text-sm font-medium text-foreground">{item.title}</p>
                   <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                     {item.body}
                   </p>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {PLACEMENT_LABELS[item.placement]}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
                   {item.sort_order}
                 </TableCell>
                 <TableCell>
@@ -137,37 +137,40 @@ export function TipsTable({ refreshKey = 0 }: TipsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1">
                     <Button
                       size="sm"
                       variant="ghost"
+                      title="Editar"
                       onClick={() => setEditingTip(item)}
                     >
-                      <Pencil className="h-4 w-4" />
-                      Editar
+                      <Pencil className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
+                      title={item.is_fixed ? "Fixa" : item.is_active ? "Desativar" : "Ativar"}
                       onClick={() => toggleActive(item.id, item.is_active)}
                       disabled={item.is_fixed}
                     >
                       {item.is_active ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-4 w-4 sm:mr-1" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4 sm:mr-1" />
                       )}
-                      {item.is_fixed ? "Fixa" : item.is_active ? "Desativar" : "Ativar"}
+                      <span className="hidden sm:inline">{item.is_fixed ? "Fixa" : item.is_active ? "Desativar" : "Ativar"}</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
+                      title="Remover"
                       onClick={() => deleteItem(item.id)}
                       disabled={item.is_fixed}
                       className="text-destructive hover:text-destructive"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Remover
+                      <Trash2 className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Remover</span>
                     </Button>
                   </div>
                 </TableCell>

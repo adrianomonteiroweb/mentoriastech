@@ -645,15 +645,16 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                   </TableCell>
                   {canManage && (
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex flex-wrap gap-1">
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-7 text-xs"
+                          title="Histórico"
                           onClick={() => setHistoryMentee(m)}
                         >
-                          <ClipboardList className="h-3 w-3 mr-1" />
-                          Histórico
+                          <ClipboardList className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Histórico</span>
                           {(m.booking_count ?? 0) > 0 && (
                             <Badge
                               variant="secondary"
@@ -663,14 +664,17 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                             </Badge>
                           )}
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openBookingDialog(m)}>
-                          <CalendarPlus className="h-3 w-3 mr-1" /> Agendar
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" title="Agendar" onClick={() => openBookingDialog(m)}>
+                          <CalendarPlus className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Agendar</span>
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(m)}>
-                          <Pencil className="h-3 w-3 mr-1" /> Editar
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" title="Editar" onClick={() => openEdit(m)}>
+                          <Pencil className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Editar</span>
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => deleteMentee(m.id)}>
-                          <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" title="Excluir" onClick={() => deleteMentee(m.id)}>
+                          <Trash2 className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Excluir</span>
                         </Button>
                       </div>
                     </TableCell>

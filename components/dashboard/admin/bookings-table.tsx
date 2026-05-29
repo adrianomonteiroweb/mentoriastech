@@ -409,58 +409,64 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {b.status === "pending" && (
-                          <Button size="sm" variant="outline" className="text-xs h-7"
+                          <Button size="sm" variant="outline" className="text-xs h-7" title="Confirmar"
                             onClick={() => updateStatus(b.id, "confirmed")}>
-                            Confirmar
+                            <Check className="h-3 w-3 sm:mr-1" />
+                            <span className="hidden sm:inline">Confirmar</span>
                           </Button>
                         )}
                         {b.status === "confirmed" && b.booking_type === "paid" && (
-                          <Button size="sm" variant="outline" className="text-xs h-7"
+                          <Button size="sm" variant="outline" className="text-xs h-7" title="Solicitar Pgto"
                             onClick={() => updateStatus(b.id, "payment_pending")}>
-                            Solicitar Pgto
+                            <span className="hidden sm:inline">Solicitar Pgto</span>
+                            <span className="sm:hidden">Pgto</span>
                           </Button>
                         )}
                         {(b.status === "paid" || (b.status === "confirmed" && b.booking_type === "free")) && (
-                          <Button size="sm" variant="outline" className="text-xs h-7"
+                          <Button size="sm" variant="outline" className="text-xs h-7" title="Agendar"
                             onClick={() => updateStatus(b.id, "scheduled")}>
-                            Agendar
+                            <span className="hidden sm:inline">Agendar</span>
+                            <span className="sm:hidden">Ag.</span>
                           </Button>
                         )}
                         {b.status === "scheduled" && (
-                          <Button size="sm" variant="outline" className="text-xs h-7"
+                          <Button size="sm" variant="outline" className="text-xs h-7" title="Concluir"
                             onClick={() => setCompletingBooking(b)}>
-                            Concluir
+                            <span className="hidden sm:inline">Concluir</span>
+                            <span className="sm:hidden">OK</span>
                           </Button>
                         )}
                         {b.google_meet_url && (
-                          <Button size="sm" variant="ghost" className="text-xs h-7" asChild>
+                          <Button size="sm" variant="ghost" className="text-xs h-7" title="Meet" asChild>
                             <a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Meet
+                              <ExternalLink className="h-3 w-3 sm:mr-1" />
+                              <span className="hidden sm:inline">Meet</span>
                             </a>
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" className="text-xs h-7"
+                        <Button size="sm" variant="ghost" className="text-xs h-7" title="Editar"
                           onClick={() => openEdit(b)}>
-                          <Pencil className="h-3 w-3 mr-1" />
-                          Editar
+                          <Pencil className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Editar</span>
                         </Button>
                         {b.status === "cancelled" && (
-                          <Button size="sm" variant="outline" className="text-xs h-7"
+                          <Button size="sm" variant="outline" className="text-xs h-7" title="Reativar"
                             onClick={() => updateStatus(b.id, "scheduled")}>
-                            Reativar
+                            <span className="hidden sm:inline">Reativar</span>
+                            <span className="sm:hidden">Reat.</span>
                           </Button>
                         )}
                         {!["completed", "cancelled"].includes(b.status) && (
-                          <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
+                          <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" title="Cancelar"
                             onClick={() => updateStatus(b.id, "cancelled")}>
-                            Cancelar
+                            <span className="hidden sm:inline">Cancelar</span>
+                            <span className="sm:hidden">Canc.</span>
                           </Button>
                         )}
-                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
+                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" title="Excluir"
                           onClick={() => deleteBooking(b.id)}>
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Excluir
+                          <Trash2 className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Excluir</span>
                         </Button>
                       </div>
                     </TableCell>

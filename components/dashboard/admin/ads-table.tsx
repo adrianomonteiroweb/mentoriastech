@@ -72,17 +72,17 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
           Exibindo {items.length} resultado{items.length !== 1 ? "s" : ""}
         </p>
       )}
-    <div className="rounded-md border">
+    <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Imagem</TableHead>
             <TableHead>Título</TableHead>
-            <TableHead>WhatsApp</TableHead>
-            <TableHead>Ordem</TableHead>
-            <TableHead>Visualizações</TableHead>
-            <TableHead>Cliques</TableHead>
-            <TableHead>Conversão</TableHead>
+            <TableHead className="hidden md:table-cell">WhatsApp</TableHead>
+            <TableHead className="hidden sm:table-cell">Ordem</TableHead>
+            <TableHead className="hidden sm:table-cell">Visualizações</TableHead>
+            <TableHead className="hidden sm:table-cell">Cliques</TableHead>
+            <TableHead className="hidden lg:table-cell">Conversão</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
@@ -126,17 +126,17 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-xs font-mono">
+                <TableCell className="hidden md:table-cell text-xs font-mono">
                   {item.whatsapp_number || "—"}
                 </TableCell>
-                <TableCell className="text-xs">{item.sort_order}</TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell text-xs">{item.sort_order}</TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Eye className="h-3 w-3" />
                     {item.view_count}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden sm:table-cell">
                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${
                     item.max_clicks != null && item.click_count >= item.max_clicks
                       ? "text-red-500"
@@ -149,7 +149,7 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                     )}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${
                     item.view_count > 0 && (item.click_count / item.view_count) * 100 >= 5
                       ? "text-green-500"
@@ -173,36 +173,40 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1">
                     <Button
                       size="sm"
                       variant="ghost"
+                      title="Editar"
                       onClick={() => setEditingAd(item)}
                       className="text-xs"
                     >
-                      <Pencil className="h-3 w-3 mr-1" />
-                      Editar
+                      <Pencil className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Editar</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
+                      title={item.is_active ? "Desativar" : "Ativar"}
                       onClick={() => toggleActive(item.id, item.is_active)}
                       className="text-xs"
                     >
                       {item.is_active ? (
-                        <><EyeOff className="h-3 w-3 mr-1" />Desativar</>
+                        <EyeOff className="h-3 w-3 sm:mr-1" />
                       ) : (
-                        <><Eye className="h-3 w-3 mr-1" />Ativar</>
+                        <Eye className="h-3 w-3 sm:mr-1" />
                       )}
+                      <span className="hidden sm:inline">{item.is_active ? "Desativar" : "Ativar"}</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="ghost"
+                      title="Remover"
                       onClick={() => deleteItem(item.id)}
                       className="text-xs text-red-500 hover:text-red-600"
                     >
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Remover
+                      <Trash2 className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Remover</span>
                     </Button>
                   </div>
                 </TableCell>
