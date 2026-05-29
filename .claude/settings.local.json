@@ -15,7 +15,8 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(taskkill //F //IM node.exe)",
       "Bash(pnpm test:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(git add *)"
     ]
   }
 }

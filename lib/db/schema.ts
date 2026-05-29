@@ -182,8 +182,9 @@ export const jobs = pgTable("jobs", {
   id: uuid("id").primaryKey().defaultRandom(),
   postedBy: uuid("posted_by").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  company: text("company").notNull(),
-  description: text("description").notNull(),
+  company: text("company"),
+  description: text("description"),
+  recommendationNote: text("recommendation_note"),
   location: text("location"),
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] }).notNull().default("remote"),
   level: text("level", { enum: ["internship", "junior", "mid", "senior"] }).notNull().default("junior"),
@@ -320,8 +321,23 @@ export const jobActions = pgTable("job_actions", {
   id: uuid("id").primaryKey().defaultRandom(),
   jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
-  actionType: text("action_type", { enum: ["applied", "link_issue", "closed"] }).notNull(),
+  actionType: text("action_type", { enum: ["applied", "link_issue", "closed", "liked"] }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// CONTENT_SUGGESTIONS — solicitações e indicações de conteúdo da comunidade
+// -----------------------------------------------------------------------------
+export const contentSuggestions = pgTable("content_suggestions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => profiles.id, { onDelete: "set null" }),
+  type: text("type", { enum: ["request", "indication"] }).notNull(),
+  title: text("title"),
+  url: text("url"),
+  description: text("description"),
+  status: text("status", { enum: ["pending", "reviewed", "approved", "archived"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
 // -----------------------------------------------------------------------------
@@ -342,6 +358,8 @@ export type PageShare = typeof pageShares.$inferSelect
 export type AuditLog = typeof auditLogs.$inferSelect
 export type ContentView = typeof contentViews.$inferSelect
 export type JobAction = typeof jobActions.$inferSelect
+export type ContentSuggestion = typeof contentSuggestions.$inferSelect
+export type NewContentSuggestion = typeof contentSuggestions.$inferInsert
 export type Ad = typeof ads.$inferSelect
 export type NewAd = typeof ads.$inferInsert
 export type Tip = typeof tips.$inferSelect

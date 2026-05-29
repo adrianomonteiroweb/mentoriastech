@@ -6,12 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { CheckCircle2, ExternalLink, Loader2, Plus, Save, Trash2 } from "lucide-react"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   normalizeMentorshipChecklistConfig,
   type MentorshipChecklistConfigItem,
 } from "@/lib/mentorship-checklist"
+import {
+  RESUME_AI_PROMPT_SETTING_KEY,
+  normalizeResumeAiPrompt,
+} from "@/lib/resume-ai-prompt"
 
 export default function AdminSettingsPage() {
   const [calendarConnected, setCalendarConnected] = useState(false)
@@ -19,6 +24,9 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [savingChecklist, setSavingChecklist] = useState(false)
   const [checklistMessage, setChecklistMessage] = useState("")
+  const [resumePrompt, setResumePrompt] = useState("")
+  const [savingResumePrompt, setSavingResumePrompt] = useState(false)
+  const [resumePromptMessage, setResumePromptMessage] = useState("")
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -34,10 +42,40 @@ export default function AdminSettingsPage() {
             ? normalizeMentorshipChecklistConfig(checklistSetting, false)
             : normalizeMentorshipChecklistConfig(checklistSetting),
         )
+        setResumePrompt(normalizeResumeAiPrompt(settings[RESUME_AI_PROMPT_SETTING_KEY]))
       })
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  async function saveResumePrompt() {
+    setSavingResumePrompt(true)
+    setResumePromptMessage("")
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: RESUME_AI_PROMPT_SETTING_KEY,
+          value: resumePrompt,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Erro ao salvar prompt")
+      }
+
+      setResumePromptMessage("Prompt salvo.")
+    } catch (error) {
+      setResumePromptMessage(
+        error instanceof Error ? error.message : "Erro ao salvar prompt",
+      )
+    } finally {
+      setSavingResumePrompt(false)
+    }
+  }
 
   async function connectCalendar() {
     const res = await fetch("/api/admin/calendar/auth")
@@ -192,6 +230,42 @@ export default function AdminSettingsPage() {
                 <Save className="h-4 w-4 mr-1" />
               )}
               Salvar checklist
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Melhoria de currículo com IA</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Instruções adicionais para a IA ao gerar o currículo otimizado do
+              mentorado. Já existe um prompt base no sistema (melhorar a aderência à
+              vaga, manter os fatos, otimizar para ATS); o texto abaixo é somado a
+              ele. Deixe em branco para usar apenas o prompt base.
+            </p>
+            <Textarea
+              value={resumePrompt}
+              onChange={(e) => {
+                setResumePromptMessage("")
+                setResumePrompt(e.target.value)
+              }}
+              rows={8}
+              placeholder="Ex.: priorize experiências com automação RPA; mantenha no máximo 2 páginas; use tom direto."
+            />
+
+            {resumePromptMessage && (
+              <p className="text-sm text-muted-foreground">{resumePromptMessage}</p>
+            )}
+
+            <Button type="button" onClick={saveResumePrompt} disabled={savingResumePrompt}>
+              {savingResumePrompt ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar prompt
             </Button>
           </CardContent>
         </Card>

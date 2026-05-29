@@ -11,12 +11,21 @@ import {
   Tag,
   ExternalLink,
   Lightbulb,
+  Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
+import { ContentSuggestionForm } from "@/components/content/content-suggestion-form";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 
 interface ContentCategory {
@@ -48,6 +57,7 @@ export default function ContentPage() {
   const [categories, setCategories] = useState<ContentCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [suggestOpen, setSuggestOpen] = useState(false);
   const { hydrated, preferences, updatePreference } = useUserPreferences();
 
   useEffect(() => {
@@ -93,12 +103,25 @@ export default function ContentPage() {
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Biblioteca de Conteúdos
-          </h1>
-          <p className="text-base leading-relaxed text-muted-foreground">
-            PDFs, artigos, links e vídeos sobre programação e carreira em tech.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-2xl font-semibold text-foreground">
+                Biblioteca de Conteúdos
+              </h1>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                PDFs, artigos, links e vídeos sobre programação e carreira em tech.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setSuggestOpen(true)}
+              className="min-h-10 shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              Sugerir conteúdo
+            </Button>
+          </div>
         </div>
 
         <AdBanner />
@@ -228,6 +251,19 @@ export default function ContentPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Solicitar ou indicar conteúdo</DialogTitle>
+            <DialogDescription>
+              Peça um conteúdo que gostaria de ver ou indique um material útil
+              que encontrou. O Adriano revisa as sugestões.
+            </DialogDescription>
+          </DialogHeader>
+          <ContentSuggestionForm onSuccess={() => {}} />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

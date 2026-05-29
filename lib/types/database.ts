@@ -24,7 +24,9 @@ export type ContentType = "pdf" | "article" | "video" | "link"
 export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
 export type JobStatus = "pending" | "approved" | "rejected" | "expired"
-export type JobActionType = "applied" | "link_issue" | "closed"
+export type JobActionType = "applied" | "link_issue" | "closed" | "liked"
+export type ContentSuggestionType = "request" | "indication"
+export type ContentSuggestionStatus = "pending" | "reviewed" | "approved" | "archived"
 export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
 export type TipPlacement = "content" | "jobs" | "both"
 export type JobCategory = string
@@ -202,6 +204,7 @@ export interface Job {
   title: string
   company: string | null
   description: string | null
+  recommendation_note: string | null
   location: string | null
   job_type: JobType
   level: JobLevel
@@ -235,6 +238,25 @@ export interface JobAction {
   user_id: string
   action_type: JobActionType
   created_at: string
+}
+
+// -----------------------------------------------------------------------------
+// Content Suggestions — solicitações e indicações da comunidade
+// -----------------------------------------------------------------------------
+export interface ContentSuggestion {
+  id: string
+  user_id: string | null
+  type: ContentSuggestionType
+  title: string | null
+  url: string | null
+  description: string | null
+  status: ContentSuggestionStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface ContentSuggestionWithUser extends ContentSuggestion {
+  profiles?: Profile | null
 }
 
 // -----------------------------------------------------------------------------

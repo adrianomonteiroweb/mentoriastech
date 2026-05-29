@@ -54,9 +54,13 @@ export async function GET(
     }
 
     if (isLegacyPublicResumeUrl(mentee.resumeUrl)) {
+      await db
+        .update(profiles)
+        .set({ resumeUrl: null, updatedAt: new Date() })
+        .where(eq(profiles.id, id))
       return NextResponse.json(
-        { error: "Curriculo antigo precisa ser reenviado." },
-        { status: 410 },
+        { error: "Curriculo nao encontrado" },
+        { status: 404 },
       )
     }
 
@@ -121,7 +125,11 @@ export async function POST(
       .set({ resumeUrl: result.pathname, updatedAt: new Date() })
       .where(eq(profiles.id, id))
 
-    if (previousResume && previousResume !== result.pathname) {
+    if (
+      previousResume &&
+      previousResume !== result.pathname &&
+      !isLegacyPublicResumeUrl(previousResume)
+    ) {
       await deleteFile(previousResume)
     }
 

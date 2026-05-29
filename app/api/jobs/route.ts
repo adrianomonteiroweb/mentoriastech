@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { jobCategorySchema } from "@/lib/job-validation"
@@ -51,10 +51,26 @@ export async function GET(request: Request) {
       .where(eq(jobs.status, "approved"))
       .orderBy(desc(jobs.createdAt))
 
-    const data = rows.map((row) => ({
-      ...toJob(row.job),
-      profiles: row.profile ? toProfile(row.profile) : null,
-    }))
+    // Contagem de curtidas por vaga (action_type = 'liked')
+    const likeRows = await db
+      .select({ jobId: jobActions.jobId, count: sql<number>`count(*)::int` })
+      .from(jobActions)
+      .where(eq(jobActions.actionType, "liked"))
+      .groupBy(jobActions.jobId)
+
+    const likeCounts = new Map(likeRows.map((r) => [r.jobId, r.count]))
+
+    // Ordena pelas mais curtidas; empate desfeito pela data (mais recente primeiro)
+    const data = rows
+      .map((row) => ({
+        ...toJob(row.job),
+        profiles: row.profile ? toProfile(row.profile) : null,
+        like_count: likeCounts.get(row.job.id) ?? 0,
+      }))
+      .sort((a, b) =>
+        b.like_count - a.like_count ||
+        (b.created_at || "").localeCompare(a.created_at || ""),
+      )
 
     let userActions: { job_id: string; action_type: string }[] = []
     const session = await getSession().catch(() => null)

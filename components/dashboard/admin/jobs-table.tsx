@@ -14,12 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
-import { AlertTriangle, CheckCircle2, Eye, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Eye, Heart, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel } from "@/lib/job-options"
 import type { JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
-  action_counts?: { applied: number; link_issue: number; closed: number }
+  action_counts?: { applied: number; link_issue: number; closed: number; liked: number }
 }
 
 interface JobsTableProps {
@@ -72,7 +72,7 @@ export function JobsTable({
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = showActions ? 11 : 10
+  const columnCount = 10 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
 
   return (
     <div className="flex flex-col gap-2">
@@ -94,6 +94,7 @@ export function JobsTable({
             <TableHead>Views</TableHead>
             <TableHead>Cliques</TableHead>
             <TableHead>Compart.</TableHead>
+            {adminMode && <TableHead>Curtidas</TableHead>}
             <TableHead>Status</TableHead>
             {showActions && <TableHead>Acoes</TableHead>}
           </TableRow>
@@ -150,6 +151,14 @@ export function JobsTable({
                     {job.share_count ?? 0}
                   </span>
                 </TableCell>
+                {adminMode && (
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Heart className="h-3 w-3" />
+                      {job.action_counts?.liked ?? 0}
+                    </span>
+                  </TableCell>
+                )}
                 <TableCell>
                   <div className="flex flex-col gap-1">
                     <Badge

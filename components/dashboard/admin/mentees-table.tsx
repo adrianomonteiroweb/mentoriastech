@@ -157,6 +157,8 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [savingNew, setSavingNew] = useState(false)
   const [newError, setNewError] = useState("")
   const [newForm, setNewForm] = useState({ full_name: "", email: "", whatsapp: "" })
+  const [newResumeFile, setNewResumeFile] = useState<File | null>(null)
+  const newFileInputRef = useRef<HTMLInputElement>(null)
 
   const [bookingMentee, setBookingMentee] = useState<Profile | null>(null)
   const [topics, setTopics] = useState<MentoringTopic[]>([])
@@ -317,8 +319,21 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
         throw new Error(data.error || "Erro ao criar mentorado")
       }
 
+      const { data: created } = await res.json()
+
+      if (newResumeFile && created?.id) {
+        const fd = new FormData()
+        fd.append("file", newResumeFile)
+        await fetch(`/api/admin/mentees/${created.id}/resume`, {
+          method: "POST",
+          body: fd,
+        })
+      }
+
       setAddingMentee(false)
       setNewForm({ full_name: "", email: "", whatsapp: "" })
+      setNewResumeFile(null)
+      if (newFileInputRef.current) newFileInputRef.current.value = ""
       loadMentees()
     } catch (err) {
       setNewError(err instanceof Error ? err.message : "Erro ao criar")
@@ -946,6 +961,18 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                 onChange={(e) => setNewForm((c) => ({ ...c, whatsapp: e.target.value }))}
                 placeholder="(11) 99999-9999"
               />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-mentee-resume">Currículo (PDF)</Label>
+              <Input
+                id="new-mentee-resume"
+                ref={newFileInputRef}
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setNewResumeFile(e.target.files?.[0] || null)}
+                className="text-xs"
+              />
+              <p className="text-xs text-muted-foreground">Opcional — máximo 5MB</p>
             </div>
             {newError && <p className="text-sm text-destructive">{newError}</p>}
             <Button type="submit" disabled={savingNew}>

@@ -3,6 +3,7 @@ import type {
   Booking as DbBooking,
   ContentCategory as DbContentCategory,
   ContentItem as DbContentItem,
+  ContentSuggestion as DbContentSuggestion,
   Job as DbJob,
   MentoringSlot as DbMentoringSlot,
   MentoringTopic as DbMentoringTopic,
@@ -14,6 +15,7 @@ import type {
   Booking,
   ContentCategory,
   ContentItem,
+  ContentSuggestion,
   Job,
   MentoringSlot,
   MentoringTopic,
@@ -99,6 +101,20 @@ export function toContentCategory(row: DbContentCategory): ContentCategory {
   }
 }
 
+export function toContentSuggestion(row: DbContentSuggestion): ContentSuggestion {
+  return {
+    id: row.id,
+    user_id: row.userId,
+    type: row.type,
+    title: row.title,
+    url: row.url,
+    description: row.description,
+    status: row.status,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
 export function toContentItem(row: DbContentItem): ContentItem {
   return {
     id: row.id,
@@ -180,6 +196,7 @@ export function toJob(row: DbJob): Job {
     title: row.title,
     company: row.company,
     description: row.description,
+    recommendation_note: row.recommendationNote,
     location: row.location,
     job_type: row.jobType,
     level: row.level,

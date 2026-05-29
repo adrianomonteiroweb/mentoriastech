@@ -4,6 +4,7 @@ import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { ContentTable } from "@/components/dashboard/admin/content-table"
 import { ContentForm } from "@/components/dashboard/admin/content-form"
+import { ContentSuggestions } from "@/components/dashboard/admin/content-suggestions"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 
@@ -30,6 +31,7 @@ export default function AdminContentPage() {
             <ContentForm onSuccess={handleSuccess} />
           </div>
         )}
+        <ContentSuggestions />
         <ContentTable refreshKey={refreshKey} />
       </div>
     </>

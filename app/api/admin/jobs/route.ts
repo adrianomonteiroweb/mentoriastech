@@ -20,7 +20,7 @@ export async function GET() {
     }))
 
     const jobIds = data.map((j) => j.id)
-    let actionCounts: Record<string, { applied: number; link_issue: number; closed: number }> = {}
+    let actionCounts: Record<string, { applied: number; link_issue: number; closed: number; liked: number }> = {}
 
     if (jobIds.length > 0) {
       const counts = await db
@@ -34,7 +34,7 @@ export async function GET() {
 
       for (const row of counts) {
         if (!actionCounts[row.jobId]) {
-          actionCounts[row.jobId] = { applied: 0, link_issue: 0, closed: 0 }
+          actionCounts[row.jobId] = { applied: 0, link_issue: 0, closed: 0, liked: 0 }
         }
         const key = row.actionType as keyof typeof actionCounts[string]
         actionCounts[row.jobId][key] = row.count
@@ -44,7 +44,7 @@ export async function GET() {
     return NextResponse.json({
       data: data.map((job) => ({
         ...job,
-        action_counts: actionCounts[job.id] || { applied: 0, link_issue: 0, closed: 0 },
+        action_counts: actionCounts[job.id] || { applied: 0, link_issue: 0, closed: 0, liked: 0 },
       })),
     })
   } catch (error) {

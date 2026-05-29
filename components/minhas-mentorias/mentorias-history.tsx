@@ -3,6 +3,7 @@
 import { useState } from "react"
 import {
   AlertTriangle,
+  ArrowRight,
   BookOpen,
   CalendarDays,
   ChevronDown,
@@ -12,7 +13,9 @@ import {
   LogOut,
   Mail,
   MessageCircle,
+  Sparkles,
 } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -192,6 +195,17 @@ export function MentoriasHistory({ email, bookings }: Props) {
             Sair
           </button>
         </header>
+
+        <Link
+          href="/minhas-mentorias/curriculo"
+          className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+        >
+          <span className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Melhorar currículo com IA
+          </span>
+          <ArrowRight className="h-4 w-4" />
+        </Link>
 
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />

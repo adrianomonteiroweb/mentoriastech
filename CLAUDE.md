@@ -165,6 +165,10 @@ SMTP_PASS                       # Senha SMTP
 GOOGLE_CLIENT_ID                # Client ID do Google Cloud
 GOOGLE_CLIENT_SECRET            # Client Secret do Google Cloud
 GOOGLE_CALENDAR_ID              # Email do calendário
+
+# Google Gemini (melhoria de currículo com IA)
+GEMINI_API_KEY                  # API key do Google AI Studio (obrigatória p/ a ferramenta)
+GEMINI_MODEL                    # Opcional, default gemini-2.5-flash
 ```
 
 ## Roles de Usuário

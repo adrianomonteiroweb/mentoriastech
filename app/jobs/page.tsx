@@ -12,15 +12,26 @@ import {
   DollarSign,
   XCircle,
   Globe,
+  Heart,
   Languages,
   Lightbulb,
+  Plus,
+  Sparkles,
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
+import { JobShareForm } from "@/components/jobs/job-share-form";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
 import {
   getJobCategoryLabel,
@@ -32,8 +43,9 @@ import type { JobCategory } from "@/lib/types/database";
 interface Job {
   id: string;
   title: string;
-  company: string;
-  description: string;
+  company: string | null;
+  description: string | null;
+  recommendation_note: string | null;
   location: string | null;
   job_type: "remote" | "hybrid" | "onsite";
   level: "internship" | "junior" | "mid" | "senior";
@@ -43,6 +55,7 @@ interface Job {
   is_international: boolean;
   required_language: string | null;
   language_level: "basic" | "intermediate" | "advanced" | "fluent" | null;
+  like_count: number;
   created_at: string;
   profiles: { full_name: string } | null;
 }
@@ -112,6 +125,7 @@ export default function JobsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
   const [targetJobId, setTargetJobId] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const { hydrated, preferences, updatePreference } = useUserPreferences();
   const viewedJobs = useRef<Set<string>>(new Set());
   const categoryTabs = useMemo(
@@ -216,11 +230,22 @@ export default function JobsPage() {
     );
   }
 
+  function adjustLikeCount(jobId: string, delta: number) {
+    setJobs((prev) =>
+      prev.map((j) =>
+        j.id === jobId
+          ? { ...j, like_count: Math.max(0, (j.like_count ?? 0) + delta) }
+          : j,
+      ),
+    );
+  }
+
   async function toggleAction(jobId: string, actionType: string) {
     const key = `${jobId}:${actionType}`;
     setActionLoading(key);
+    const wasActive = hasAction(jobId, actionType);
     try {
-      if (hasAction(jobId, actionType)) {
+      if (wasActive) {
         await fetch(`/api/jobs/${jobId}/actions?action_type=${actionType}`, {
           method: "DELETE",
         });
@@ -229,6 +254,7 @@ export default function JobsPage() {
             (a) => !(a.job_id === jobId && a.action_type === actionType),
           ),
         );
+        if (actionType === "liked") adjustLikeCount(jobId, -1);
       } else {
         const res = await fetch(`/api/jobs/${jobId}/actions`, {
           method: "POST",
@@ -240,6 +266,7 @@ export default function JobsPage() {
           ...prev,
           { job_id: jobId, action_type: actionType },
         ]);
+        if (actionType === "liked") adjustLikeCount(jobId, 1);
         if (json.deactivated) {
           setJobs((prev) => prev.filter((j) => j.id !== jobId));
         }
@@ -248,6 +275,14 @@ export default function JobsPage() {
     } finally {
       setActionLoading(null);
     }
+  }
+
+  function handleLike(jobId: string) {
+    if (!isAuthenticated) {
+      window.location.href = "/login";
+      return;
+    }
+    toggleAction(jobId, "liked");
   }
 
   function resetFilters() {
@@ -297,12 +332,39 @@ export default function JobsPage() {
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Quadro de Vagas
-          </h1>
-          <p className="text-base leading-relaxed text-muted-foreground">
-            Vagas compartilhadas para a comunidade de mentorados.
-          </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-2xl font-semibold text-foreground">
+                Quadro de Vagas
+              </h1>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                Vagas compartilhadas para a comunidade de mentorados.
+              </p>
+            </div>
+            {isAuthenticated ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setShareOpen(true)}
+                className="min-h-10 shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+                Indicar vaga
+              </Button>
+            ) : (
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="min-h-10 shrink-0"
+              >
+                <Link href="/login">
+                  <Plus className="h-4 w-4" />
+                  Indicar vaga
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
 
         <AdBanner />
@@ -443,10 +505,12 @@ export default function JobsPage() {
                     {job.title}
                   </h2>
                   <div className="mt-2 flex flex-wrap items-center gap-3">
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Building2 className="h-4 w-4" />
-                      {job.company}
-                    </span>
+                    {job.company && (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Building2 className="h-4 w-4" />
+                        {job.company}
+                      </span>
+                    )}
                     {job.location && (
                       <span className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4" />
@@ -456,6 +520,12 @@ export default function JobsPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {job.recommendation_note && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Indicação da comunidade
+                    </span>
+                  )}
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
                   >
@@ -495,34 +565,81 @@ export default function JobsPage() {
                 </div>
               )}
 
-              <p
-                className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
-                  expandedJobs.has(job.id) ? "" : "line-clamp-3"
-                }`}
-              >
-                {job.description}
-              </p>
-              {job.description && job.description.length > 150 && (
-                <button
-                  onClick={() => {
-                    setExpandedJobs((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(job.id)) {
-                        next.delete(job.id);
-                      } else {
-                        next.add(job.id);
-                      }
-                      return next;
-                    });
-                  }}
-                  className="mb-3 min-h-9 text-sm font-medium text-primary hover:underline"
-                >
-                  {expandedJobs.has(job.id) ? "Ver menos" : "Ver mais"}
-                </button>
+              {job.recommendation_note && (
+                <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Por que indicaram esta vaga
+                  </p>
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    {job.recommendation_note}
+                  </p>
+                </div>
+              )}
+
+              {job.description && (
+                <>
+                  <p
+                    className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
+                      expandedJobs.has(job.id) ? "" : "line-clamp-3"
+                    }`}
+                  >
+                    {job.description}
+                  </p>
+                  {job.description.length > 150 && (
+                    <button
+                      onClick={() => {
+                        setExpandedJobs((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(job.id)) {
+                            next.delete(job.id);
+                          } else {
+                            next.add(job.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="mb-3 min-h-9 text-sm font-medium text-primary hover:underline"
+                    >
+                      {expandedJobs.has(job.id) ? "Ver menos" : "Ver mais"}
+                    </button>
+                  )}
+                </>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
+                  {!job.id.startsWith("fj") && (
+                    <button
+                      onClick={() => handleLike(job.id)}
+                      disabled={actionLoading === `${job.id}:liked`}
+                      aria-pressed={hasAction(job.id, "liked")}
+                      aria-label={
+                        hasAction(job.id, "liked")
+                          ? "Remover curtida"
+                          : "Curtir vaga"
+                      }
+                      title={
+                        isAuthenticated
+                          ? "Curtir para ver mais vagas assim"
+                          : "Entre para curtir"
+                      }
+                      className={cn(
+                        "inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                        hasAction(job.id, "liked")
+                          ? "bg-rose-500/15 text-rose-400"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                      )}
+                    >
+                      <Heart
+                        className={cn(
+                          "h-4 w-4",
+                          hasAction(job.id, "liked") && "fill-current",
+                        )}
+                      />
+                      {job.like_count ?? 0}
+                    </button>
+                  )}
                   {job.salary_range && (
                     <span className="flex items-center gap-1 text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4" />
@@ -534,7 +651,11 @@ export default function JobsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <ShareButton
                     path={`/jobs#vaga-${job.id}`}
-                    title={`${job.title} na ${job.company}`}
+                    title={
+                      job.company
+                        ? `${job.title} na ${job.company}`
+                        : job.title
+                    }
                     text="Veja esta vaga compartilhada na comunidade de mentorados."
                     label="Compartilhe com alguém"
                     labelVisibility="desktop"
@@ -635,6 +756,19 @@ export default function JobsPage() {
           )}
         </div>
       </div>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Indicar uma vaga</DialogTitle>
+            <DialogDescription>
+              Compartilhe o link de uma vaga interessante com a comunidade. Após
+              a aprovação, ela aparece aqui no quadro.
+            </DialogDescription>
+          </DialogHeader>
+          <JobShareForm onSuccess={loadJobs} />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

@@ -42,9 +42,13 @@ export async function GET(request: Request) {
     }
 
     if (isLegacyPublicResumeUrl(profile.resumeUrl)) {
+      await db
+        .update(profiles)
+        .set({ resumeUrl: null, updatedAt: new Date() })
+        .where(eq(profiles.id, user.id))
       return NextResponse.json(
-        { error: "Curriculo antigo precisa ser reenviado." },
-        { status: 410 },
+        { error: "Curriculo nao encontrado" },
+        { status: 404 },
       )
     }
 
@@ -102,7 +106,11 @@ export async function POST(request: Request) {
       .set({ resumeUrl: result.pathname, updatedAt: new Date() })
       .where(eq(profiles.id, user.id))
 
-    if (previousResume && previousResume !== result.pathname) {
+    if (
+      previousResume &&
+      previousResume !== result.pathname &&
+      !isLegacyPublicResumeUrl(previousResume)
+    ) {
       await deleteFile(previousResume)
     }
 

@@ -5,9 +5,17 @@ import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   normalizeMentorshipChecklistConfig,
 } from "@/lib/mentorship-checklist"
+import {
+  RESUME_AI_PROMPT_SETTING_KEY,
+  normalizeResumeAiPrompt,
+} from "@/lib/resume-ai-prompt"
 
 const GOOGLE_CALENDAR_SETTING_KEY = "google_calendar"
-const ADMIN_MUTABLE_SETTINGS = new Set(["pix_config", MENTORSHIP_CHECKLIST_SETTING_KEY])
+const ADMIN_MUTABLE_SETTINGS = new Set([
+  "pix_config",
+  MENTORSHIP_CHECKLIST_SETTING_KEY,
+  RESUME_AI_PROMPT_SETTING_KEY,
+])
 
 function redactSettingValue(key: string, value: unknown) {
   if (key !== GOOGLE_CALENDAR_SETTING_KEY) return value
@@ -58,7 +66,9 @@ export async function PUT(request: Request) {
     const nextValue =
       key === MENTORSHIP_CHECKLIST_SETTING_KEY
         ? normalizeMentorshipChecklistConfig(value, false)
-        : value
+        : key === RESUME_AI_PROMPT_SETTING_KEY
+          ? normalizeResumeAiPrompt(value)
+          : value
 
     const [data] = await db
       .insert(siteSettings)

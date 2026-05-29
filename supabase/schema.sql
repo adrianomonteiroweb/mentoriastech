@@ -492,8 +492,9 @@ CREATE TABLE public.jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   posted_by UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
-  company TEXT NOT NULL,
-  description TEXT NOT NULL,
+  company TEXT,                  -- opcional: indicações da comunidade podem não ter empresa
+  description TEXT,              -- opcional: indicações usam recommendation_note no lugar
+  recommendation_note TEXT,     -- "por que achou interessante" (indicação da comunidade)
   location TEXT,
   job_type TEXT NOT NULL DEFAULT 'remote' CHECK (job_type IN ('remote', 'hybrid', 'onsite')),
   level TEXT NOT NULL DEFAULT 'junior' CHECK (level IN ('internship', 'junior', 'mid', 'senior')),
@@ -847,10 +848,45 @@ CREATE TABLE public.job_actions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  action_type TEXT NOT NULL,  -- 'applied', 'link_issue', 'closed'
+  action_type TEXT NOT NULL,  -- 'applied', 'link_issue', 'closed', 'liked'
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(job_id, user_id, action_type)
 );
 
 CREATE INDEX idx_job_actions_job_id ON public.job_actions(job_id);
 CREATE INDEX idx_job_actions_user_id ON public.job_actions(user_id);
+CREATE INDEX idx_job_actions_type_job ON public.job_actions(action_type, job_id);
+
+-- -----------------------------------------------------------------------------
+-- 12. CONTENT_SUGGESTIONS — Solicitações e indicações de conteúdo da comunidade
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.content_suggestions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,  -- null = anônimo
+  type TEXT NOT NULL CHECK (type IN ('request', 'indication')),
+  title TEXT,
+  url TEXT,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'approved', 'archived')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.content_suggestions ENABLE ROW LEVEL SECURITY;
+
+-- Qualquer pessoa pode enviar uma solicitação/indicação
+CREATE POLICY "Anyone can create content suggestions"
+  ON public.content_suggestions FOR INSERT
+  WITH CHECK (true);
+
+-- Admin gerencia todas as sugestões
+CREATE POLICY "Admin can manage content suggestions"
+  ON public.content_suggestions FOR ALL
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
+
+CREATE INDEX idx_content_suggestions_status ON public.content_suggestions(status, created_at);
+
+CREATE TRIGGER content_suggestions_updated_at
+  BEFORE UPDATE ON public.content_suggestions
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

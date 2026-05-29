@@ -5,7 +5,7 @@ import { db, jobActions, jobs } from "@/lib/db"
 import { requireAuth } from "@/lib/utils/auth"
 
 const actionSchema = z.object({
-  action_type: z.enum(["applied", "link_issue", "closed"]),
+  action_type: z.enum(["applied", "link_issue", "closed", "liked"]),
 })
 
 export async function POST(
@@ -62,7 +62,7 @@ export async function DELETE(
     const { searchParams } = new URL(request.url)
     const actionType = searchParams.get("action_type")
 
-    if (!actionType || !["applied", "link_issue", "closed"].includes(actionType)) {
+    if (!actionType || !["applied", "link_issue", "closed", "liked"].includes(actionType)) {
       return NextResponse.json({ error: "action_type obrigatorio" }, { status: 400 })
     }
 
@@ -72,7 +72,7 @@ export async function DELETE(
         and(
           eq(jobActions.jobId, id),
           eq(jobActions.userId, user.id),
-          eq(jobActions.actionType, actionType as "applied" | "link_issue" | "closed"),
+          eq(jobActions.actionType, actionType as "applied" | "link_issue" | "closed" | "liked"),
         ),
       )
 
