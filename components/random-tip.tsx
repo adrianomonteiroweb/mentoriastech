@@ -105,9 +105,13 @@ export function RandomTipCard({ placement, className }: RandomTipCardProps) {
           <h2 id={titleId} className="mt-1 text-base font-semibold leading-snug text-foreground">
             {tip.title}
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-foreground/90">
-            {tip.body}
-          </p>
+          <div className="mt-2 text-sm leading-relaxed text-foreground/90 whitespace-pre-line">
+            {tip.body.split(/(?=\d+\s*[-–—.]\s)/).map((part, i) => (
+              <p key={i} className={i > 0 ? "mt-1.5" : ""}>
+                {part.trim()}
+              </p>
+            ))}
+          </div>
         </div>
       </div>
 

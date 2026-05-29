@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto"
-import { del, get, put } from "@vercel/blob"
+import { del, get, list, put } from "@vercel/blob"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
@@ -65,7 +65,7 @@ const WEBP_RULE: UploadTypeRule = {
 
 const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   resume: {
-    access: "private",
+    access: "public",
     rules: [PDF_RULE],
   },
   content: {
@@ -163,6 +163,15 @@ export async function uploadPrivateResume(file: File, userId: string) {
 }
 
 export async function getPrivateFile(pathname: string) {
+  const access = UPLOAD_CONFIG.resume.access
+  if (access === "public") {
+    const { blobs } = await list({ prefix: pathname, limit: 1 })
+    const blob = blobs[0]
+    if (!blob) return null
+    const res = await fetch(blob.url)
+    if (!res.ok) return null
+    return { ...blob, stream: res.body, statusCode: 200 }
+  }
   return get(pathname, { access: "private", useCache: false })
 }
 

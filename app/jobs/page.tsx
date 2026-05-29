@@ -401,86 +401,100 @@ export default function JobsPage() {
         )}
 
         {hydrated && preferences.showJobFilters && (
-          <div className="flex flex-col gap-3">
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Filtrar por nível"
-            >
-              {LEVEL_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  aria-pressed={activeTab === tab.key}
-                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    activeTab === tab.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          <div className="flex flex-col gap-4 rounded-lg border border-border bg-card/50 p-3 sm:p-4">
+            <div role="group" aria-label="Filtrar por nível">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Nível
+              </span>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {LEVEL_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    aria-pressed={activeTab === tab.key}
+                    className={`min-h-8 shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm sm:px-4 ${
+                      activeTab === tab.key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Filtrar por modelo e alcance"
-            >
-              {TYPE_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveType(tab.key)}
-                  aria-pressed={activeType === tab.key}
-                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    activeType === tab.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-              <span className="mx-1 w-px bg-border" aria-hidden="true" />
-              {SCOPE_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveScope(tab.key)}
-                  aria-pressed={activeScope === tab.key}
-                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    activeScope === tab.key
-                      ? tab.key === "international"
-                        ? "bg-violet-400 text-background"
-                        : "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {tab.key === "international" && (
-                    <Globe className="mr-1 inline h-4 w-4" />
-                  )}
-                  {tab.label}
-                </button>
-              ))}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div role="group" aria-label="Filtrar por modelo">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Modelo
+                </span>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {TYPE_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveType(tab.key)}
+                      aria-pressed={activeType === tab.key}
+                      className={`min-h-8 shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm sm:px-4 ${
+                        activeType === tab.key
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div role="group" aria-label="Filtrar por alcance">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Alcance
+                </span>
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                  {SCOPE_TABS.map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActiveScope(tab.key)}
+                      aria-pressed={activeScope === tab.key}
+                      className={`min-h-8 shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm sm:px-4 ${
+                        activeScope === tab.key
+                          ? tab.key === "international"
+                            ? "bg-violet-400 text-background"
+                            : "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      }`}
+                    >
+                      {tab.key === "international" && (
+                        <Globe className="mr-1 inline h-3.5 w-3.5" />
+                      )}
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Filtrar por categoria"
-            >
-              {categoryTabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveCategory(tab.key)}
-                  aria-pressed={activeCategory === tab.key}
-                  className={`min-h-10 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                    activeCategory === tab.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+
+            <div role="group" aria-label="Filtrar por categoria">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Categoria
+              </span>
+              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {categoryTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveCategory(tab.key)}
+                    aria-pressed={activeCategory === tab.key}
+                    className={`min-h-8 shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm sm:px-4 ${
+                      activeCategory === tab.key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
