@@ -9,6 +9,8 @@ import {
   Download,
   FileText,
   Loader2,
+  MessageSquare,
+  Search,
   Sparkles,
   Upload,
 } from "lucide-react"
@@ -21,6 +23,28 @@ interface Props {
   email: string
   initialHasResume: boolean
 }
+
+interface AnalysisItem {
+  title: string
+  where: string
+  period: string
+  relevance: string
+  question: string
+}
+
+interface ResumeAnalysis {
+  experiences: AnalysisItem[]
+  formations: AnalysisItem[]
+  hasExperience: boolean
+}
+
+interface ProjectAnswer {
+  title: string
+  where: string
+  answer: string
+}
+
+type Phase = "input" | "analysis" | "result"
 
 function RenderedResume({ markdown }: { markdown: string }) {
   const blocks = parseResumeMarkdown(markdown)
@@ -69,6 +93,50 @@ function RenderedResume({ markdown }: { markdown: string }) {
   )
 }
 
+function AnalysisCard({
+  item,
+  type,
+  answer,
+  onAnswer,
+}: {
+  item: AnalysisItem
+  type: "experience" | "formation"
+  answer: string
+  onAnswer: (value: string) => void
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card/50 p-3">
+      <div className="mb-2 flex items-start gap-2">
+        <span className="mt-0.5 shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-primary">
+          {type === "experience" ? "Experiência" : "Formação"}
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            {item.title}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {item.where} · {item.period}
+          </p>
+        </div>
+      </div>
+      <p className="mb-2 text-xs text-muted-foreground italic">
+        {item.relevance}
+      </p>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">
+        <MessageSquare className="mr-1 inline h-3.5 w-3.5 text-primary" />
+        {item.question}
+      </label>
+      <Textarea
+        value={answer}
+        onChange={(e) => onAnswer(e.target.value)}
+        rows={3}
+        placeholder="Descreva projetos, tecnologias utilizadas, resultados alcançados..."
+        className="text-sm"
+      />
+    </div>
+  )
+}
+
 export function ResumeImprover({ email, initialHasResume }: Props) {
   const [hasResume, setHasResume] = useState(initialHasResume)
   const [file, setFile] = useState<File | null>(null)
@@ -76,6 +144,11 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [jobDescription, setJobDescription] = useState("")
+  const [phase, setPhase] = useState<Phase>("input")
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
@@ -115,6 +188,53 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
     }
   }
 
+  async function handleAnalyze() {
+    setAnalyzing(true)
+    setError("")
+    setNotice("")
+    setAnalysis(null)
+    setAnswers({})
+
+    try {
+      const res = await fetch("/api/minhas-mentorias/resume/improve/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobDescription }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error || "Erro ao analisar currículo")
+      }
+
+      setAnalysis(data.analysis as ResumeAnalysis)
+      setPhase("analysis")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao analisar currículo")
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  function allItems(): AnalysisItem[] {
+    if (!analysis) return []
+    return [...analysis.experiences, ...analysis.formations]
+  }
+
+  function answerKey(item: AnalysisItem) {
+    return `${item.title}::${item.where}`
+  }
+
+  function buildProjectAnswers(): ProjectAnswer[] {
+    return allItems()
+      .filter((item) => (answers[answerKey(item)] || "").trim().length > 0)
+      .map((item) => ({
+        title: item.title,
+        where: item.where,
+        answer: answers[answerKey(item)].trim(),
+      }))
+  }
+
   async function handleGenerate() {
     setGenerating(true)
     setError("")
@@ -125,7 +245,10 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
       const res = await fetch("/api/minhas-mentorias/resume/improve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription }),
+        body: JSON.stringify({
+          jobDescription,
+          projectAnswers: buildProjectAnswers(),
+        }),
       })
 
       const data = await res.json().catch(() => null)
@@ -134,6 +257,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
       }
 
       setResult(data.markdown as string)
+      setPhase("result")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao gerar currículo")
     } finally {
@@ -185,6 +309,18 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
     }
   }
 
+  function handleRestart() {
+    setPhase("input")
+    setAnalysis(null)
+    setAnswers({})
+    setResult(null)
+    setError("")
+  }
+
+  const filledCount = allItems().filter(
+    (item) => (answers[answerKey(item)] || "").trim().length > 0,
+  ).length
+
   return (
     <main className="min-h-screen px-4 py-8">
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -202,104 +338,202 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
           <p className="text-xs text-muted-foreground">Acesso via {email}</p>
         </header>
 
-        {/* Passo 1: currículo */}
-        <Card>
-          <CardContent className="flex flex-col gap-3 py-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">
-                1. Seu currículo (PDF)
-              </span>
-            </div>
+        {/* Steps indicator */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ${phase === "input" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+            <FileText className="h-3 w-3" /> 1. Dados
+          </span>
+          <span className="text-muted-foreground">→</span>
+          <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ${phase === "analysis" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+            <Search className="h-3 w-3" /> 2. Projetos
+          </span>
+          <span className="text-muted-foreground">→</span>
+          <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 font-medium ${phase === "result" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+            <Sparkles className="h-3 w-3" /> 3. Resultado
+          </span>
+        </div>
 
-            {hasResume ? (
-              <a
-                href="/api/minhas-mentorias/resume/download"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Ver currículo atual
-              </a>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Você ainda não enviou um currículo. Envie um PDF para começar.
-              </p>
-            )}
+        {/* Phase 1: Input */}
+        {phase === "input" && (
+          <>
+            <Card>
+              <CardContent className="flex flex-col gap-3 py-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Seu currículo (PDF)
+                  </span>
+                </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf"
-                onChange={(e) => {
-                  setError("")
-                  setNotice("")
-                  setFile(e.target.files?.[0] || null)
-                }}
-                className="text-xs text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:text-foreground"
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!file || uploading}
-                onClick={handleUpload}
-                className="shrink-0"
-              >
-                {uploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {hasResume ? (
+                  <a
+                    href="/api/minhas-mentorias/resume/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Ver currículo atual
+                  </a>
                 ) : (
-                  <Upload className="h-3.5 w-3.5" />
+                  <p className="text-xs text-muted-foreground">
+                    Você ainda não enviou um currículo. Envie um PDF para começar.
+                  </p>
                 )}
-                <span className="ml-1">
-                  {uploading ? "Enviando…" : hasResume ? "Substituir" : "Enviar"}
-                </span>
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Tamanho máximo: 5MB</p>
-          </CardContent>
-        </Card>
 
-        {/* Passo 2: vaga */}
-        <Card>
-          <CardContent className="flex flex-col gap-3 py-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">
-                2. Descrição da vaga
-              </span>
-            </div>
-            <Textarea
-              value={jobDescription}
-              onChange={(e) => {
-                setError("")
-                setJobDescription(e.target.value)
-              }}
-              rows={7}
-              placeholder="Cole aqui a descrição completa da vaga (responsabilidades, requisitos, tecnologias…)."
-            />
-            <Button
-              type="button"
-              disabled={!hasResume || generating || jobDescription.trim().length < 20}
-              onClick={handleGenerate}
-              className="w-fit"
-            >
-              {generating ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              ) : (
-                <Sparkles className="h-4 w-4 mr-1" />
-              )}
-              {generating ? "Gerando…" : "Gerar currículo otimizado"}
-            </Button>
-            {!hasResume && (
-              <p className="text-xs text-muted-foreground">
-                Envie um currículo no passo 1 para habilitar a geração.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      setError("")
+                      setNotice("")
+                      setFile(e.target.files?.[0] || null)
+                    }}
+                    className="text-xs text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:text-foreground"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!file || uploading}
+                    onClick={handleUpload}
+                    className="shrink-0"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    <span className="ml-1">
+                      {uploading ? "Enviando…" : hasResume ? "Substituir" : "Enviar"}
+                    </span>
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Tamanho máximo: 5MB</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="flex flex-col gap-3 py-4">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Descrição da vaga
+                  </span>
+                </div>
+                <Textarea
+                  value={jobDescription}
+                  onChange={(e) => {
+                    setError("")
+                    setJobDescription(e.target.value)
+                  }}
+                  rows={7}
+                  placeholder="Cole aqui a descrição completa da vaga (responsabilidades, requisitos, tecnologias…)."
+                />
+                <Button
+                  type="button"
+                  disabled={!hasResume || analyzing || jobDescription.trim().length < 20}
+                  onClick={handleAnalyze}
+                  className="w-fit"
+                >
+                  {analyzing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Search className="h-4 w-4 mr-1" />
+                  )}
+                  {analyzing ? "Analisando…" : "Analisar currículo"}
+                </Button>
+                {!hasResume && (
+                  <p className="text-xs text-muted-foreground">
+                    Envie um currículo acima para habilitar a análise.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Phase 2: Analysis + Project Questions */}
+        {phase === "analysis" && analysis && (
+          <>
+            <Card>
+              <CardContent className="flex flex-col gap-4 py-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">
+                    Identificamos o que mais combina com a vaga
+                  </h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {analysis.hasExperience
+                      ? "Conte-nos sobre projetos que você realizou nessas experiências e formações. Quanto mais detalhes, melhor ficará o currículo."
+                      : "Você ainda está no início da carreira — foque em projetos práticos, exercícios, trabalhos acadêmicos ou projetos pessoais que demonstrem suas habilidades."}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {analysis.experiences.map((item, i) => (
+                    <AnalysisCard
+                      key={`exp-${i}`}
+                      item={item}
+                      type="experience"
+                      answer={answers[answerKey(item)] || ""}
+                      onAnswer={(v) =>
+                        setAnswers((prev) => ({ ...prev, [answerKey(item)]: v }))
+                      }
+                    />
+                  ))}
+                  {analysis.formations.map((item, i) => (
+                    <AnalysisCard
+                      key={`form-${i}`}
+                      item={item}
+                      type="formation"
+                      answer={answers[answerKey(item)] || ""}
+                      onAnswer={(v) =>
+                        setAnswers((prev) => ({ ...prev, [answerKey(item)]: v }))
+                      }
+                    />
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    disabled={generating || filledCount === 0}
+                    onClick={handleGenerate}
+                    className="w-fit"
+                  >
+                    {generating ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-1" />
+                    )}
+                    {generating ? "Gerando…" : "Gerar currículo otimizado"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRestart}
+                    disabled={generating}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    Voltar
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {filledCount}/{allItems().length} respondidas
+                  </span>
+                </div>
+
+                {filledCount === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Responda pelo menos uma pergunta para gerar o currículo.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {notice && (
           <p className="flex items-center gap-1 text-sm text-green-500">
@@ -308,8 +542,8 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {/* Resultado */}
-        {result && (
+        {/* Phase 3: Result */}
+        {phase === "result" && result && (
           <Card>
             <CardContent className="flex flex-col gap-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -317,6 +551,15 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                   Currículo otimizado
                 </span>
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRestart}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    Nova análise
+                  </Button>
                   <Button
                     type="button"
                     size="sm"

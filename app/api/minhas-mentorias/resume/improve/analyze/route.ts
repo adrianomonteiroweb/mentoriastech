@@ -2,8 +2,7 @@ import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, siteSettings } from "@/lib/db"
-import { logAuditEvent } from "@/lib/audit"
-import { improveResume, ResumeAIError } from "@/lib/ai/gemini"
+import { analyzeResume, ResumeAIError } from "@/lib/ai/gemini"
 import {
   RESUME_AI_PROMPT_SETTING_KEY,
   normalizeResumeAiPrompt,
@@ -16,25 +15,17 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-const projectAnswerSchema = z.object({
-  title: z.string(),
-  where: z.string(),
-  answer: z.string(),
-})
-
 const schema = z.object({
   jobDescription: z
     .string()
     .trim()
     .min(20, "Descreva a vaga com mais detalhes (mínimo 20 caracteres).")
     .max(8000, "Descrição muito longa (máximo 8000 caracteres)."),
-  projectAnswers: z.array(projectAnswerSchema).optional(),
 })
 
 export async function POST(request: Request) {
   try {
     const session = await requireMenteeAccess()
-
     const body = await request.json()
     const parsed = schema.safeParse(body)
     if (!parsed.success) {
@@ -48,7 +39,7 @@ export async function POST(request: Request) {
     const pathname = usableResumePathname(profile?.resumeUrl)
     if (!profile || !pathname) {
       return NextResponse.json(
-        { error: "Envie um currículo em PDF antes de gerar a versão otimizada." },
+        { error: "Envie um currículo em PDF antes de usar a ferramenta." },
         { status: 400 },
       )
     }
@@ -68,23 +59,13 @@ export async function POST(request: Request) {
       .limit(1)
     const customPrompt = normalizeResumeAiPrompt(setting?.value)
 
-    const markdown = await improveResume({
+    const analysis = await analyzeResume({
       pdfBase64,
       jobDescription: parsed.data.jobDescription,
       customPrompt,
-      projectAnswers: parsed.data.projectAnswers,
     })
 
-    await logAuditEvent({
-      actorId: profile.id,
-      targetUserId: profile.id,
-      action: "resume_ai_improved",
-      route: new URL(request.url).pathname,
-      request,
-      metadata: { jobDescriptionLength: parsed.data.jobDescription.length },
-    })
-
-    return NextResponse.json({ markdown })
+    return NextResponse.json({ analysis })
   } catch (error) {
     if (error instanceof ResumeAIError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
