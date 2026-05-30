@@ -9,12 +9,17 @@ import {
   RESUME_AI_PROMPT_SETTING_KEY,
   normalizeResumeAiPrompt,
 } from "@/lib/resume-ai-prompt"
+import {
+  LINKEDIN_AI_PROMPT_SETTING_KEY,
+  normalizeLinkedinAiPrompt,
+} from "@/lib/linkedin-ai-prompt"
 
 const GOOGLE_CALENDAR_SETTING_KEY = "google_calendar"
 const ADMIN_MUTABLE_SETTINGS = new Set([
   "pix_config",
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   RESUME_AI_PROMPT_SETTING_KEY,
+  LINKEDIN_AI_PROMPT_SETTING_KEY,
 ])
 
 function redactSettingValue(key: string, value: unknown) {
@@ -68,7 +73,9 @@ export async function PUT(request: Request) {
         ? normalizeMentorshipChecklistConfig(value, false)
         : key === RESUME_AI_PROMPT_SETTING_KEY
           ? normalizeResumeAiPrompt(value)
-          : value
+          : key === LINKEDIN_AI_PROMPT_SETTING_KEY
+            ? normalizeLinkedinAiPrompt(value)
+            : value
 
     const [data] = await db
       .insert(siteSettings)

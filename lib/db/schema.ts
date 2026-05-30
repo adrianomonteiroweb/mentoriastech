@@ -23,6 +23,7 @@ export const profiles = pgTable("profiles", {
   linkedinUrl: text("linkedin_url"),
   bio: text("bio"),
   resumeUrl: text("resume_url"),
+  linkedinPdfUrl: text("linkedin_pdf_url"),
   portfolioUrl: text("portfolio_url"),
   avatarUrl: text("avatar_url"),
   careerStatus: text("career_status", {

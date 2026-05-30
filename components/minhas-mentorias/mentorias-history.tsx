@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Clock,
   Download,
+  Linkedin,
   LogOut,
   Mail,
   MessageCircle,
@@ -196,16 +197,28 @@ export function MentoriasHistory({ email, bookings }: Props) {
           </button>
         </header>
 
-        <Link
-          href="/minhas-mentorias/curriculo"
-          className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-        >
-          <span className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Melhorar currículo com IA
-          </span>
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        <div className="flex flex-col gap-2">
+          <Link
+            href="/minhas-mentorias/curriculo"
+            className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Melhorar currículo com IA
+            </span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/minhas-mentorias/linkedin"
+            className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          >
+            <span className="flex items-center gap-2">
+              <Linkedin className="h-4 w-4" />
+              Melhorar perfil LinkedIn com IA
+            </span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 flex gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />

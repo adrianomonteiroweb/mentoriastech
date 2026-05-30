@@ -3,6 +3,7 @@ import {
   composeResumePrompt,
   ANALYSIS_PROMPT,
 } from "@/lib/resume-ai-prompt"
+import { composeLinkedinPrompt } from "@/lib/linkedin-ai-prompt"
 
 const DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -51,6 +52,17 @@ export interface ProjectAnswer {
   title: string
   where: string
   answer: string
+}
+
+export interface LinkedInAnalysisInput {
+  pdfBase64: string
+  careerGoal: string
+  profileLanguage: string
+  recommendations: string
+  publishingFrequency: string
+  connections: string
+  mainSkills: string
+  customPrompt?: string | null
 }
 
 export async function analyzeResume({
@@ -159,5 +171,95 @@ export async function improveResume({
     if (error instanceof ResumeAIError) throw error
     const message = error instanceof Error ? error.message : "Erro desconhecido"
     throw new ResumeAIError(`Falha ao gerar o currículo com IA: ${message}`)
+  }
+}
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  portugues: "Português",
+  ingles: "Inglês",
+  espanhol: "Espanhol",
+  outro: "Outro idioma",
+}
+
+const RECOMMENDATION_LABELS: Record<string, string> = {
+  nenhuma: "Nenhuma",
+  "1-3": "1 a 3",
+  "4-10": "4 a 10",
+  "mais-de-10": "Mais de 10",
+}
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  nunca: "Nunca publica",
+  raramente: "Raramente",
+  mensalmente: "Mensalmente",
+  semanalmente: "Semanalmente",
+}
+
+const CONNECTION_LABELS: Record<string, string> = {
+  "menos-de-100": "Menos de 100",
+  "100-500": "100 a 500",
+  "500-1000": "500 a 1.000",
+  "mais-de-1000": "Mais de 1.000",
+}
+
+export async function analyzeLinkedInProfile({
+  pdfBase64,
+  careerGoal,
+  profileLanguage,
+  recommendations,
+  publishingFrequency,
+  connections,
+  mainSkills,
+  customPrompt,
+}: LinkedInAnalysisInput): Promise<string> {
+  const { ai, model } = getClient()
+
+  const systemInstruction = composeLinkedinPrompt(customPrompt)
+
+  const userText = [
+    `Informações de posicionamento fornecidas pelo profissional:`,
+    ``,
+    `**Foco para próxima oportunidade:** ${careerGoal}`,
+    `**Idioma atual do perfil:** ${LANGUAGE_LABELS[profileLanguage] || profileLanguage}`,
+    `**Recomendações no LinkedIn:** ${RECOMMENDATION_LABELS[recommendations] || recommendations}`,
+    `**Frequência de publicações:** ${FREQUENCY_LABELS[publishingFrequency] || publishingFrequency}`,
+    `**Número de conexões:** ${CONNECTION_LABELS[connections] || connections}`,
+    `**Principais áreas de atuação/skills:** ${mainSkills}`,
+    ``,
+    `Analise o perfil do LinkedIn (PDF anexado) junto com essas informações e gere a análise completa em Markdown, seguindo estritamente as regras e seções definidas.`,
+  ].join("\n")
+
+  const config: Record<string, unknown> = {
+    systemInstruction,
+    temperature: 0.4,
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType: "application/pdf", data: pdfBase64 } },
+            { text: userText },
+          ],
+        },
+      ],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+    return text
+  } catch (error) {
+    if (error instanceof ResumeAIError) throw error
+    const message = error instanceof Error ? error.message : "Erro desconhecido"
+    throw new ResumeAIError(`Falha ao analisar o perfil LinkedIn com IA: ${message}`)
   }
 }

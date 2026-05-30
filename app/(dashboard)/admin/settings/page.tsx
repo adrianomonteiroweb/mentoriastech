@@ -17,6 +17,10 @@ import {
   RESUME_AI_PROMPT_SETTING_KEY,
   normalizeResumeAiPrompt,
 } from "@/lib/resume-ai-prompt"
+import {
+  LINKEDIN_AI_PROMPT_SETTING_KEY,
+  normalizeLinkedinAiPrompt,
+} from "@/lib/linkedin-ai-prompt"
 
 export default function AdminSettingsPage() {
   const [calendarConnected, setCalendarConnected] = useState(false)
@@ -27,6 +31,9 @@ export default function AdminSettingsPage() {
   const [resumePrompt, setResumePrompt] = useState("")
   const [savingResumePrompt, setSavingResumePrompt] = useState(false)
   const [resumePromptMessage, setResumePromptMessage] = useState("")
+  const [linkedinPrompt, setLinkedinPrompt] = useState("")
+  const [savingLinkedinPrompt, setSavingLinkedinPrompt] = useState(false)
+  const [linkedinPromptMessage, setLinkedinPromptMessage] = useState("")
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -43,6 +50,7 @@ export default function AdminSettingsPage() {
             : normalizeMentorshipChecklistConfig(checklistSetting),
         )
         setResumePrompt(normalizeResumeAiPrompt(settings[RESUME_AI_PROMPT_SETTING_KEY]))
+        setLinkedinPrompt(normalizeLinkedinAiPrompt(settings[LINKEDIN_AI_PROMPT_SETTING_KEY]))
       })
       .catch(console.error)
       .finally(() => setLoading(false))
@@ -74,6 +82,35 @@ export default function AdminSettingsPage() {
       )
     } finally {
       setSavingResumePrompt(false)
+    }
+  }
+
+  async function saveLinkedinPrompt() {
+    setSavingLinkedinPrompt(true)
+    setLinkedinPromptMessage("")
+
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: LINKEDIN_AI_PROMPT_SETTING_KEY,
+          value: linkedinPrompt,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Erro ao salvar prompt")
+      }
+
+      setLinkedinPromptMessage("Prompt salvo.")
+    } catch (error) {
+      setLinkedinPromptMessage(
+        error instanceof Error ? error.message : "Erro ao salvar prompt",
+      )
+    } finally {
+      setSavingLinkedinPrompt(false)
     }
   }
 
@@ -261,6 +298,42 @@ export default function AdminSettingsPage() {
 
             <Button type="button" onClick={saveResumePrompt} disabled={savingResumePrompt}>
               {savingResumePrompt ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar prompt
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Melhoria de LinkedIn com IA</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">
+              Instruções adicionais para a IA ao analisar o perfil LinkedIn do
+              mentorado. Já existe um prompt base no sistema (análise de headline,
+              sobre, experiências, idioma, recomendações, publicações e networking);
+              o texto abaixo é somado a ele. Deixe em branco para usar apenas o prompt base.
+            </p>
+            <Textarea
+              value={linkedinPrompt}
+              onChange={(e) => {
+                setLinkedinPromptMessage("")
+                setLinkedinPrompt(e.target.value)
+              }}
+              rows={8}
+              placeholder="Ex.: foque em posicionamento para vagas internacionais; sugira headline bilíngue; priorize networking em comunidades de tech."
+            />
+
+            {linkedinPromptMessage && (
+              <p className="text-sm text-muted-foreground">{linkedinPromptMessage}</p>
+            )}
+
+            <Button type="button" onClick={saveLinkedinPrompt} disabled={savingLinkedinPrompt}>
+              {savingLinkedinPrompt ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
                 <Save className="h-4 w-4 mr-1" />

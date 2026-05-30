@@ -162,6 +162,10 @@ export async function uploadPrivateResume(file: File, userId: string) {
   return uploadFile(file, `private/resumes/${userId}`, "resume")
 }
 
+export async function uploadPrivateLinkedinPdf(file: File, userId: string) {
+  return uploadFile(file, `private/linkedin/${userId}`, "resume")
+}
+
 export async function getPrivateFile(pathname: string) {
   const access = UPLOAD_CONFIG.resume.access
   if (access === "public") {
