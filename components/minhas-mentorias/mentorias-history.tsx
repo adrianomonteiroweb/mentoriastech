@@ -135,6 +135,7 @@ function BookingCard({ booking }: { booking: MenteeBookingItem }) {
               content={booking.menteeGrowthAreas}
             />
             <Section title="Anotações gerais" content={booking.notes} />
+            <Section title="Anotações do mentor" content={booking.adminNotes} />
 
             <div className="flex flex-col gap-2 border-t border-border pt-3">
               <p className="text-xs text-muted-foreground">

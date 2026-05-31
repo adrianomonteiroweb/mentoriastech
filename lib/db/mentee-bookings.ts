@@ -11,6 +11,7 @@ export interface MenteeBookingItem {
   topicsDiscussed: string | null
   menteeStrengths: string | null
   menteeGrowthAreas: string | null
+  adminNotes: string | null
   notes: string | null
   guestName: string | null
   createdAt: Date
@@ -32,6 +33,7 @@ export async function getMenteeBookingsByEmail(
       topicsDiscussed: bookings.topicsDiscussed,
       menteeStrengths: bookings.menteeStrengths,
       menteeGrowthAreas: bookings.menteeGrowthAreas,
+      adminNotes: bookings.adminNotes,
       notes: bookings.notes,
       guestName: bookings.guestName,
       createdAt: bookings.createdAt,
@@ -50,6 +52,7 @@ export async function getMenteeBookingsByEmail(
           sql`${bookings.topicsDiscussed} IS NOT NULL AND ${bookings.topicsDiscussed} <> ''`,
           sql`${bookings.menteeStrengths} IS NOT NULL AND ${bookings.menteeStrengths} <> ''`,
           sql`${bookings.menteeGrowthAreas} IS NOT NULL AND ${bookings.menteeGrowthAreas} <> ''`,
+          sql`${bookings.adminNotes} IS NOT NULL AND ${bookings.adminNotes} <> ''`,
         ),
       ),
     )
@@ -75,6 +78,7 @@ export async function getMenteeBookingByIdForEmail(
       topicsDiscussed: bookings.topicsDiscussed,
       menteeStrengths: bookings.menteeStrengths,
       menteeGrowthAreas: bookings.menteeGrowthAreas,
+      adminNotes: bookings.adminNotes,
       notes: bookings.notes,
       guestName: bookings.guestName,
       createdAt: bookings.createdAt,

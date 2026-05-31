@@ -1,13 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const {
   mockDbLimit,
-  mockGet,
+  mockDbUpdateWhere,
+  mockList,
+  mockFetch,
   mockLogAuditEvent,
   mockRequireRole,
 } = vi.hoisted(() => ({
   mockDbLimit: vi.fn(),
-  mockGet: vi.fn(),
+  mockDbUpdateWhere: vi.fn(),
+  mockList: vi.fn(),
+  mockFetch: vi.fn(),
   mockLogAuditEvent: vi.fn(),
   mockRequireRole: vi.fn(),
 }))
@@ -26,6 +30,11 @@ vi.mock("@/lib/db", () => ({
         })),
       })),
     })),
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: mockDbUpdateWhere,
+      })),
+    })),
   },
 }))
 
@@ -37,13 +46,20 @@ vi.mock("@/lib/audit", () => ({
   logAuditEvent: mockLogAuditEvent,
 }))
 
+// Currículos são armazenados como blob público (ver lib/utils/upload.ts), então
+// getPrivateFile usa list() + fetch() da URL pública, e não get({ access: "private" }).
 vi.mock("@vercel/blob", () => ({
-  get: mockGet,
+  list: mockList,
+  get: vi.fn(),
   put: vi.fn(),
   del: vi.fn(),
 }))
 
 import { GET } from "@/app/api/admin/mentees/[id]/resume/route"
+
+const RESUME_PATHNAME = "private/resumes/mentee-1/resume.pdf"
+const RESUME_PUBLIC_URL =
+  "https://store.public.blob.vercel-storage.com/private/resumes/mentee-1/resume.pdf"
 
 function makeParams(id = "mentee-1") {
   return { params: Promise.resolve({ id }) }
@@ -67,16 +83,26 @@ describe("protected resume access", () => {
       {
         id: "mentee-1",
         role: "mentee",
-        resumeUrl: "private/resumes/mentee-1/resume.pdf",
+        resumeUrl: RESUME_PATHNAME,
       },
     ])
-    mockGet.mockResolvedValue({
-      statusCode: 200,
-      stream: pdfStream(),
-      blob: {
-        contentType: "application/pdf",
-      },
+    mockDbUpdateWhere.mockResolvedValue(undefined)
+    mockList.mockResolvedValue({
+      blobs: [
+        {
+          url: RESUME_PUBLIC_URL,
+          downloadUrl: RESUME_PUBLIC_URL,
+          pathname: RESUME_PATHNAME,
+          size: 4,
+        },
+      ],
     })
+    mockFetch.mockResolvedValue({ ok: true, body: pdfStream() })
+    vi.stubGlobal("fetch", mockFetch)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it("blocks unauthenticated users before exposing a resume", async () => {
@@ -91,7 +117,8 @@ describe("protected resume access", () => {
 
     expect(response.status).toBe(401)
     expect(mockDbLimit).not.toHaveBeenCalled()
-    expect(mockGet).not.toHaveBeenCalled()
+    expect(mockList).not.toHaveBeenCalled()
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 
   it("generates a short-lived signed download URL for authorized HR/admin users", async () => {
@@ -114,7 +141,7 @@ describe("protected resume access", () => {
     )
   })
 
-  it("streams the private blob only through a valid signed URL", async () => {
+  it("streams the resume only through a valid signed URL", async () => {
     const redirect = await GET(
       new Request("http://localhost/api/admin/mentees/mentee-1/resume"),
       makeParams(),
@@ -126,10 +153,12 @@ describe("protected resume access", () => {
 
     expect(response.status).toBe(200)
     expect(response.headers.get("Content-Disposition")).toContain("curriculo.pdf")
-    expect(mockGet).toHaveBeenCalledWith(
-      "private/resumes/mentee-1/resume.pdf",
-      expect.objectContaining({ access: "private", useCache: false }),
+    expect(response.headers.get("Content-Type")).toBe("application/pdf")
+    expect(mockList).toHaveBeenCalledWith(
+      expect.objectContaining({ prefix: RESUME_PATHNAME, limit: 1 }),
     )
+    expect(mockFetch).toHaveBeenCalledWith(RESUME_PUBLIC_URL)
+    // O download assinado não deve re-checar o papel (a assinatura já autoriza).
     expect(mockRequireRole).toHaveBeenCalledTimes(1)
     expect(mockLogAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -154,10 +183,11 @@ describe("protected resume access", () => {
       makeParams(),
     )
 
-    expect(response.status).toBe(410)
+    expect(response.status).toBe(404)
     await expect(response.json()).resolves.toEqual({
-      error: "Curriculo antigo precisa ser reenviado.",
+      error: "Curriculo nao encontrado",
     })
-    expect(mockGet).not.toHaveBeenCalled()
+    expect(mockList).not.toHaveBeenCalled()
+    expect(mockFetch).not.toHaveBeenCalled()
   })
 })

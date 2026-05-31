@@ -267,14 +267,17 @@ export function CompleteBookingDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="admin-notes">Anotações privadas</Label>
+              <Label htmlFor="admin-notes">Anotações do mentor</Label>
               <Textarea
                 id="admin-notes"
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 rows={3}
-                placeholder="Notas internas (apenas você visualiza)"
+                placeholder="O mentorado verá estas anotações em Minhas Mentorias"
               />
+              <p className="text-xs text-muted-foreground">
+                Visível para o mentorado em Minhas Mentorias e no PDF.
+              </p>
             </div>
           </section>
 

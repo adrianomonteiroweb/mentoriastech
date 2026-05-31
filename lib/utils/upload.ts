@@ -123,8 +123,10 @@ async function validateFile(file: File, category: UploadCategory) {
 /**
  * Upload de arquivo para Vercel Blob.
  *
- * Curriculos usam blob privado e pathname sem nome original. Conteudos/anuncios
- * continuam publicos porque sao ativos exibidos no site.
+ * Todos os uploads usam blob publico (ver UPLOAD_CONFIG). Curriculos ficam sob o
+ * prefixo private/resumes/, mas a "privacidade" e feita na camada da aplicacao:
+ * acesso via URLs assinadas de curta duracao + auditoria (lib/utils/resume-access.ts).
+ * O blob em si e publicamente acessivel por URL.
  */
 export async function uploadFile(
   file: File,

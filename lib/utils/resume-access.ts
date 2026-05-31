@@ -145,11 +145,17 @@ export async function streamPrivateResume(pathname: string) {
     return NextResponse.json({ error: "Curriculo nao encontrado" }, { status: 404 })
   }
 
+  // getPrivateFile retorna formatos diferentes para blob privado (get, expõe
+  // metadados em `blob`) e público (list+fetch, sem `blob`). Currículos são
+  // sempre PDF, então o fallback é seguro.
+  const contentType =
+    ("blob" in result ? result.blob?.contentType : undefined) || "application/pdf"
+
   return new Response(result.stream, {
     headers: {
       "Cache-Control": "no-store",
       "Content-Disposition": 'attachment; filename="curriculo.pdf"',
-      "Content-Type": result.blob.contentType || "application/pdf",
+      "Content-Type": contentType,
       "X-Content-Type-Options": "nosniff",
     },
   })

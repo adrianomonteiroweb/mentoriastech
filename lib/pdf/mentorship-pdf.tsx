@@ -236,6 +236,7 @@ export function MentorshipPDF({ booking, menteeEmail }: MentorshipPDFProps) {
         <Section title="Pontos fortes identificados" content={booking.menteeStrengths} />
         <Section title="Áreas para desenvolver" content={booking.menteeGrowthAreas} />
         <Section title="Anotações gerais" content={booking.notes} />
+        <Section title="Anotações do mentor" content={booking.adminNotes} />
 
         <View style={styles.footer}>
           <Text style={styles.footerTitle}>Identificou algo a corrigir?</Text>

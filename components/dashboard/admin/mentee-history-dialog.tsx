@@ -402,7 +402,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
                     {b.topics_discussed && <SectionView label="Duvidas e temas abordados" text={b.topics_discussed} />}
                     {b.mentee_strengths && <SectionView label="Pontos positivos" text={b.mentee_strengths} />}
                     {b.mentee_growth_areas && <SectionView label="Pontos a desenvolver" text={b.mentee_growth_areas} />}
-                    {b.admin_notes && <SectionView label="Anotacoes privadas" text={b.admin_notes} />}
+                    {b.admin_notes && <SectionView label="Anotacoes do mentor" text={b.admin_notes} />}
                     {!!b.mentorship_checklist?.length && (
                       <div className="mb-2">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
@@ -537,7 +537,7 @@ function SessionFormFields({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <Label className="text-[10px]">Anotacoes privadas</Label>
+        <Label className="text-[10px]">Anotacoes do mentor</Label>
         <Textarea
           value={form.admin_notes}
           onChange={(e) => onUpdate("admin_notes", e.target.value)}
