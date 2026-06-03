@@ -342,6 +342,118 @@ export const contentSuggestions = pgTable("content_suggestions", {
 })
 
 // -----------------------------------------------------------------------------
+// COMPANIES — empresas rastreadas pelos mentorados
+// -----------------------------------------------------------------------------
+export const companies = pgTable("companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  linkedinUrl: text("linkedin_url"),
+  website: text("website"),
+  industry: text("industry"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// OPPORTUNITY_RESUMES — biblioteca de curriculos do mentorado
+// -----------------------------------------------------------------------------
+export const opportunityResumes = pgTable("opportunity_resumes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSizeBytes: integer("file_size_bytes"),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// OPPORTUNITIES — oportunidades de emprego (pipeline de candidaturas)
+// -----------------------------------------------------------------------------
+export const opportunities = pgTable("opportunities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  title: text("title"),
+  url: text("url"),
+  description: text("description"),
+  category: text("category"),
+  city: text("city"),
+  state: text("state"),
+  status: text("status", {
+    enum: ["evaluating", "preparing_application", "resume_sent",
+      "in_conversation", "interviews", "offer", "finalized"],
+  }).notNull().default("evaluating"),
+  finalizationType: text("finalization_type", {
+    enum: ["hired", "rejected", "no_response", "frozen", "candidate_withdrew"],
+  }),
+  priority: text("priority", {
+    enum: ["high", "medium", "low"],
+  }).notNull().default("medium"),
+  workModel: text("work_model", { enum: ["remote", "hybrid", "onsite"] }),
+  jobLevel: text("job_level", { enum: ["internship", "junior", "mid", "senior", "trainee"] }),
+  salaryRange: text("salary_range"),
+  contactName: text("contact_name"),
+  contactRole: text("contact_role"),
+  contactLinkedin: text("contact_linkedin"),
+  interviewType: text("interview_type", { enum: ["rh", "technical", "manager"] }),
+  resumeId: uuid("resume_id").references(() => opportunityResumes.id, { onDelete: "set null" }),
+  checklist: jsonb("checklist").$type<{ id: string; label: string; checked: boolean }[]>(),
+  applicationDate: timestamp("application_date", { withTimezone: true }),
+  nextFollowUpAt: timestamp("next_follow_up_at", { withTimezone: true }),
+  nextInterviewAt: timestamp("next_interview_at", { withTimezone: true }),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// OPPORTUNITY_EVENTS — timeline unificada (stage_change, note, follow_up, etc.)
+// -----------------------------------------------------------------------------
+export const opportunityEvents = pgTable("opportunity_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  opportunityId: uuid("opportunity_id").notNull().references(() => opportunities.id, { onDelete: "cascade" }),
+  eventType: text("event_type", {
+    enum: ["stage_change", "note", "mentor_comment", "follow_up",
+      "interview_scheduled", "message_sent", "resume_linked",
+      "checklist_completed", "application_sent"],
+  }).notNull(),
+  title: text("title"),
+  body: text("body"),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status"),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  authorId: uuid("author_id").references(() => profiles.id, { onDelete: "set null" }),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// MESSAGE_TEMPLATES — templates de mensagem do sistema
+// -----------------------------------------------------------------------------
+export const messageTemplates = pgTable("message_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  category: text("category", {
+    enum: ["connect_recruiter", "connect_employee", "send_resume",
+      "reply_recruiter", "thank_interview", "follow_up",
+      "ask_status", "negotiate_offer", "decline_offer", "ask_feedback"],
+  }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect
@@ -369,3 +481,11 @@ export type SiteSetting = typeof siteSettings.$inferSelect
 export type SitePrivateSetting = typeof sitePrivateSettings.$inferSelect
 export type MenteeAccessCode = typeof menteeAccessCodes.$inferSelect
 export type MenteeAccessSession = typeof menteeAccessSessions.$inferSelect
+export type Company = typeof companies.$inferSelect
+export type NewCompany = typeof companies.$inferInsert
+export type Opportunity = typeof opportunities.$inferSelect
+export type NewOpportunity = typeof opportunities.$inferInsert
+export type OpportunityEvent = typeof opportunityEvents.$inferSelect
+export type OpportunityResume = typeof opportunityResumes.$inferSelect
+export type NewOpportunityResume = typeof opportunityResumes.$inferInsert
+export type MessageTemplate = typeof messageTemplates.$inferSelect

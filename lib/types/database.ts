@@ -348,4 +348,9 @@ export interface AdminStats {
   totalContentShares: number
   totalJobShares: number
   totalShares: number
+  minhasMentoriasToolUses: number
+  minhasMentoriasResumeToolUses: number
+  minhasMentoriasLinkedinToolUses: number
+  minhasMentoriasOpportunityToolUses: number
+  minhasMentoriasResumeJobToolUses: number
 }

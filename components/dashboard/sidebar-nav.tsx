@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Settings,
   Tags,
+  Target,
   User,
   Users,
 } from "lucide-react"
@@ -54,6 +55,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Dicas", href: "/admin/tips", icon: Lightbulb },
     { label: "Anúncios", href: "/admin/ads", icon: Megaphone },
     { label: "Mentorados", href: "/admin/mentees", icon: Users },
+    { label: "Oportunidades", href: "/admin/opportunities", icon: Target },
     { label: "Configuracoes", href: "/admin/settings", icon: Settings },
   ],
   mentee: [

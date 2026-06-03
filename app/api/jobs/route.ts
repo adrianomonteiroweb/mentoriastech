@@ -2,24 +2,8 @@ import { NextResponse } from "next/server"
 import { desc, eq, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
-import { jobCategorySchema } from "@/lib/job-validation"
+import { createJobSchema } from "@/lib/job-validation"
 import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
-import { z } from "zod"
-
-const createSchema = z.object({
-  title: z.string().min(3),
-  company: z.string().min(2),
-  description: z.string().min(10),
-  location: z.string().optional(),
-  job_type: z.enum(["remote", "hybrid", "onsite"]).default("remote"),
-  level: z.enum(["internship", "junior", "mid", "senior"]).default("junior"),
-  category: jobCategorySchema.default("other"),
-  salary_range: z.string().optional(),
-  application_url: z.string().url().optional(),
-  is_international: z.boolean().default(false),
-  required_language: z.string().optional(),
-  language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
-})
 
 // GET: listar vagas aprovadas (publico) ou vagas do usuario autenticado (?mine=true)
 export async function GET(request: Request) {
@@ -97,7 +81,7 @@ export async function POST(request: Request) {
     const profile = await requireRole("admin", "hr", "mentee")
     const body = await request.json()
 
-    const parsed = createSchema.safeParse(body)
+    const parsed = createJobSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Dados invalidos", details: parsed.error.flatten() },

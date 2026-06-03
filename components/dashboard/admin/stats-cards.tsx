@@ -2,7 +2,19 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Users, Briefcase, FileText, CheckCircle2, Clock, AlertTriangle, MousePointerClick, Share2 } from "lucide-react"
+import {
+  AlertTriangle,
+  BookOpen,
+  Briefcase,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Linkedin,
+  MousePointerClick,
+  Share2,
+  Sparkles,
+  Users,
+} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminStats } from "@/lib/types/database"
 
@@ -31,6 +43,11 @@ export function StatsCards() {
     { label: "Compart. Paginas", value: stats?.totalPageShares, icon: Share2, color: "text-cyan-400" },
     { label: "Compart. Conteudos", value: stats?.totalContentShares, icon: Share2, color: "text-violet-400" },
     { label: "Compart. Vagas", value: stats?.totalJobShares, icon: Share2, color: "text-emerald-400" },
+    { label: "Ferramentas MM", value: stats?.minhasMentoriasToolUses, icon: Sparkles, color: "text-primary" },
+    { label: "IA Curriculo", value: stats?.minhasMentoriasResumeToolUses, icon: FileText, color: "text-teal-400" },
+    { label: "IA LinkedIn", value: stats?.minhasMentoriasLinkedinToolUses, icon: Linkedin, color: "text-blue-400" },
+    { label: "Oportunidades MM", value: stats?.minhasMentoriasOpportunityToolUses, icon: Briefcase, color: "text-orange-400" },
+    { label: "Vagas p/ Curriculo", value: stats?.minhasMentoriasResumeJobToolUses, icon: Briefcase, color: "text-emerald-400" },
   ]
 
   return (

@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server"
 import { count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
-import { bookings, contentItems, db, jobActions, jobs, mentoringTopics, pageShares, profiles } from "@/lib/db"
+import {
+  auditLogs,
+  bookings,
+  contentItems,
+  db,
+  jobActions,
+  jobs,
+  mentoringTopics,
+  pageShares,
+  profiles,
+} from "@/lib/db"
 import type { AdminStats, TopicRanking } from "@/lib/types/database"
 
 export async function GET() {
@@ -20,6 +30,10 @@ export async function GET() {
       totalPageShares,
       totalContentShares,
       totalJobShares,
+      resumeToolUses,
+      linkedinToolUses,
+      opportunityToolUses,
+      resumeJobToolUses,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings),
       db.select({ value: count() }).from(bookings).where(eq(bookings.status, "pending")),
@@ -32,11 +46,19 @@ export async function GET() {
       db.select({ value: sql<number>`coalesce(sum(${pageShares.shareCount}), 0)::int` }).from(pageShares),
       db.select({ value: sql<number>`coalesce(sum(${contentItems.shareCount}), 0)::int` }).from(contentItems),
       db.select({ value: sql<number>`coalesce(sum(${jobs.shareCount}), 0)::int` }).from(jobs),
+      db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "resume_ai_improved")),
+      db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "linkedin_ai_analyzed")),
+      db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "minhas_mentorias_opportunity_created")),
+      db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "minhas_mentorias_resume_job_created")),
     ])
 
     const pageSharesTotal = totalPageShares[0]?.value || 0
     const contentSharesTotal = totalContentShares[0]?.value || 0
     const jobSharesTotal = totalJobShares[0]?.value || 0
+    const minhasMentoriasResumeToolUses = resumeToolUses[0]?.value || 0
+    const minhasMentoriasLinkedinToolUses = linkedinToolUses[0]?.value || 0
+    const minhasMentoriasOpportunityToolUses = opportunityToolUses[0]?.value || 0
+    const minhasMentoriasResumeJobToolUses = resumeJobToolUses[0]?.value || 0
 
     const topicRankingRows = await db
       .select({
@@ -71,6 +93,15 @@ export async function GET() {
       totalContentShares: contentSharesTotal,
       totalJobShares: jobSharesTotal,
       totalShares: pageSharesTotal + contentSharesTotal + jobSharesTotal,
+      minhasMentoriasToolUses:
+        minhasMentoriasResumeToolUses +
+        minhasMentoriasLinkedinToolUses +
+        minhasMentoriasOpportunityToolUses +
+        minhasMentoriasResumeJobToolUses,
+      minhasMentoriasResumeToolUses,
+      minhasMentoriasLinkedinToolUses,
+      minhasMentoriasOpportunityToolUses,
+      minhasMentoriasResumeJobToolUses,
     }
 
     return NextResponse.json({ data: stats, topicRanking })

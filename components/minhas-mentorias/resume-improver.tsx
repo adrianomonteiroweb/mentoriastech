@@ -1,9 +1,11 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import {
   ArrowLeft,
+  Briefcase,
+  Building2,
   CheckCircle2,
   Copy,
   Download,
@@ -14,10 +16,21 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react"
+import { JobForm } from "@/components/dashboard/hr/job-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { getJobCategoryLabel } from "@/lib/job-options"
 import { parseResumeMarkdown, type ResumeBlock } from "@/lib/resume/markdown-blocks"
+import type { Job } from "@/lib/types/database"
 
 interface Props {
   email: string
@@ -45,6 +58,59 @@ interface ProjectAnswer {
 }
 
 type Phase = "input" | "analysis" | "result"
+type JobSourceMode = "existing" | "new"
+
+const JOB_TYPE_LABELS: Record<string, string> = {
+  remote: "Remoto",
+  hybrid: "Hibrido",
+  onsite: "Presencial",
+}
+
+const JOB_LEVEL_LABELS: Record<string, string> = {
+  internship: "Estagio & Trainee",
+  junior: "Junior",
+  mid: "Pleno",
+  senior: "Senior",
+}
+
+const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
+  basic: "Basico",
+  intermediate: "Intermediario",
+  advanced: "Avancado",
+  fluent: "Fluente",
+}
+
+function buildJobDescriptionFromJob(job: Job) {
+  const lines = [
+    `Titulo: ${job.title}`,
+    job.company ? `Empresa: ${job.company}` : null,
+    job.location ? `Localizacao: ${job.location}` : null,
+    `Modelo: ${JOB_TYPE_LABELS[job.job_type] || job.job_type}`,
+    `Nivel: ${JOB_LEVEL_LABELS[job.level] || job.level}`,
+    job.category ? `Categoria: ${getJobCategoryLabel(job.category)}` : null,
+    job.salary_range ? `Faixa salarial: ${job.salary_range}` : null,
+    job.is_international ? "Vaga internacional: sim" : null,
+    job.required_language
+      ? `Idioma exigido: ${job.required_language}${
+          job.language_level ? ` (${LANGUAGE_LEVEL_LABELS[job.language_level]})` : ""
+        }`
+      : null,
+    job.application_url ? `Link: ${job.application_url}` : null,
+    "",
+    "Descricao:",
+    job.description || "",
+  ]
+
+  return lines.filter((line) => line !== null).join("\n").trim()
+}
+
+function sourceButtonClass(active: boolean) {
+  return `flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+    active
+      ? "border-primary bg-primary text-primary-foreground"
+      : "border-border bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+  }`
+}
 
 function RenderedResume({ markdown }: { markdown: string }) {
   const blocks = parseResumeMarkdown(markdown)
@@ -143,6 +209,11 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const [jobSourceMode, setJobSourceMode] = useState<JobSourceMode>("existing")
+  const [availableJobs, setAvailableJobs] = useState<Job[]>([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+  const [selectedJobId, setSelectedJobId] = useState("")
+  const [createdJob, setCreatedJob] = useState<Job | null>(null)
   const [jobDescription, setJobDescription] = useState("")
   const [phase, setPhase] = useState<Phase>("input")
   const [analyzing, setAnalyzing] = useState(false)
@@ -156,6 +227,59 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
 
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+
+  const selectedJob = useMemo(
+    () => availableJobs.find((job) => job.id === selectedJobId) || null,
+    [availableJobs, selectedJobId],
+  )
+
+  useEffect(() => {
+    let active = true
+
+    setJobsLoading(true)
+    fetch("/api/jobs")
+      .then((res) => res.json())
+      .then((json) => {
+        if (!active) return
+        setAvailableJobs((json.data || []) as Job[])
+      })
+      .catch(() => {
+        if (!active) return
+        setAvailableJobs([])
+      })
+      .finally(() => {
+        if (active) setJobsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  function handleSourceModeChange(mode: JobSourceMode) {
+    setJobSourceMode(mode)
+    setJobDescription("")
+    setCreatedJob(null)
+    setSelectedJobId("")
+    setError("")
+    setNotice("")
+  }
+
+  function handleUseExistingJob() {
+    if (!selectedJob) return
+    setJobDescription(buildJobDescriptionFromJob(selectedJob))
+    setCreatedJob(null)
+    setError("")
+    setNotice("Descricao copiada da vaga selecionada.")
+  }
+
+  function handleCreatedJob(job?: Job) {
+    if (!job) return
+    setCreatedJob(job)
+    setJobDescription(buildJobDescriptionFromJob(job))
+    setError("")
+    setNotice("Vaga enviada para analise do admin e preparada para esta ferramenta.")
+  }
 
   async function handleUpload() {
     if (!file) return
@@ -418,12 +542,119 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
             <Card>
               <CardContent className="flex flex-col gap-3 py-4">
                 <div className="flex items-center gap-2">
-                  <Search className="h-4 w-4 text-primary" />
+                  <Briefcase className="h-4 w-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">
                     Descrição da vaga
                   </span>
                 </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSourceModeChange("existing")}
+                    className={sourceButtonClass(jobSourceMode === "existing")}
+                  >
+                    <Search className="h-4 w-4" />
+                    Vaga da plataforma
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSourceModeChange("new")}
+                    className={sourceButtonClass(jobSourceMode === "new")}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Nova vaga
+                  </button>
+                </div>
+
+                {jobSourceMode === "existing" ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 p-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Label>Escolha uma vaga aprovada</Label>
+                      <Select
+                        value={selectedJobId}
+                        onValueChange={(value) => {
+                          setSelectedJobId(value)
+                          setJobDescription("")
+                          setNotice("")
+                          setError("")
+                        }}
+                        disabled={jobsLoading || availableJobs.length === 0}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              jobsLoading ? "Carregando vagas..." : "Selecionar vaga"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableJobs.map((job) => (
+                            <SelectItem key={job.id} value={job.id}>
+                              {job.company ? `${job.title} - ${job.company}` : job.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedJob && (
+                      <div className="flex items-start gap-2 rounded-md bg-secondary/40 p-3 text-xs text-muted-foreground">
+                        <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{selectedJob.title}</p>
+                          <p>
+                            {selectedJob.company || "Empresa nao informada"}
+                            {selectedJob.location ? ` - ${selectedJob.location}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {availableJobs.length === 0 && !jobsLoading && (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhuma vaga aprovada disponivel no momento. Cadastre uma nova
+                        vaga para usar nesta analise.
+                      </p>
+                    )}
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!selectedJob}
+                      onClick={handleUseExistingJob}
+                      className="w-fit"
+                    >
+                      <Copy className="mr-1 h-3.5 w-3.5" />
+                      Usar esta vaga
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Preencha os dados da nova vaga. Ela sera criada como pendente
+                      para analise do admin e tambem usada nesta melhoria de curriculo.
+                    </p>
+                    <JobForm
+                      submitEndpoint="/api/minhas-mentorias/resume/jobs"
+                      categorySourceEndpoint="/api/jobs"
+                      submitLabel="Salvar vaga e usar"
+                      loadingLabel="Salvando vaga..."
+                      successMessage="Vaga enviada para analise!"
+                      successDescription="Ela ja esta pendente para o admin e pronta para orientar a melhoria do curriculo."
+                      createAnotherLabel="Cadastrar outra vaga"
+                      className="max-w-none"
+                      onSuccess={handleCreatedJob}
+                    />
+                  </div>
+                )}
+
+                <Label htmlFor="job-description-for-analysis">
+                  Descricao usada na analise
+                </Label>
                 <Textarea
+                  id="job-description-for-analysis"
+                  readOnly={!jobDescription}
                   value={jobDescription}
                   onChange={(e) => {
                     setError("")
@@ -434,7 +665,12 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                 />
                 <Button
                   type="button"
-                  disabled={!hasResume || analyzing || jobDescription.trim().length < 20}
+                  disabled={
+                    !hasResume ||
+                    analyzing ||
+                    jobDescription.trim().length < 20 ||
+                    (jobSourceMode === "new" && !createdJob)
+                  }
                   onClick={handleAnalyze}
                   className="w-fit"
                 >
@@ -448,6 +684,11 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                 {!hasResume && (
                   <p className="text-xs text-muted-foreground">
                     Envie um currículo acima para habilitar a análise.
+                  </p>
+                )}
+                {jobSourceMode === "new" && !createdJob && (
+                  <p className="text-xs text-muted-foreground">
+                    Salve a nova vaga para que ela fique pendente de analise do admin.
                   </p>
                 )}
               </CardContent>

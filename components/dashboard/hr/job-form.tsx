@@ -20,12 +20,32 @@ import {
 import type { Job } from "@/lib/types/database"
 
 interface JobFormProps {
-  onSuccess?: () => void
+  onSuccess?: (job?: Job) => void
   job?: Job
   adminMode?: boolean
+  submitEndpoint?: string
+  categorySourceEndpoint?: string
+  submitLabel?: string
+  loadingLabel?: string
+  successMessage?: string
+  successDescription?: string
+  createAnotherLabel?: string
+  className?: string
 }
 
-export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
+export function JobForm({
+  onSuccess,
+  job,
+  adminMode = false,
+  submitEndpoint,
+  categorySourceEndpoint,
+  submitLabel = "Publicar vaga",
+  loadingLabel = "Salvando...",
+  successMessage,
+  successDescription,
+  createAnotherLabel = "Publicar outra vaga",
+  className = "",
+}: JobFormProps) {
   const isEditing = Boolean(job)
   const initialCategory = job?.category || "other"
   const initialUsesCustomCategory = initialCategory !== "other" && !isDefaultJobCategory(initialCategory)
@@ -56,7 +76,8 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
   const selectedCategoryValue = usesCustomCategory ? CUSTOM_JOB_CATEGORY_VALUE : category
 
   useEffect(() => {
-    const endpoint = adminMode ? "/api/admin/jobs" : "/api/jobs?mine=true"
+    const endpoint =
+      categorySourceEndpoint || (adminMode ? "/api/admin/jobs" : "/api/jobs?mine=true")
 
     fetch(endpoint)
       .then((response) => response.json())
@@ -72,7 +93,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         setSavedCategories(categories)
       })
       .catch(() => setSavedCategories([]))
-  }, [adminMode])
+  }, [adminMode, categorySourceEndpoint])
 
   function handleCategoryChange(value: string) {
     if (value === CUSTOM_JOB_CATEGORY_VALUE) {
@@ -98,11 +119,13 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         throw new Error("Informe uma categoria personalizada valida")
       }
 
-      const endpoint = isEditing
-        ? adminMode
-          ? `/api/admin/jobs/${job!.id}`
-          : `/api/jobs/${job!.id}`
-        : "/api/jobs"
+      const endpoint =
+        submitEndpoint ||
+        (isEditing
+          ? adminMode
+            ? `/api/admin/jobs/${job!.id}`
+            : `/api/jobs/${job!.id}`
+          : "/api/jobs")
 
       const res = await fetch(endpoint, {
         method: isEditing ? "PUT" : "POST",
@@ -123,9 +146,9 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         }),
       })
 
+      const data = await res.json().catch(() => null)
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Erro ao salvar vaga")
+        throw new Error(data?.error || "Erro ao salvar vaga")
       }
 
       setSuccess(true)
@@ -140,7 +163,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
         setUsesCustomCategory(false)
         setCustomCategoryName("")
       }
-      onSuccess?.()
+      onSuccess?.(data?.data as Job | undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {
@@ -153,11 +176,17 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
       <div className="flex flex-col items-center gap-4 py-8">
         <CheckCircle2 className="h-12 w-12 text-green-500" />
         <p className="text-sm font-medium">
-          {isEditing ? "Vaga atualizada com sucesso!" : "Vaga publicada com sucesso!"}
+          {successMessage ||
+            (isEditing ? "Vaga atualizada com sucesso!" : "Vaga publicada com sucesso!")}
         </p>
+        {successDescription && (
+          <p className="max-w-sm text-center text-sm text-muted-foreground">
+            {successDescription}
+          </p>
+        )}
         {!isEditing && (
           <Button variant="outline" onClick={() => setSuccess(false)}>
-            Publicar outra vaga
+            {createAnotherLabel}
           </Button>
         )}
       </div>
@@ -165,7 +194,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-lg">
+    <form onSubmit={handleSubmit} className={`flex flex-col gap-4 max-w-lg ${className}`}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="title">Titulo da vaga</Label>
@@ -279,7 +308,7 @@ export function JobForm({ onSuccess, job, adminMode = false }: JobFormProps) {
 
       <Button type="submit" disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-        {loading ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Publicar vaga"}
+        {loading ? loadingLabel : isEditing ? "Salvar alteracoes" : submitLabel}
       </Button>
     </form>
   )
