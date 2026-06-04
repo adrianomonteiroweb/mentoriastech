@@ -288,6 +288,7 @@ export const ads = pgTable("ads", {
   title: text("title").notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
+  imageAlt: text("image_alt"),
   whatsappNumber: text("whatsapp_number"),
   linkUrl: text("link_url"),
   sortOrder: integer("sort_order").notNull().default(0),

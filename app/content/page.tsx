@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Lightbulb,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
@@ -124,7 +125,17 @@ export default function ContentPage() {
           </div>
         </div>
 
-        <AdBanner />
+        <div className="flex flex-col gap-3">
+          <a
+            href="#conteudos"
+            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Ir direto para a lista de conteúdos"
+          >
+            Ir para os conteúdos
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </a>
+          <AdBanner />
+        </div>
 
         {hydrated && (
           <div className="flex flex-wrap gap-2">
@@ -178,7 +189,7 @@ export default function ContentPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div id="conteudos" className="scroll-mt-6 flex flex-col gap-3">
           {filtered.map((item) => {
             const config = TYPE_CONFIG[item.content_type];
             const Icon = config.icon;

@@ -175,6 +175,7 @@ BEGIN
     UPDATE public.ads
     SET
       image_url = NULL,
+      image_alt = NULL,
       whatsapp_number = CASE WHEN whatsapp_number IS NULL THEN NULL ELSE '55857770000' END,
       link_url = CASE WHEN link_url IS NULL THEN NULL ELSE 'https://example.com/stage/ads/' || left(id::TEXT, 8) END,
       updated_at = now();

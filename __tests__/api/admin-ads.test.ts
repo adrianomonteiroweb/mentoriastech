@@ -101,4 +101,16 @@ describe("PUT /api/admin/ads/[id]", () => {
       }),
     )
   })
+
+  it("updates the image alternative text", async () => {
+    const imageAlt = "Descricao acessivel da arte"
+    const response = await PUT(makeRequest({ image_alt: imageAlt }), params)
+
+    expect(response.status).toBe(200)
+    expect(mocks.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        imageAlt,
+      }),
+    )
+  })
 })

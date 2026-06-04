@@ -109,8 +109,14 @@ export function AdsTable({ refreshKey = 0 }: AdsTableProps) {
               <TableRow key={item.id}>
                 <TableCell>
                   {item.image_url ? (
-                    <div className="relative h-10 w-10 rounded overflow-hidden">
-                      <Image src={item.image_url} alt={item.title} fill className="object-cover" />
+                    <div className="relative h-12 w-12 overflow-hidden rounded-md border bg-black">
+                      <Image
+                        src={item.image_url}
+                        alt={item.image_alt || item.title}
+                        fill
+                        sizes="48px"
+                        className="object-contain"
+                      />
                     </div>
                   ) : (
                     <div className="h-10 w-10 rounded bg-secondary flex items-center justify-center text-muted-foreground text-xs">

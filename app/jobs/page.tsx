@@ -19,6 +19,7 @@ import {
   Sparkles,
   SlidersHorizontal,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
@@ -376,7 +377,17 @@ export default function JobsPage() {
           </div>
         </div>
 
-        <AdBanner />
+        <div className="flex flex-col gap-3">
+          <a
+            href="#vagas"
+            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="Ir direto para a lista de vagas"
+          >
+            Ir para as vagas
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </a>
+          <AdBanner />
+        </div>
 
         {hydrated && (
           <div className="flex flex-wrap gap-2">
@@ -510,7 +521,7 @@ export default function JobsPage() {
 
         <RandomTipCard placement="jobs" />
 
-        <div className="flex flex-col gap-3">
+        <div id="vagas" className="scroll-mt-6 flex flex-col gap-3">
           {filtered.map((job) => (
             <div
               key={job.id}

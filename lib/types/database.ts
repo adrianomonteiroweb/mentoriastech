@@ -268,6 +268,7 @@ export interface Ad {
   title: string
   description: string | null
   image_url: string | null
+  image_alt: string | null
   whatsapp_number: string | null
   link_url: string | null
   sort_order: number

@@ -9,6 +9,7 @@ const updateSchema = z.object({
   title: z.string().min(2).optional(),
   description: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal("")),
+  image_alt: z.string().max(500).optional(),
   whatsapp_number: z.string().optional(),
   link_url: z.string().url().optional().or(z.literal("")),
   sort_order: z.number().int().optional(),
@@ -35,6 +36,7 @@ export async function PUT(
     if (parsed.data.title !== undefined) updateData.title = parsed.data.title
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description
     if (parsed.data.image_url !== undefined) updateData.imageUrl = parsed.data.image_url || null
+    if (parsed.data.image_alt !== undefined) updateData.imageAlt = parsed.data.image_alt || null
     if (parsed.data.whatsapp_number !== undefined) updateData.whatsappNumber = parsed.data.whatsapp_number
     if (parsed.data.link_url !== undefined) updateData.linkUrl = parsed.data.link_url || null
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order

@@ -640,6 +640,7 @@ CREATE TABLE public.ads (
   title TEXT NOT NULL,
   description TEXT,
   image_url TEXT,
+  image_alt TEXT,
   whatsapp_number TEXT,
   link_url TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
