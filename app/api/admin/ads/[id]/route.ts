@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
 import { db, ads } from "@/lib/db"
 import { toAd } from "@/lib/db/mappers"
@@ -38,7 +38,18 @@ export async function PUT(
     if (parsed.data.whatsapp_number !== undefined) updateData.whatsappNumber = parsed.data.whatsapp_number
     if (parsed.data.link_url !== undefined) updateData.linkUrl = parsed.data.link_url || null
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
-    if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
+    if (parsed.data.is_active !== undefined) {
+      updateData.isActive = parsed.data.is_active
+
+      if (parsed.data.is_active) {
+        updateData.clickCount = sql<number>`
+          CASE
+            WHEN ${ads.isActive} = false THEN 0
+            ELSE ${ads.clickCount}
+          END
+        `
+      }
+    }
     if (parsed.data.max_clicks !== undefined) updateData.maxClicks = parsed.data.max_clicks
 
     const [data] = await db
