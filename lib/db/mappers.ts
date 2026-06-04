@@ -42,6 +42,7 @@ export function toAd(row: DbAd): Ad {
     image_url: row.imageUrl,
     image_alt: row.imageAlt,
     whatsapp_number: row.whatsappNumber,
+    whatsapp_message: row.whatsappMessage,
     link_url: row.linkUrl,
     sort_order: row.sortOrder,
     is_active: row.isActive,

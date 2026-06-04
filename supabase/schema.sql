@@ -642,9 +642,13 @@ CREATE TABLE public.ads (
   image_url TEXT,
   image_alt TEXT,
   whatsapp_number TEXT,
+  whatsapp_message TEXT NOT NULL DEFAULT 'Olá, gostaria de saber mais sobre seu trabalho',
   link_url TEXT,
   sort_order INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  view_count INTEGER NOT NULL DEFAULT 0,
+  click_count INTEGER NOT NULL DEFAULT 0,
+  max_clicks INTEGER CHECK (max_clicks IS NULL OR max_clicks > 0),
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

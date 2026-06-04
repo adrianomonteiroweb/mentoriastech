@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 import type { Ad } from "@/lib/types/database"
 
 interface AdFormProps {
@@ -21,6 +22,9 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
   const [description, setDescription] = useState(ad?.description ?? "")
   const [imageAlt, setImageAlt] = useState(ad?.image_alt ?? "")
   const [whatsappNumber, setWhatsappNumber] = useState(ad?.whatsapp_number ?? "")
+  const [whatsappMessage, setWhatsappMessage] = useState(
+    ad?.whatsapp_message ?? DEFAULT_AD_WHATSAPP_MESSAGE,
+  )
   const [linkUrl, setLinkUrl] = useState(ad?.link_url ?? "")
   const [sortOrder, setSortOrder] = useState(ad?.sort_order ?? 0)
   const [isActive, setIsActive] = useState(ad?.is_active ?? true)
@@ -84,6 +88,7 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
           image_url: imageUrl || undefined,
           image_alt: imageAlt || title,
           whatsapp_number: whatsappNumber || undefined,
+          whatsapp_message: whatsappMessage,
           link_url: linkUrl || undefined,
           sort_order: sortOrder,
           is_active: isActive,
@@ -103,6 +108,7 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
         setDescription("")
         setImageAlt("")
         setWhatsappNumber("")
+        setWhatsappMessage(DEFAULT_AD_WHATSAPP_MESSAGE)
         setLinkUrl("")
         setSortOrder(0)
         setIsActive(true)
@@ -144,6 +150,22 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
             Informe somente números. O botão do anúncio abrirá uma conversa nesse WhatsApp.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="ad-whatsapp-message">Mensagem inicial do WhatsApp</Label>
+        <Textarea
+          id="ad-whatsapp-message"
+          value={whatsappMessage}
+          onChange={(event) => setWhatsappMessage(event.target.value)}
+          maxLength={1000}
+          rows={3}
+          placeholder={DEFAULT_AD_WHATSAPP_MESSAGE}
+          aria-describedby="ad-whatsapp-message-help"
+        />
+        <p id="ad-whatsapp-message-help" className="text-sm leading-relaxed text-foreground/75">
+          A mensagem será preenchida automaticamente ao abrir a conversa do anúncio.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">

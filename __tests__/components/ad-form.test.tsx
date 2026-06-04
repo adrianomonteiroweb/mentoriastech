@@ -21,6 +21,7 @@ vi.stubGlobal(
 )
 
 import { AdForm } from "@/components/dashboard/admin/ad-form"
+import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 
 describe("AdForm", () => {
   it("offers image upload, alternative text, and WhatsApp action fields", () => {
@@ -29,6 +30,9 @@ describe("AdForm", () => {
     expect(screen.getByLabelText("Imagem do anúncio")).toHaveAttribute("type", "file")
     expect(screen.getByLabelText("Texto alternativo da imagem")).toBeInTheDocument()
     expect(screen.getByLabelText("WhatsApp com país e DDD")).toBeInTheDocument()
+    expect(screen.getByLabelText("Mensagem inicial do WhatsApp")).toHaveValue(
+      DEFAULT_AD_WHATSAPP_MESSAGE,
+    )
     expect(
       screen.getByText(/O botão do anúncio abrirá uma conversa nesse WhatsApp\./),
     ).toBeInTheDocument()

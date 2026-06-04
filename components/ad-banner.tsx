@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { formatWhatsAppNumber } from "@/lib/whatsapp"
+import { buildAdWhatsAppUrl } from "@/lib/ad-whatsapp"
 
 interface Ad {
   id: string
@@ -26,15 +26,29 @@ interface Ad {
   image_url: string | null
   image_alt: string | null
   whatsapp_number: string | null
+  whatsapp_message: string
   link_url: string | null
 }
 
-function trackEvent(adId: string, event: "view" | "click") {
-  fetch(`/api/ads/${adId}/track`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event }),
-  }).catch(() => {})
+interface TrackResponse {
+  data?: {
+    is_active?: boolean
+  } | null
+}
+
+async function trackEvent(adId: string, event: "view" | "click"): Promise<TrackResponse | null> {
+  try {
+    const response = await fetch(`/api/ads/${adId}/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event }),
+      keepalive: true,
+    })
+
+    return await response.json()
+  } catch {
+    return null
+  }
 }
 
 export function AdBanner() {
@@ -58,9 +72,18 @@ export function AdBanner() {
     const ad = ads[current]
     if (!viewedAds.current.has(ad.id)) {
       viewedAds.current.add(ad.id)
-      trackEvent(ad.id, "view")
+      void trackEvent(ad.id, "view")
     }
   }, [ads, current])
+
+  const trackClick = useCallback((adId: string) => {
+    void trackEvent(adId, "click").then((result) => {
+      if (result?.data?.is_active === false) {
+        setAds((currentAds) => currentAds.filter((item) => item.id !== adId))
+        setCurrent(0)
+      }
+    })
+  }, [])
 
   const next = useCallback(() => {
     setCurrent((previous) => (previous + 1) % ads.length)
@@ -77,7 +100,7 @@ export function AdBanner() {
   const ad = ads[current]
   const imageAlt = ad.image_alt?.trim() || ad.title
   const whatsappUrl = ad.whatsapp_number
-    ? `https://wa.me/${formatWhatsAppNumber(ad.whatsapp_number)}`
+    ? buildAdWhatsAppUrl(ad.whatsapp_number, ad.whatsapp_message)
     : null
   const ctaUrl = whatsappUrl || ad.link_url
   const ctaLabel = whatsappUrl ? "Falar no WhatsApp" : "Conhecer serviço"
@@ -124,7 +147,7 @@ export function AdBanner() {
                 href={ctaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent(ad.id, "click")}
+                onClick={() => trackClick(ad.id)}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-center text-base font-bold text-white shadow-md shadow-green-950/20 transition-colors hover:bg-green-600 focus-visible:ring-white"
               >
                 <CtaIcon className="h-5 w-5" aria-hidden="true" />
@@ -159,7 +182,7 @@ export function AdBanner() {
                   href={ctaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => trackEvent(ad.id, "click")}
+                  onClick={() => trackClick(ad.id)}
                   className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-center text-base font-bold text-white shadow-md shadow-green-950/20 transition-colors hover:bg-green-600 focus-visible:ring-white"
                 >
                   <CtaIcon className="h-5 w-5" aria-hidden="true" />
@@ -224,7 +247,7 @@ export function AdBanner() {
                 href={ctaUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackEvent(ad.id, "click")}
+                onClick={() => trackClick(ad.id)}
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-700 px-4 py-3 text-center text-base font-bold text-white transition-colors hover:bg-green-600 focus-visible:ring-white"
               >
                 <CtaIcon className="h-5 w-5" aria-hidden="true" />

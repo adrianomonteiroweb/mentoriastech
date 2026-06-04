@@ -33,6 +33,7 @@ vi.mock("@/lib/db", () => ({
     id: "ads.id",
     isActive: "ads.is_active",
     clickCount: "ads.click_count",
+    whatsappMessage: "ads.whatsapp_message",
   },
 }))
 
@@ -110,6 +111,18 @@ describe("PUT /api/admin/ads/[id]", () => {
     expect(mocks.set).toHaveBeenCalledWith(
       expect.objectContaining({
         imageAlt,
+      }),
+    )
+  })
+
+  it("updates the WhatsApp message", async () => {
+    const whatsappMessage = "Olá, quero conhecer o serviço"
+    const response = await PUT(makeRequest({ whatsapp_message: whatsappMessage }), params)
+
+    expect(response.status).toBe(200)
+    expect(mocks.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        whatsappMessage,
       }),
     )
   })

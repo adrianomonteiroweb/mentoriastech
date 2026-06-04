@@ -17,32 +17,42 @@ export async function POST(
         .set({ viewCount: sql`${ads.viewCount} + 1` })
         .where(eq(ads.id, id))
     } else if (event === "click") {
-      // Incrementar click_count apenas se o anúncio estiver ativo
-      // E abaixo do limite (ou sem limite definido)
-      await db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(ads)
-          .set({ clickCount: sql`${ads.clickCount} + 1` })
-          .where(
-            and(
-              eq(ads.id, id),
-              eq(ads.isActive, true),
-              or(isNull(ads.maxClicks), lt(ads.clickCount, ads.maxClicks)),
-            ),
-          )
-          .returning({ clickCount: ads.clickCount, maxClicks: ads.maxClicks })
+      const [updated] = await db
+        .update(ads)
+        .set({
+          clickCount: sql`${ads.clickCount} + 1`,
+          isActive: sql<boolean>`
+            CASE
+              WHEN ${ads.maxClicks} IS NOT NULL
+                AND ${ads.clickCount} + 1 >= ${ads.maxClicks}
+              THEN false
+              ELSE ${ads.isActive}
+            END
+          `,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(ads.id, id),
+            eq(ads.isActive, true),
+            or(isNull(ads.maxClicks), lt(ads.clickCount, ads.maxClicks)),
+          ),
+        )
+        .returning({
+          clickCount: ads.clickCount,
+          maxClicks: ads.maxClicks,
+          isActive: ads.isActive,
+        })
 
-        // Se atingiu o limite, desativar automaticamente
-        if (
-          updated &&
-          updated.maxClicks !== null &&
-          updated.clickCount >= updated.maxClicks
-        ) {
-          await tx
-            .update(ads)
-            .set({ isActive: false, updatedAt: new Date() })
-            .where(eq(ads.id, id))
-        }
+      return NextResponse.json({
+        success: true,
+        data: updated
+          ? {
+              click_count: updated.clickCount,
+              max_clicks: updated.maxClicks,
+              is_active: updated.isActive,
+            }
+          : null,
       })
     } else {
       return NextResponse.json({ error: "Evento inválido" }, { status: 400 })

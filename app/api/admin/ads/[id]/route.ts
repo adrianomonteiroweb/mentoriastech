@@ -3,6 +3,7 @@ import { eq, sql } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
 import { db, ads } from "@/lib/db"
 import { toAd } from "@/lib/db/mappers"
+import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -11,6 +12,7 @@ const updateSchema = z.object({
   image_url: z.string().url().optional().or(z.literal("")),
   image_alt: z.string().max(500).optional(),
   whatsapp_number: z.string().optional(),
+  whatsapp_message: z.string().trim().max(1000).optional(),
   link_url: z.string().url().optional().or(z.literal("")),
   sort_order: z.number().int().optional(),
   is_active: z.boolean().optional(),
@@ -38,6 +40,9 @@ export async function PUT(
     if (parsed.data.image_url !== undefined) updateData.imageUrl = parsed.data.image_url || null
     if (parsed.data.image_alt !== undefined) updateData.imageAlt = parsed.data.image_alt || null
     if (parsed.data.whatsapp_number !== undefined) updateData.whatsappNumber = parsed.data.whatsapp_number
+    if (parsed.data.whatsapp_message !== undefined) {
+      updateData.whatsappMessage = parsed.data.whatsapp_message || DEFAULT_AD_WHATSAPP_MESSAGE
+    }
     if (parsed.data.link_url !== undefined) updateData.linkUrl = parsed.data.link_url || null
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
     if (parsed.data.is_active !== undefined) {

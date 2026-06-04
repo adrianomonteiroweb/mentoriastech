@@ -120,6 +120,13 @@
       "when": 1780300000000,
       "tag": "0016_create_opportunities_panel",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780560000000,
+      "tag": "0017_add_ad_whatsapp_message",
+      "breakpoints": true
     }
   ]
 }

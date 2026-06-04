@@ -270,6 +270,7 @@ export interface Ad {
   image_url: string | null
   image_alt: string | null
   whatsapp_number: string | null
+  whatsapp_message: string
   link_url: string | null
   sort_order: number
   is_active: boolean

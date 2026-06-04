@@ -10,6 +10,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core"
+import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 
 // -----------------------------------------------------------------------------
 // PROFILES — perfis de usuário (auth + dados)
@@ -290,6 +291,7 @@ export const ads = pgTable("ads", {
   imageUrl: text("image_url"),
   imageAlt: text("image_alt"),
   whatsappNumber: text("whatsapp_number"),
+  whatsappMessage: text("whatsapp_message").notNull().default(DEFAULT_AD_WHATSAPP_MESSAGE),
   linkUrl: text("link_url"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
