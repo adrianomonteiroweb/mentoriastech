@@ -508,6 +508,7 @@ CREATE TABLE public.jobs (
   approved_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
   share_count INTEGER NOT NULL DEFAULT 0,
+  source_posted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

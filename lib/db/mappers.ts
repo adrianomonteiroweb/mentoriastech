@@ -213,6 +213,7 @@ export function toJob(row: DbJob): Job {
     view_count: row.viewCount,
     click_count: row.clickCount,
     share_count: row.shareCount,
+    source_posted_at: toIso(row.sourcePostedAt) || "",
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

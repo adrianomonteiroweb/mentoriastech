@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
+import { getJobSourcePostedAt } from "@/lib/job-active-time"
+import { jobActiveHoursSchema } from "@/lib/job-validation"
 import { requireRole } from "@/lib/utils/auth"
 
 // Indicação enxuta da comunidade: apenas link + por que achou interessante (+ título).
@@ -10,6 +12,7 @@ const shareSchema = z.object({
   application_url: z.string().url(),
   recommendation_note: z.string().min(10),
   company: z.string().optional(),
+  active_hours: jobActiveHoursSchema.default(0),
 })
 
 // POST: indicar vaga (qualquer usuario autenticado). Sempre pendente — admin aprova.
@@ -34,6 +37,7 @@ export async function POST(request: Request) {
         description: null,
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
+        sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy: profile.id,
         status: "pending",
         approvedBy: null,

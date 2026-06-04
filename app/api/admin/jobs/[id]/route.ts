@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
-import { jobCategorySchema } from "@/lib/job-validation"
+import { getJobSourcePostedAt } from "@/lib/job-active-time"
+import { jobActiveHoursSchema, jobCategorySchema } from "@/lib/job-validation"
 import { z } from "zod"
 
 const updateSchema = z.object({
@@ -19,6 +20,7 @@ const updateSchema = z.object({
   is_international: z.boolean().optional(),
   required_language: z.string().optional(),
   language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
+  active_hours: jobActiveHoursSchema.optional(),
   status: z.enum(["pending", "approved", "rejected", "expired"]).optional(),
 })
 
@@ -50,6 +52,9 @@ export async function PUT(
     if (parsed.data.is_international !== undefined) updateData.isInternational = parsed.data.is_international
     if (parsed.data.required_language !== undefined) updateData.requiredLanguage = parsed.data.required_language || null
     if (parsed.data.language_level !== undefined) updateData.languageLevel = parsed.data.language_level || null
+    if (parsed.data.active_hours !== undefined) {
+      updateData.sourcePostedAt = getJobSourcePostedAt(parsed.data.active_hours)
+    }
     if (parsed.data.status !== undefined) updateData.status = parsed.data.status
 
     if (parsed.data.status === "approved") {

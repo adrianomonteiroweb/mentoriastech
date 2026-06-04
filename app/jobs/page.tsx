@@ -18,6 +18,7 @@ import {
   Plus,
   Sparkles,
   SlidersHorizontal,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
@@ -38,6 +39,7 @@ import {
   mergeJobCategoryOptions,
 } from "@/lib/job-options";
 import { cn } from "@/lib/utils";
+import { formatJobActiveHours, getJobActiveHours } from "@/lib/job-active-time";
 import type { JobCategory } from "@/lib/types/database";
 
 interface Job {
@@ -56,6 +58,7 @@ interface Job {
   required_language: string | null;
   language_level: "basic" | "intermediate" | "advanced" | "fluent" | null;
   like_count: number;
+  source_posted_at: string;
   created_at: string;
   profiles: { full_name: string } | null;
 }
@@ -126,6 +129,7 @@ export default function JobsPage() {
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
   const [targetJobId, setTargetJobId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const { hydrated, preferences, updatePreference } = useUserPreferences();
   const viewedJobs = useRef<Set<string>>(new Set());
   const categoryTabs = useMemo(
@@ -165,6 +169,11 @@ export default function JobsPage() {
 
   useEffect(() => {
     loadJobs();
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -531,6 +540,15 @@ export default function JobsPage() {
                         {job.location}
                       </span>
                     )}
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      {formatJobActiveHours(
+                        getJobActiveHours(
+                          job.source_posted_at || job.created_at,
+                          now,
+                        ),
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">

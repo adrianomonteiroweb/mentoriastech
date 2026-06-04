@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { desc, eq, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
+import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { createJobSchema } from "@/lib/job-validation"
 import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
 
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
         isInternational: parsed.data.is_international,
         requiredLanguage: parsed.data.required_language,
         languageLevel: parsed.data.language_level,
+        sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy: user.id,
         status: autoApprove ? "approved" : "pending",
         approvedBy: autoApprove ? user.id : null,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
 import { createJobSchema } from "@/lib/job-validation"
+import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { logAuditEvent } from "@/lib/audit"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { ensureProfileForMenteeEmail } from "@/lib/utils/mentee-resume"
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
         isInternational: parsed.data.is_international,
         requiredLanguage: parsed.data.required_language,
         languageLevel: parsed.data.language_level,
+        sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy: profile.id,
         status: "pending",
         approvedBy: null,

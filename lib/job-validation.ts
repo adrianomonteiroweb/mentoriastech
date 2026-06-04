@@ -4,6 +4,7 @@ import {
   MAX_JOB_CATEGORY_LENGTH,
   normalizeJobCategory,
 } from "@/lib/job-options"
+import { MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time"
 
 export const jobCategorySchema = z.preprocess(
   (value) => (typeof value === "string" ? normalizeJobCategory(value) : value),
@@ -13,6 +14,12 @@ export const jobCategorySchema = z.preprocess(
     .max(MAX_JOB_CATEGORY_LENGTH)
     .regex(JOB_CATEGORY_PATTERN),
 )
+
+export const jobActiveHoursSchema = z
+  .number()
+  .int()
+  .min(0)
+  .max(MAX_JOB_ACTIVE_HOURS)
 
 export const createJobSchema = z.object({
   title: z.string().min(3),
@@ -27,4 +34,5 @@ export const createJobSchema = z.object({
   is_international: z.boolean().default(false),
   required_language: z.string().optional(),
   language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
+  active_hours: jobActiveHoursSchema.default(0),
 })

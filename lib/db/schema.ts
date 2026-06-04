@@ -202,6 +202,7 @@ export const jobs = pgTable("jobs", {
   viewCount: integer("view_count").notNull().default(0),
   clickCount: integer("click_count").notNull().default(0),
   shareCount: integer("share_count").notNull().default(0),
+  sourcePostedAt: timestamp("source_posted_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

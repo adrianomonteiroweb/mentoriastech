@@ -17,6 +17,7 @@ import {
   mergeJobCategoryOptions,
   normalizeJobCategory,
 } from "@/lib/job-options"
+import { getJobActiveHours, MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time"
 import type { Job } from "@/lib/types/database"
 
 interface JobFormProps {
@@ -51,6 +52,10 @@ export function JobForm({
   const initialUsesCustomCategory = initialCategory !== "other" && !isDefaultJobCategory(initialCategory)
   const [title, setTitle] = useState(job?.title || "")
   const [company, setCompany] = useState(job?.company || "")
+  const [activeHours, setActiveHours] = useState(
+    job?.source_posted_at ? String(getJobActiveHours(job.source_posted_at)) : "",
+  )
+  const [activeHoursChanged, setActiveHoursChanged] = useState(false)
   const [description, setDescription] = useState(job?.description || "")
   const [location, setLocation] = useState(job?.location || "")
   const [jobType, setJobType] = useState(job?.job_type || "remote")
@@ -143,6 +148,9 @@ export function JobForm({
           is_international: isInternational,
           required_language: isInternational && requiredLanguage ? requiredLanguage : undefined,
           language_level: isInternational && languageLevel ? languageLevel : undefined,
+          ...(!isEditing || activeHoursChanged
+            ? { active_hours: Number(activeHours) }
+            : {}),
         }),
       })
 
@@ -155,6 +163,8 @@ export function JobForm({
       if (!isEditing) {
         setTitle("")
         setCompany("")
+        setActiveHours("")
+        setActiveHoursChanged(false)
         setDescription("")
         setLocation("")
         setSalaryRange("")
@@ -204,6 +214,27 @@ export function JobForm({
           <Label htmlFor="company">Empresa</Label>
           <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} required />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="active-hours">Há quantas horas a vaga está ativa?</Label>
+        <Input
+          id="active-hours"
+          type="number"
+          min={0}
+          max={MAX_JOB_ACTIVE_HOURS}
+          step={1}
+          value={activeHours}
+          onChange={(e) => {
+            setActiveHours(e.target.value)
+            setActiveHoursChanged(true)
+          }}
+          required
+          placeholder="Ex: 6"
+        />
+        <p className="text-xs text-muted-foreground">
+          A plataforma continuará contando as horas a partir desse número.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time"
 
 interface JobShareFormProps {
   onSuccess?: () => void
@@ -15,6 +16,7 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
   const [title, setTitle] = useState("")
   const [applicationUrl, setApplicationUrl] = useState("")
   const [company, setCompany] = useState("")
+  const [activeHours, setActiveHours] = useState("")
   const [recommendationNote, setRecommendationNote] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -34,6 +36,7 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
           application_url: applicationUrl,
           recommendation_note: recommendationNote,
           company: company || undefined,
+          active_hours: Number(activeHours),
         }),
       })
 
@@ -100,6 +103,26 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
           onChange={(e) => setCompany(e.target.value)}
           placeholder="Ex: Acme Tech"
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="share-active-hours">
+          Há quantas horas a vaga está ativa?
+        </Label>
+        <Input
+          id="share-active-hours"
+          type="number"
+          min={0}
+          max={MAX_JOB_ACTIVE_HOURS}
+          step={1}
+          value={activeHours}
+          onChange={(e) => setActiveHours(e.target.value)}
+          required
+          placeholder="Ex: 6"
+        />
+        <p className="text-xs text-muted-foreground">
+          A plataforma continuará contando as horas a partir desse número.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">

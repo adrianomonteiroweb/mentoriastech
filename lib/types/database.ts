@@ -221,6 +221,7 @@ export interface Job {
   view_count: number
   click_count: number
   share_count: number
+  source_posted_at: string
   created_at: string
   updated_at: string
 }
