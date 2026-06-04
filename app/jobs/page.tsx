@@ -240,11 +240,11 @@ export default function JobsPage() {
     );
   }
 
-  function adjustLikeCount(jobId: string, delta: number) {
+  function setLikeCount(jobId: string, likeCount: number) {
     setJobs((prev) =>
       prev.map((j) =>
         j.id === jobId
-          ? { ...j, like_count: Math.max(0, (j.like_count ?? 0) + delta) }
+          ? { ...j, like_count: Math.max(0, likeCount) }
           : j,
       ),
     );
@@ -256,15 +256,21 @@ export default function JobsPage() {
     const wasActive = hasAction(jobId, actionType);
     try {
       if (wasActive) {
-        await fetch(`/api/jobs/${jobId}/actions?action_type=${actionType}`, {
-          method: "DELETE",
-        });
+        const res = await fetch(
+          `/api/jobs/${jobId}/actions?action_type=${actionType}`,
+          { method: "DELETE" },
+        );
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Erro ao remover acao");
+
         setUserActions((prev) =>
           prev.filter(
             (a) => !(a.job_id === jobId && a.action_type === actionType),
           ),
         );
-        if (actionType === "liked") adjustLikeCount(jobId, -1);
+        if (actionType === "liked" && typeof json.like_count === "number") {
+          setLikeCount(jobId, json.like_count);
+        }
       } else {
         const res = await fetch(`/api/jobs/${jobId}/actions`, {
           method: "POST",
@@ -272,11 +278,15 @@ export default function JobsPage() {
           body: JSON.stringify({ action_type: actionType }),
         });
         const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Erro ao registrar acao");
+
         setUserActions((prev) => [
           ...prev,
           { job_id: jobId, action_type: actionType },
         ]);
-        if (actionType === "liked") adjustLikeCount(jobId, 1);
+        if (actionType === "liked" && typeof json.like_count === "number") {
+          setLikeCount(jobId, json.like_count);
+        }
         if (json.deactivated) {
           setJobs((prev) => prev.filter((j) => j.id !== jobId));
         }
@@ -288,10 +298,6 @@ export default function JobsPage() {
   }
 
   function handleLike(jobId: string) {
-    if (!isAuthenticated) {
-      window.location.href = "/login";
-      return;
-    }
     toggleAction(jobId, "liked");
   }
 
@@ -663,9 +669,9 @@ export default function JobsPage() {
                           : "Curtir vaga"
                       }
                       title={
-                        isAuthenticated
-                          ? "Curtir para ver mais vagas assim"
-                          : "Entre para curtir"
+                        hasAction(job.id, "liked")
+                          ? "Remover curtida"
+                          : "Curtir vaga"
                       }
                       className={cn(
                         "inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",

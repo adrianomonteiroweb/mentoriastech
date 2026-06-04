@@ -127,6 +127,13 @@
       "when": 1780560000000,
       "tag": "0017_add_ad_whatsapp_message",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1780600000000,
+      "tag": "0018_public_job_likes",
+      "breakpoints": true
     }
   ]
 }

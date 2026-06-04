@@ -853,15 +853,22 @@ CREATE INDEX idx_content_items_view_count ON public.content_items(view_count DES
 CREATE TABLE public.job_actions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  visitor_hash TEXT,
   action_type TEXT NOT NULL,  -- 'applied', 'link_issue', 'closed', 'liked'
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT job_actions_actor_required CHECK (
+    user_id IS NOT NULL OR (action_type = 'liked' AND visitor_hash IS NOT NULL)
+  ),
   UNIQUE(job_id, user_id, action_type)
 );
 
 CREATE INDEX idx_job_actions_job_id ON public.job_actions(job_id);
 CREATE INDEX idx_job_actions_user_id ON public.job_actions(user_id);
 CREATE INDEX idx_job_actions_type_job ON public.job_actions(action_type, job_id);
+CREATE UNIQUE INDEX idx_job_actions_public_like_unique
+  ON public.job_actions(job_id, visitor_hash)
+  WHERE action_type = 'liked' AND visitor_hash IS NOT NULL;
 
 -- -----------------------------------------------------------------------------
 -- 12. CONTENT_SUGGESTIONS — Solicitações e indicações de conteúdo da comunidade

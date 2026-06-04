@@ -236,7 +236,8 @@ export interface JobWithAuthor extends Job {
 export interface JobAction {
   id: string
   job_id: string
-  user_id: string
+  user_id: string | null
+  visitor_hash: string | null
   action_type: JobActionType
   created_at: string
 }

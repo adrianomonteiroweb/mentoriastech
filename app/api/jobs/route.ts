@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
-import { desc, eq, sql } from "drizzle-orm"
+import { cookies } from "next/headers"
+import { and, desc, eq, or, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
+import {
+  JOB_LIKE_VISITOR_COOKIE,
+  resolveJobLikeVisitor,
+  setJobLikeVisitorCookie,
+} from "@/lib/job-like-visitor"
 import { createJobSchema } from "@/lib/job-validation"
 import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
 
@@ -57,18 +63,46 @@ export async function GET(request: Request) {
         (b.created_at || "").localeCompare(a.created_at || ""),
       )
 
-    let userActions: { job_id: string; action_type: string }[] = []
+    const cookieStore = await cookies()
+    const visitor = resolveJobLikeVisitor(
+      cookieStore.get(JOB_LIKE_VISITOR_COOKIE)?.value,
+    )
     const session = await getSession().catch(() => null)
-    if (session && data.length > 0) {
-      const rows = await db
+
+    let userActions: { job_id: string; action_type: string }[] = []
+    if (data.length > 0) {
+      const viewerCondition = session
+        ? or(
+            eq(jobActions.userId, session.id),
+            eq(jobActions.visitorHash, visitor.hash),
+          )
+        : and(
+            eq(jobActions.visitorHash, visitor.hash),
+            eq(jobActions.actionType, "liked"),
+          )
+
+      const actionRows = await db
         .select({ jobId: jobActions.jobId, actionType: jobActions.actionType })
         .from(jobActions)
-        .where(eq(jobActions.userId, session.id))
+        .where(viewerCondition)
 
-      userActions = rows.map((r) => ({ job_id: r.jobId, action_type: r.actionType }))
+      userActions = Array.from(
+        new Map(
+          actionRows.map((row) => [
+            `${row.jobId}:${row.actionType}`,
+            { job_id: row.jobId, action_type: row.actionType },
+          ]),
+        ).values(),
+      )
     }
 
-    return NextResponse.json({ data, user_actions: userActions, is_authenticated: !!session })
+    const response = NextResponse.json({
+      data,
+      user_actions: userActions,
+      is_authenticated: !!session,
+    })
+
+    return setJobLikeVisitorCookie(response, visitor)
   } catch (error) {
     console.error("[jobs] Error:", error)
     return NextResponse.json({ error: "Erro ao carregar vagas" }, { status: 500 })

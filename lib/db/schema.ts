@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm"
 import {
   boolean,
+  check,
   date,
   integer,
   jsonb,
@@ -8,6 +9,7 @@ import {
   text,
   time,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core"
 import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
@@ -325,10 +327,19 @@ export const tips = pgTable("tips", {
 export const jobActions = pgTable("job_actions", {
   id: uuid("id").primaryKey().defaultRandom(),
   jobId: uuid("job_id").notNull().references(() => jobs.id, { onDelete: "cascade" }),
-  userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => profiles.id, { onDelete: "cascade" }),
+  visitorHash: text("visitor_hash"),
   actionType: text("action_type", { enum: ["applied", "link_issue", "closed", "liked"] }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-})
+}, (table) => [
+  check(
+    "job_actions_actor_required",
+    sql`${table.userId} IS NOT NULL OR (${table.actionType} = 'liked' AND ${table.visitorHash} IS NOT NULL)`,
+  ),
+  uniqueIndex("idx_job_actions_public_like_unique")
+    .on(table.jobId, table.visitorHash)
+    .where(sql`${table.actionType} = 'liked' AND ${table.visitorHash} IS NOT NULL`),
+])
 
 // -----------------------------------------------------------------------------
 // CONTENT_SUGGESTIONS — solicitações e indicações de conteúdo da comunidade
