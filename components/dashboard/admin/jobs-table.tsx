@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
-import { AlertTriangle, CheckCircle2, Eye, Heart, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel } from "@/lib/job-options"
 import type { JobWithAuthor } from "@/lib/types/database"
 
@@ -36,6 +36,7 @@ export function JobsTable({
   const [jobs, setJobs] = useState<JobWithCounts[]>([])
   const [loading, setLoading] = useState(true)
   const [editingJob, setEditingJob] = useState<JobWithCounts | null>(null)
+  const [selectedJob, setSelectedJob] = useState<JobWithCounts | null>(null)
 
   function loadJobs() {
     setLoading(true)
@@ -49,6 +50,7 @@ export function JobsTable({
   useEffect(() => { loadJobs() }, [adminMode, refreshKey])
 
   async function updateStatus(id: string, status: "approved" | "rejected") {
+    setSelectedJob(null)
     await fetch(`/api/admin/jobs/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -59,6 +61,7 @@ export function JobsTable({
 
   async function deleteJob(id: string) {
     if (!confirm("Remover esta vaga?")) return
+    setSelectedJob(null)
     await fetch(adminMode ? `/api/admin/jobs/${id}` : `/api/jobs/${id}`, {
       method: "DELETE",
     })
@@ -69,6 +72,24 @@ export function JobsTable({
     setEditingJob(null)
     loadJobs()
   }
+
+  function openEdit(job: JobWithCounts) {
+    setSelectedJob(null)
+    setEditingJob(job)
+  }
+
+  const getJobLevelLabel = (level: JobWithCounts["level"]) =>
+    level === "internship" ? "Estágio" : level === "junior" ? "Júnior" : level === "mid" ? "Pleno" : "Sênior"
+
+  const getJobStatusLabel = (status: JobWithCounts["status"]) =>
+    status === "approved" ? "Aprovada" : status === "pending" ? "Pendente" : status === "rejected" ? "Rejeitada" : "Expirada"
+
+  const metricItems = (job: JobWithCounts) => [
+    { label: "Views", value: job.view_count ?? 0, icon: Eye },
+    { label: "Cliques", value: job.click_count ?? 0, icon: MousePointerClick },
+    { label: "Compart.", value: job.share_count ?? 0, icon: Share2 },
+    ...(adminMode ? [{ label: "Curtidas", value: job.action_counts?.liked ?? 0, icon: Heart }] : []),
+  ]
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
@@ -81,7 +102,79 @@ export function JobsTable({
           Exibindo {visibleJobs.length} resultado{visibleJobs.length !== 1 ? "s" : ""}
         </p>
       )}
-    <div className="rounded-md border">
+      <div className="grid gap-3 md:hidden">
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-4">
+              <Skeleton className="mb-3 h-4 w-3/4" />
+              <Skeleton className="mb-4 h-3 w-1/2" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            </div>
+          ))
+        ) : visibleJobs.length === 0 ? (
+          <div className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
+            {showAll ? "Nenhuma vaga cadastrada" : "Nenhuma vaga pendente"}
+          </div>
+        ) : (
+          visibleJobs.map((job) => (
+            <div
+              key={job.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedJob(job)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  setSelectedJob(job)
+                }
+              }}
+              className="rounded-md border bg-card p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label={`Abrir ações da vaga ${job.title}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
+                    {job.title}
+                  </h3>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {job.company || "Empresa não informada"}
+                  </p>
+                </div>
+                <Badge
+                  variant={job.status === "approved" ? "default" : "outline"}
+                  className="shrink-0 text-[10px]"
+                >
+                  {getJobStatusLabel(job.status)}
+                </Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge variant="outline" className="text-[10px] capitalize">
+                  {job.job_type}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {getJobLevelLabel(job.level)}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {job.category ? getJobCategoryLabel(job.category) : "Sem categoria"}
+                </Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                {metricItems(job).map(({ label, value, icon: Icon }) => (
+                  <span key={label} className="inline-flex items-center gap-1">
+                    <Icon className="h-3 w-3" />
+                    {value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+    <div className="hidden overflow-x-auto rounded-md border md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -207,7 +300,7 @@ export function JobsTable({
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs"
-                        onClick={() => setEditingJob(job)}
+                        onClick={() => openEdit(job)}
                       >
                         <Pencil className="h-3 w-3 mr-1" /> Editar
                       </Button>
@@ -227,6 +320,110 @@ export function JobsTable({
           )}
         </TableBody>
       </Table>
+    </div>
+
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedJob?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedJob && (
+            <div className="grid gap-4">
+              <div className="grid gap-3 text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground">Empresa</span>
+                  <p className="font-medium">{selectedJob.company || "Não informada"}</p>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Badge variant={selectedJob.status === "approved" ? "default" : "outline"} className="text-xs">
+                    {getJobStatusLabel(selectedJob.status)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {selectedJob.job_type}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {getJobLevelLabel(selectedJob.level)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedJob.category ? getJobCategoryLabel(selectedJob.category) : "Sem categoria"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {metricItems(selectedJob).map(({ label, value, icon: Icon }) => (
+                    <div key={label} className="rounded-md border p-2">
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Icon className="h-3 w-3" />
+                        {label}
+                      </span>
+                      <p className="text-sm font-semibold">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                {selectedJob.profiles?.full_name && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">Autor</span>
+                    <p>{selectedJob.profiles.full_name}</p>
+                  </div>
+                )}
+                {adminMode && selectedJob.action_counts && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedJob.action_counts.link_issue > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/10 px-2 py-1 text-xs font-medium text-yellow-500">
+                        <AlertTriangle className="h-3 w-3" />
+                        {selectedJob.action_counts.link_issue} link
+                      </span>
+                    )}
+                    {selectedJob.action_counts.closed > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium text-red-500">
+                        <XCircle className="h-3 w-3" />
+                        {selectedJob.action_counts.closed} encerrada
+                      </span>
+                    )}
+                    {selectedJob.action_counts.applied > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {selectedJob.action_counts.applied} candidatura{selectedJob.action_counts.applied > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                {selectedJob.application_url && (
+                  <Button variant="outline" className="justify-start" asChild>
+                    <a href={selectedJob.application_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4" />
+                      Abrir link da vaga
+                    </a>
+                  </Button>
+                )}
+                {adminMode && selectedJob.status === "pending" && (
+                  <>
+                    <Button variant="outline" className="justify-start" onClick={() => updateStatus(selectedJob.id, "approved")}>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Aprovar
+                    </Button>
+                    <Button variant="ghost" className="justify-start text-destructive" onClick={() => updateStatus(selectedJob.id, "rejected")}>
+                      <XCircle className="h-4 w-4" />
+                      Rejeitar
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedJob)}>
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+                <Button variant="ghost" className="justify-start text-destructive" onClick={() => deleteJob(selectedJob.id)}>
+                  <Trash2 className="h-4 w-4" />
+                  Remover
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editingJob} onOpenChange={(open) => !open && setEditingJob(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
@@ -242,7 +439,6 @@ export function JobsTable({
           )}
         </DialogContent>
       </Dialog>
-    </div>
     </div>
   )
 }

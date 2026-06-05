@@ -131,6 +131,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [originFilter, setOriginFilter] = useState<OriginCategory | "all" | "none">("all")
   const [editingMentee, setEditingMentee] = useState<Profile | null>(null)
   const [historyMentee, setHistoryMentee] = useState<Profile | null>(null)
+  const [selectedMentee, setSelectedMentee] = useState<Profile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [resumeFile, setResumeFile] = useState<File | null>(null)
@@ -212,6 +213,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   ])
 
   function openEdit(mentee: Profile) {
+    setSelectedMentee(null)
     setEditingMentee(mentee)
     setError("")
     setResumeFile(null)
@@ -229,6 +231,11 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
       origin_category: mentee.origin_category || "",
       origin_description: mentee.origin_description || "",
     })
+  }
+
+  function openHistory(mentee: Profile) {
+    setSelectedMentee(null)
+    setHistoryMentee(mentee)
   }
 
   async function saveMentee(e: React.FormEvent) {
@@ -298,6 +305,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   async function deleteMentee(id: string) {
     if (!confirm("Excluir este mentorado? Esta acao tambem remove dados vinculados ao perfil.")) return
 
+    setSelectedMentee(null)
     await fetch(`/api/admin/mentees/${id}`, { method: "DELETE" })
     loadMentees()
   }
@@ -343,6 +351,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   }
 
   function openBookingDialog(mentee: Profile) {
+    setSelectedMentee(null)
     setBookingMentee(mentee)
     setBookingError("")
     setBookingForm({ session_date: "", start_time: "", topic_id: "", booking_type: "free", notes: "" })
@@ -545,7 +554,76 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="grid gap-3 md:hidden">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-4">
+              <Skeleton className="mb-3 h-4 w-2/3" />
+              <Skeleton className="mb-4 h-3 w-1/2" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+            </div>
+          ))
+        ) : mentees.length === 0 ? (
+          <div className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhum mentorado encontrado
+          </div>
+        ) : (
+          mentees.map((m) => (
+            <div
+              key={m.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedMentee(m)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  setSelectedMentee(m)
+                }
+              }}
+              className="rounded-md border bg-card p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label={`Abrir ações de ${m.full_name || m.email || "mentorado"}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-semibold text-foreground">
+                    {m.full_name || "-"}
+                  </h3>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
+                    {m.email || "Email não informado"}
+                  </p>
+                </div>
+                {(m.booking_count ?? 0) > 0 && (
+                  <Badge variant="secondary" className="shrink-0 text-[10px]">
+                    {m.booking_count}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <OriginBadge mentee={m} />
+                {m.career_status && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {CAREER_STATUS_LABEL[m.career_status]}
+                  </Badge>
+                )}
+                {m.seniority && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {SENIORITY_LABEL[m.seniority]}
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
+                <span>{m.whatsapp || "WhatsApp não informado"}</span>
+                {m.career_focus && <span className="line-clamp-1">{m.career_focus}</span>}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -666,7 +744,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                           variant="ghost"
                           className="h-7 text-xs"
                           title="Histórico"
-                          onClick={() => setHistoryMentee(m)}
+                          onClick={() => openHistory(m)}
                         >
                           <ClipboardList className="h-3 w-3 sm:mr-1" />
                           <span className="hidden sm:inline">Histórico</span>
@@ -700,6 +778,118 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!selectedMentee} onOpenChange={(open) => !open && setSelectedMentee(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedMentee?.full_name || selectedMentee?.email || "Mentorado"}</DialogTitle>
+          </DialogHeader>
+          {selectedMentee && (() => {
+            const whatsappNumber = selectedMentee.whatsapp ? formatWhatsAppNumber(selectedMentee.whatsapp) : ""
+
+            return (
+              <div className="grid gap-4">
+                <div className="grid gap-3 text-sm">
+                  <div className="flex flex-wrap gap-1.5">
+                    <OriginBadge mentee={selectedMentee} />
+                    {(selectedMentee.booking_count ?? 0) > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selectedMentee.booking_count} mentoria{selectedMentee.booking_count === 1 ? "" : "s"}
+                      </Badge>
+                    )}
+                    {selectedMentee.career_status && (
+                      <Badge variant="outline" className="text-xs">
+                        {CAREER_STATUS_LABEL[selectedMentee.career_status]}
+                      </Badge>
+                    )}
+                    {selectedMentee.seniority && (
+                      <Badge variant="outline" className="text-xs">
+                        {SENIORITY_LABEL[selectedMentee.seniority]}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs text-muted-foreground">Email</span>
+                    <p className="break-all">{selectedMentee.email || "-"}</p>
+                  </div>
+                  {selectedMentee.career_focus && (
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Foco de carreira</span>
+                      <p>{selectedMentee.career_focus}</p>
+                    </div>
+                  )}
+                  {selectedMentee.bio && (
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Bio</span>
+                      <p className="whitespace-pre-line text-muted-foreground">{selectedMentee.bio}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  {selectedMentee.whatsapp && (
+                    <Button variant="outline" className="justify-start" asChild>
+                      <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle className="h-4 w-4" />
+                        {selectedMentee.whatsapp}
+                      </a>
+                    </Button>
+                  )}
+                  {selectedMentee.linkedin_url && (
+                    <Button variant="outline" className="justify-start" asChild>
+                      <a href={selectedMentee.linkedin_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        LinkedIn
+                      </a>
+                    </Button>
+                  )}
+                  {selectedMentee.portfolio_url && (
+                    <Button variant="outline" className="justify-start" asChild>
+                      <a href={selectedMentee.portfolio_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        Portfólio
+                      </a>
+                    </Button>
+                  )}
+                  {selectedMentee.resume_url && (
+                    <Button variant="outline" className="justify-start" asChild>
+                      <a href={selectedMentee.resume_url} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                        Currículo
+                      </a>
+                    </Button>
+                  )}
+                  {canManage && (
+                    <>
+                      <Button variant="ghost" className="justify-start" onClick={() => openHistory(selectedMentee)}>
+                        <ClipboardList className="h-4 w-4" />
+                        Histórico
+                        {(selectedMentee.booking_count ?? 0) > 0 && (
+                          <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1 text-[10px]">
+                            {selectedMentee.booking_count}
+                          </Badge>
+                        )}
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => openBookingDialog(selectedMentee)}>
+                        <CalendarPlus className="h-4 w-4" />
+                        Agendar
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedMentee)}>
+                        <Pencil className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button variant="ghost" className="justify-start text-destructive" onClick={() => deleteMentee(selectedMentee.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        Excluir
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingMentee} onOpenChange={(open) => !open && setEditingMentee(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">

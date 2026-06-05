@@ -99,6 +99,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   const [filter, setFilter] = useState<string>("all")
   const [editingBooking, setEditingBooking] = useState<BookingWithRelations | null>(null)
   const [completingBooking, setCompletingBooking] = useState<BookingWithRelations | null>(null)
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null)
   const [copiedBookingId, setCopiedBookingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState("")
@@ -155,6 +156,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   }, [])
 
   async function updateStatus(id: string, status: BookingStatus) {
+    setSelectedBooking(null)
     const res = await fetch(`/api/admin/bookings/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -168,6 +170,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   }
 
   function openEdit(booking: BookingWithRelations) {
+    setSelectedBooking(null)
     setEditingBooking(booking)
     setError("")
     setForm({
@@ -180,6 +183,11 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
       guest_whatsapp: booking.guest_whatsapp || "",
       google_meet_url: booking.google_meet_url || "",
     })
+  }
+
+  function openCompleteBooking(booking: BookingWithRelations) {
+    setSelectedBooking(null)
+    setCompletingBooking(booking)
   }
 
   async function saveBooking(e: React.FormEvent) {
@@ -212,6 +220,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
 
   async function deleteBooking(id: string) {
     if (!confirm("Excluir este agendamento?")) return
+    setSelectedBooking(null)
     const res = await fetch(`/api/admin/bookings/${id}`, { method: "DELETE" })
     if (!res.ok) {
       const data = await res.json()
@@ -292,7 +301,79 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-md border">
+      <div className="grid gap-3 md:hidden">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-4">
+              <Skeleton className="mb-3 h-4 w-2/3" />
+              <Skeleton className="mb-4 h-3 w-1/2" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+            </div>
+          ))
+        ) : bookings.length === 0 ? (
+          <div className="rounded-md border px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhum agendamento encontrado
+          </div>
+        ) : (
+          bookings.map((b) => {
+            const date = b.session_date || b.created_at.split("T")[0]
+            const weekday = formatWeekday(date)
+            const email = getEmail(b)
+
+            return (
+              <div
+                key={b.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedBooking(b)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    setSelectedBooking(b)
+                  }
+                }}
+                className="rounded-md border bg-card p-4 text-left transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-label={`Abrir ações do agendamento de ${getName(b)}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-foreground">
+                      {getName(b)}
+                    </h3>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {email || "Email não informado"}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[b.status]}`}>
+                    {STATUS_LABELS[b.status]}
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
+                  <span>{getTopic(b)}</span>
+                  <span>
+                    {weekday ? `${weekday}, ` : ""}
+                    {formatDate(date)}
+                    {b.start_time ? ` às ${b.start_time.substring(0, 5)}` : ""}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {b.booking_type}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {formatRequestedAt(b.created_at)}
+                  </Badge>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-md border md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -431,7 +512,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         )}
                         {b.status === "scheduled" && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Concluir"
-                            onClick={() => setCompletingBooking(b)}>
+                            onClick={() => openCompleteBooking(b)}>
                             <span className="hidden sm:inline">Concluir</span>
                             <span className="sm:hidden">OK</span>
                           </Button>
@@ -487,6 +568,131 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
           loadBookings()
         }}
       />
+
+      <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedBooking ? getName(selectedBooking) : "Agendamento"}</DialogTitle>
+          </DialogHeader>
+          {selectedBooking && (() => {
+            const date = selectedBooking.session_date || selectedBooking.created_at.split("T")[0]
+            const weekday = formatWeekday(date)
+            const email = getEmail(selectedBooking)
+            const whatsapp = selectedBooking.profiles?.whatsapp || selectedBooking.guest_whatsapp
+            const whatsappNumber = whatsapp ? formatWhatsAppNumber(whatsapp) : ""
+            const copied = copiedBookingId === selectedBooking.id
+
+            return (
+              <div className="grid gap-4">
+                <div className="grid gap-3 text-sm">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[selectedBooking.status]}`}>
+                      {STATUS_LABELS[selectedBooking.status]}
+                    </span>
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {selectedBooking.booking_type}
+                    </Badge>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs text-muted-foreground">Tema</span>
+                    <p>{getTopic(selectedBooking)}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md border p-2">
+                      <span className="text-xs text-muted-foreground">Data</span>
+                      <p className="text-sm font-medium">
+                        {weekday ? `${weekday}, ` : ""}
+                        {formatDate(date)}
+                      </p>
+                    </div>
+                    <div className="rounded-md border p-2">
+                      <span className="text-xs text-muted-foreground">Horário</span>
+                      <p className="text-sm font-medium">
+                        {selectedBooking.start_time ? selectedBooking.start_time.substring(0, 5) : "-"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs text-muted-foreground">Solicitado em</span>
+                    <p>{formatRequestedAt(selectedBooking.created_at)}</p>
+                  </div>
+                  <div className="grid gap-2">
+                    {email && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() => copyEmail(email, selectedBooking.id)}
+                      >
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        {copied ? "Email copiado" : email}
+                      </Button>
+                    )}
+                    {whatsapp && (
+                      <Button variant="outline" className="justify-start" asChild>
+                        <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="h-4 w-4" />
+                          {whatsapp}
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  {selectedBooking.status === "pending" && (
+                    <Button variant="outline" className="justify-start" onClick={() => updateStatus(selectedBooking.id, "confirmed")}>
+                      <Check className="h-4 w-4" />
+                      Confirmar
+                    </Button>
+                  )}
+                  {selectedBooking.status === "confirmed" && selectedBooking.booking_type === "paid" && (
+                    <Button variant="outline" className="justify-start" onClick={() => updateStatus(selectedBooking.id, "payment_pending")}>
+                      Solicitar pagamento
+                    </Button>
+                  )}
+                  {(selectedBooking.status === "paid" || (selectedBooking.status === "confirmed" && selectedBooking.booking_type === "free")) && (
+                    <Button variant="outline" className="justify-start" onClick={() => updateStatus(selectedBooking.id, "scheduled")}>
+                      Agendar
+                    </Button>
+                  )}
+                  {selectedBooking.status === "scheduled" && (
+                    <Button variant="outline" className="justify-start" onClick={() => openCompleteBooking(selectedBooking)}>
+                      Concluir
+                    </Button>
+                  )}
+                  {selectedBooking.google_meet_url && (
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <a href={selectedBooking.google_meet_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        Meet
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedBooking)}>
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </Button>
+                  {selectedBooking.status === "cancelled" && (
+                    <Button variant="outline" className="justify-start" onClick={() => updateStatus(selectedBooking.id, "scheduled")}>
+                      Reativar
+                    </Button>
+                  )}
+                  {!["completed", "cancelled"].includes(selectedBooking.status) && (
+                    <Button variant="ghost" className="justify-start text-destructive" onClick={() => updateStatus(selectedBooking.id, "cancelled")}>
+                      Cancelar
+                    </Button>
+                  )}
+                  <Button variant="ghost" className="justify-start text-destructive" onClick={() => deleteBooking(selectedBooking.id)}>
+                    <Trash2 className="h-4 w-4" />
+                    Excluir
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
