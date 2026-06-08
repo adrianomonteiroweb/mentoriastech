@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { ArrowRight, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -10,6 +10,11 @@ export default function MinhasMentoriasPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+
+  useEffect(() => {
+    const emailParam = new URLSearchParams(window.location.search).get("email")
+    if (emailParam) setEmail(emailParam)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

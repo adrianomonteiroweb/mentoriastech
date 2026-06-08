@@ -27,7 +27,11 @@ const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f6", name: "Automações RPA", category: "free", description: null },
 ]
 
-export function UnifiedBookingForm() {
+interface UnifiedBookingFormProps {
+  defaultType?: string
+}
+
+export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
   const [state, dispatch] = useReducer(bookingReducer, initialBookingState)
 
   // API data
@@ -115,13 +119,14 @@ export function UnifiedBookingForm() {
     dispatch({ type: "SET_STATUS", status: "loading" })
 
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         name: state.name,
         email: state.email,
         whatsapp: state.whatsapp,
         day: state.dayName,
         time: state.startTime,
         topic: state.topicName,
+        isReturningMentee: state.isReturningMentee,
       }
 
       if (state.sessionDate) {
@@ -134,6 +139,14 @@ export function UnifiedBookingForm() {
 
       if (state.topicId) {
         body.topicId = state.topicId
+      }
+
+      if (!state.isReturningMentee && state.originCategory) {
+        body.originCategory = state.originCategory
+      }
+
+      if (!state.isReturningMentee && state.originDescription.trim()) {
+        body.originDescription = state.originDescription.trim()
       }
 
       const res = await fetch("/api/booking", {
@@ -158,7 +171,7 @@ export function UnifiedBookingForm() {
   }
 
   if (state.status === "success") {
-    return <BookingSuccess onReset={() => dispatch({ type: "RESET" })} />
+    return <BookingSuccess email={state.email} onReset={() => dispatch({ type: "RESET" })} />
   }
 
   function renderStep() {
@@ -195,11 +208,18 @@ export function UnifiedBookingForm() {
             email={state.email}
             whatsapp={state.whatsapp}
             notes={state.notes}
+            isReturningMentee={state.isReturningMentee}
+            originCategory={state.originCategory}
+            originDescription={state.originDescription}
             isAuthenticated={state.isAuthenticated}
             onChangeName={(v) => dispatch({ type: "SET_CONTACT", name: v, email: state.email, whatsapp: state.whatsapp })}
             onChangeEmail={(v) => dispatch({ type: "SET_CONTACT", name: state.name, email: v, whatsapp: state.whatsapp })}
             onChangeWhatsapp={(v) => dispatch({ type: "SET_CONTACT", name: state.name, email: state.email, whatsapp: v })}
             onChangeNotes={(v) => dispatch({ type: "SET_NOTES", notes: v })}
+            onChangeReturningMentee={(v) => dispatch({ type: "SET_RETURNING_MENTEE", isReturningMentee: v })}
+            onChangeOrigin={(originCategory, originDescription) =>
+              dispatch({ type: "SET_ORIGIN", originCategory, originDescription })
+            }
             onNext={goNext}
             onBack={goBack}
           />

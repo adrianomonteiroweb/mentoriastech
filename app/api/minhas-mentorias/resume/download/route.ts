@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
+import { and, eq } from "drizzle-orm"
 import { logAuditEvent } from "@/lib/audit"
+import { db, opportunityResumes } from "@/lib/db"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { streamPrivateResume } from "@/lib/utils/resume-access"
 import { getProfileByEmail, usableResumePathname } from "@/lib/utils/mentee-resume"
@@ -11,9 +13,30 @@ export async function GET(request: Request) {
   try {
     const session = await requireMenteeAccess()
     const profile = await getProfileByEmail(session.email)
-    const pathname = usableResumePathname(profile?.resumeUrl)
 
-    if (!profile || !pathname) {
+    if (!profile) {
+      return NextResponse.json({ error: "Curriculo nao encontrado" }, { status: 404 })
+    }
+
+    const resumeId = new URL(request.url).searchParams.get("id")
+    let pathname = usableResumePathname(profile.resumeUrl)
+
+    if (resumeId) {
+      const [resume] = await db
+        .select()
+        .from(opportunityResumes)
+        .where(
+          and(
+            eq(opportunityResumes.id, resumeId),
+            eq(opportunityResumes.profileId, profile.id),
+          ),
+        )
+        .limit(1)
+
+      pathname = usableResumePathname(resume?.fileUrl)
+    }
+
+    if (!pathname) {
       return NextResponse.json({ error: "Curriculo nao encontrado" }, { status: 404 })
     }
 
@@ -23,7 +46,7 @@ export async function GET(request: Request) {
       action: "resume_downloaded",
       route: new URL(request.url).pathname,
       request,
-      metadata: { scope: "self", area: "minhas_mentorias" },
+      metadata: { scope: "self", area: "minhas_mentorias", resumeId },
     })
 
     return streamPrivateResume(pathname)

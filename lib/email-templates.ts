@@ -67,7 +67,7 @@ function typeBadge(type: string) {
 interface NewBookingToMentorParams {
   name: string
   email: string
-  whatsapp: string
+  whatsapp?: string
   topic: string
   day: string
   time: string
@@ -84,7 +84,7 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
 
   const safeName = escapeHtml(params.name)
   const safeEmail = escapeHtml(params.email)
-  const safeWhatsapp = escapeHtml(params.whatsapp)
+  const safeWhatsapp = escapeHtml(params.whatsapp || "Nao informado")
   const safeTopic = escapeHtml(params.topic)
   const safeDay = escapeHtml(params.day)
   const safeTime = escapeHtml(params.time)
@@ -92,7 +92,12 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
   const rows = [
     { label: "Nome", value: safeName },
     { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #0d9488; text-decoration: none;">${safeEmail}</a>` },
-    { label: "WhatsApp", value: `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>` },
+    {
+      label: "WhatsApp",
+      value: params.whatsapp
+        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>`
+        : safeWhatsapp,
+    },
     { label: "Tipo", value: typeBadge(params.bookingType) },
     { label: "Tema", value: `<span style="display: inline-block; background: ${BRAND_GREEN}; color: ${BRAND_GREEN_TEXT}; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${safeTopic}</span>` },
     { label: "Dia", value: safeDay },

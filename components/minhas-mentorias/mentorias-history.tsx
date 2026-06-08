@@ -26,6 +26,7 @@ import {
   buildEmailCorrectionLink,
   buildWhatsAppCorrectionLink,
 } from "@/lib/mentor-contact"
+import { ProfileAssets } from "@/components/minhas-mentorias/profile-assets"
 
 interface Props {
   email: string
@@ -198,6 +199,8 @@ export function MentoriasHistory({ email, bookings }: Props) {
             Sair
           </button>
         </header>
+
+        <ProfileAssets />
 
         <div className="flex flex-col gap-2">
           <Link

@@ -304,7 +304,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
       setHasResume(true)
       setFile(null)
       if (fileInputRef.current) fileInputRef.current.value = ""
-      setNotice("Currículo enviado com sucesso!")
+      setNotice("Curriculo enviado com sucesso e definido como padrao.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar currículo")
     } finally {
@@ -497,7 +497,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                     className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    Ver currículo atual
+                    Ver curriculo padrao
                   </a>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -531,7 +531,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                       <Upload className="h-3.5 w-3.5" />
                     )}
                     <span className="ml-1">
-                      {uploading ? "Enviando…" : hasResume ? "Substituir" : "Enviar"}
+                      {uploading ? "Enviando…" : hasResume ? "Adicionar" : "Enviar"}
                     </span>
                   </Button>
                 </div>

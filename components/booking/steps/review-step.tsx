@@ -1,7 +1,7 @@
 "use client"
 
-import type { UnifiedBookingState } from "@/lib/types/booking"
-import { Pencil, CalendarDays, User, BookOpen, Clock } from "lucide-react"
+import { ORIGIN_OPTIONS, type UnifiedBookingState } from "@/lib/types/booking"
+import { Pencil, CalendarDays, User, BookOpen, Clock, Megaphone } from "lucide-react"
 import { StepNavigation } from "../step-navigation"
 
 interface ReviewStepProps {
@@ -32,6 +32,9 @@ function EditButton({ onClick }: { onClick: () => void }) {
 export function ReviewStep({ state, onGoToStep, onSubmit }: ReviewStepProps) {
   const date = state.sessionDate
   const time = state.startTime
+  const originLabel = state.isReturningMentee
+    ? "Ja fui mentorado"
+    : ORIGIN_OPTIONS.find((option) => option.value === state.originCategory)?.label || ""
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,13 +82,32 @@ export function ReviewStep({ state, onGoToStep, onSubmit }: ReviewStepProps) {
         </div>
 
         {/* Contato */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Contato</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-foreground">{state.name}</span>
+            <span className="text-sm text-foreground">
+              {state.isReturningMentee ? state.email : state.name}
+            </span>
+            <EditButton onClick={() => onGoToStep(2)} />
+          </div>
+        </div>
+
+        {/* Origem */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Megaphone className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Origem</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-right text-sm text-foreground">
+              {originLabel}
+              {!state.isReturningMentee && state.originDescription
+                ? ` - ${state.originDescription}`
+                : ""}
+            </span>
             <EditButton onClick={() => onGoToStep(2)} />
           </div>
         </div>

@@ -1,13 +1,19 @@
 "use client"
 
-import { CheckCircle2, BookOpen, Briefcase } from "lucide-react"
+import { CheckCircle2, BookOpen, Briefcase, FileText } from "lucide-react"
 import Link from "next/link"
 
 interface BookingSuccessProps {
+  email?: string
+  bookingType?: string
   onReset: () => void
 }
 
-export function BookingSuccess({ onReset }: BookingSuccessProps) {
+export function BookingSuccess({ email, onReset }: BookingSuccessProps) {
+  const minhasMentoriasHref = email
+    ? `/minhas-mentorias?email=${encodeURIComponent(email)}`
+    : "/minhas-mentorias"
+
   return (
     <div className="flex flex-col items-center gap-4 rounded-xl border border-primary/30 bg-card p-8 text-center animate-in fade-in zoom-in-95 duration-500">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
@@ -22,6 +28,19 @@ export function BookingSuccess({ onReset }: BookingSuccessProps) {
       </p>
 
       <div className="w-full flex flex-col gap-2 mt-2">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Proximo passo opcional
+        </p>
+        <Link
+          href={minhasMentoriasHref}
+          className="flex items-center gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm text-primary transition-all hover:bg-primary/20"
+        >
+          <FileText className="h-4 w-4 text-primary" />
+          <div className="flex flex-col text-left">
+            <span className="font-medium text-foreground">Completar Minhas Mentorias</span>
+            <span className="text-xs text-muted-foreground">Adicionar LinkedIn e enviar curriculos</span>
+          </div>
+        </Link>
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Enquanto isso, explore
         </p>
