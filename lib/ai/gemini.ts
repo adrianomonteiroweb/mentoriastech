@@ -4,6 +4,7 @@ import {
   ANALYSIS_PROMPT,
 } from "@/lib/resume-ai-prompt"
 import { composeLinkedinPrompt } from "@/lib/linkedin-ai-prompt"
+import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
 
 const DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -261,5 +262,122 @@ export async function analyzeLinkedInProfile({
     if (error instanceof ResumeAIError) throw error
     const message = error instanceof Error ? error.message : "Erro desconhecido"
     throw new ResumeAIError(`Falha ao analisar o perfil LinkedIn com IA: ${message}`)
+  }
+}
+
+export interface StudyPlanJobInput {
+  title?: string | null
+  company?: string | null
+  description?: string | null
+}
+
+export interface StudyPlanInput {
+  roleType: string
+  stack?: string | null
+  seniority?: string | null
+  languages?: string[]
+  frameworks?: string[]
+  strengths?: string | null
+  weaknesses?: string | null
+  experience?: string | null
+  minutesPerDay: number
+  jobs?: StudyPlanJobInput[]
+  customPrompt?: string | null
+}
+
+const STACK_LABELS: Record<string, string> = {
+  fullstack: "Full Stack",
+  backend: "Back-end",
+  frontend: "Front-end",
+  mobile: "Mobile",
+  data: "Dados",
+  devops: "DevOps",
+  outro: "Outro",
+}
+
+const SENIORITY_LABELS: Record<string, string> = {
+  internship: "Estágio",
+  trainee: "Trainee",
+  junior: "Júnior",
+  mid: "Pleno",
+  senior: "Sênior",
+}
+
+export async function generateStudyPlan({
+  roleType,
+  stack,
+  seniority,
+  languages,
+  frameworks,
+  strengths,
+  weaknesses,
+  experience,
+  minutesPerDay,
+  jobs,
+  customPrompt,
+}: StudyPlanInput): Promise<string> {
+  const { ai, model } = getClient()
+
+  const systemInstruction = composeStudyPlanPrompt(customPrompt)
+
+  const lines: string[] = [
+    "Informações fornecidas pelo mentorado para gerar o plano de estudos:",
+    "",
+    `**Posição-alvo:** ${roleType}${stack ? ` — ${STACK_LABELS[stack] || stack}` : ""}${seniority ? ` (${SENIORITY_LABELS[seniority] || seniority})` : ""}`,
+  ]
+
+  if (languages && languages.length > 0) {
+    lines.push(`**Linguagens de interesse:** ${languages.join(", ")}`)
+  }
+  if (frameworks && frameworks.length > 0) {
+    lines.push(`**Frameworks/tecnologias de interesse:** ${frameworks.join(", ")}`)
+  }
+
+  lines.push(`**Minutos por dia disponíveis para estudo:** ${minutesPerDay} minutos/dia`)
+
+  if (strengths) lines.push("", `**Pontos fortes nessa vaga:** ${strengths}`)
+  if (weaknesses) lines.push(`**Pontos fracos / lacunas:** ${weaknesses}`)
+  if (experience) lines.push(`**Atividades e projetos já realizados:** ${experience}`)
+
+  if (jobs && jobs.length > 0) {
+    lines.push("", "**Vagas-alvo selecionadas:**")
+    jobs.forEach((job, i) => {
+      const header = [job.title, job.company].filter(Boolean).join(" — ") || `Vaga ${i + 1}`
+      lines.push(`- ${header}`)
+      if (job.description) lines.push(`  Descrição: ${job.description}`)
+    })
+  }
+
+  lines.push(
+    "",
+    "Gere agora o plano de estudos completo em Markdown, seguindo estritamente as regras e a metodologia de minutos focados.",
+  )
+
+  const userText = lines.join("\n")
+
+  const config: Record<string, unknown> = {
+    systemInstruction,
+    temperature: 0.4,
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [{ role: "user", parts: [{ text: userText }] }],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+    return text
+  } catch (error) {
+    if (error instanceof ResumeAIError) throw error
+    const message = error instanceof Error ? error.message : "Erro desconhecido"
+    throw new ResumeAIError(`Falha ao gerar o plano de estudos com IA: ${message}`)
   }
 }

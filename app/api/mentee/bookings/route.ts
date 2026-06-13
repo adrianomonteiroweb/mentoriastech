@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { eq, desc } from "drizzle-orm"
-import { db, bookings, mentoringTopics } from "@/lib/db"
+import { db, bookings, mentoringTopics, paidMentorships } from "@/lib/db"
 import { requireAuth } from "@/lib/utils/auth"
 
 export async function GET() {
@@ -17,9 +17,11 @@ export async function GET() {
         notes: bookings.notes,
         createdAt: bookings.createdAt,
         topicName: mentoringTopics.name,
+        paidMentorshipTitle: paidMentorships.title,
       })
       .from(bookings)
       .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
+      .leftJoin(paidMentorships, eq(bookings.paidMentorshipId, paidMentorships.id))
       .where(eq(bookings.menteeId, user.id))
       .orderBy(desc(bookings.createdAt))
 
@@ -31,7 +33,9 @@ export async function GET() {
       status: r.status,
       notes: r.notes,
       created_at: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
-      mentoring_topics: r.topicName ? { name: r.topicName } : null,
+      mentoring_topics: r.topicName || r.paidMentorshipTitle
+        ? { name: r.topicName || r.paidMentorshipTitle }
+        : null,
     }))
 
     return NextResponse.json({ data })

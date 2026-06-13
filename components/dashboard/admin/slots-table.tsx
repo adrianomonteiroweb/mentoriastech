@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/tooltip"
 import type { MentoringSlot } from "@/lib/types/database"
 import { buildRRule, describeRRule } from "@/lib/rrule-utils"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
 const DAY_ABBR = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
@@ -31,6 +32,7 @@ export function SlotsTable() {
   const [slots, setSlots] = useState<MentoringSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const { mentorId, buildUrl } = useMentorFilter()
 
   // Form state
   const [slotType, setSlotType] = useState<"free" | "paid" | "private">("free")
@@ -43,14 +45,14 @@ export function SlotsTable() {
 
   function loadSlots() {
     setLoading(true)
-    fetch("/api/admin/slots")
+    fetch(buildUrl("/api/admin/slots"))
       .then((r) => r.json())
       .then((json) => setSlots(json.data || []))
       .catch(console.error)
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadSlots() }, [])
+  useEffect(() => { loadSlots() }, [mentorId])
 
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set())
 

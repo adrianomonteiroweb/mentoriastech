@@ -1,6 +1,6 @@
 // Types TypeScript para todas as tabelas do banco de dados
 
-export type UserRole = "admin" | "mentee" | "hr"
+export type UserRole = "admin" | "mentor" | "mentee" | "hr"
 export type SlotType = "free" | "paid" | "private"
 export type TopicCategory = "free" | "paid"
 export type BookingType = "free" | "paid" | "private"
@@ -20,6 +20,7 @@ export type CareerStatus =
   | "other"
 export type Seniority = "junior" | "mid" | "senior" | "undefined"
 export type PaymentStatus = "pending" | "confirmed" | "failed" | "refunded"
+export type PixAmountIncludesIof = "always" | "never"
 export type ContentType = "pdf" | "article" | "video" | "link"
 export type JobType = "remote" | "hybrid" | "onsite"
 export type JobLevel = "internship" | "junior" | "mid" | "senior"
@@ -83,6 +84,7 @@ export interface MentoringSlot {
   rrule: string | null // Ex: "FREQ=WEEKLY;BYDAY=MO,WE"
   recurrence_start: string | null // "YYYY-MM-DD"
   recurrence_end: string | null // "YYYY-MM-DD"
+  mentor_id: string
   created_at: string
 }
 
@@ -96,20 +98,50 @@ export interface MentoringTopic {
   description: string | null
   is_active: boolean
   sort_order: number
+  mentor_id: string
   created_at: string
 }
+
+// -----------------------------------------------------------------------------
+// Paid Mentorships
+// -----------------------------------------------------------------------------
+export interface PaidMentorship {
+  id: string
+  title: string
+  description: string
+  image_url: string | null
+  image_alt: string | null
+  amount_cents: number
+  currency: string
+  pix_expires_after_seconds: number
+  pix_amount_includes_iof: PixAmountIncludesIof
+  mentor_id: string | null
+  mentor_email: string
+  sort_order: number
+  is_active: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PublicPaidMentorship = Omit<
+  PaidMentorship,
+  "mentor_email" | "created_by" | "created_at" | "updated_at"
+>
 
 // -----------------------------------------------------------------------------
 // Bookings
 // -----------------------------------------------------------------------------
 export interface Booking {
   id: string
+  mentor_id: string | null
   mentee_id: string | null
   guest_name: string | null
   guest_email: string | null
   guest_whatsapp: string | null
   slot_id: string | null
   topic_id: string | null
+  paid_mentorship_id: string | null
   session_date: string | null // "YYYY-MM-DD"
   start_time: string | null // "HH:MM:SS"
   booking_type: BookingType
@@ -131,6 +163,7 @@ export interface Booking {
 export interface BookingWithRelations extends Booking {
   mentoring_topics?: MentoringTopic | null
   mentoring_slots?: MentoringSlot | null
+  paid_mentorships?: PublicPaidMentorship | null
   profiles?: Profile | null
 }
 
@@ -140,17 +173,27 @@ export interface BookingWithRelations extends Booking {
 export interface Payment {
   id: string
   booking_id: string
+  paid_mentorship_id: string | null
   amount_cents: number
   currency: string
   method: string
   status: PaymentStatus
   pix_txid: string | null
+  stripe_payment_intent_id: string | null
+  stripe_payment_intent_status: string | null
+  pix_qr_code_data: string | null
+  pix_qr_code_image_url_png: string | null
+  pix_qr_code_image_url_svg: string | null
+  pix_hosted_instructions_url: string | null
+  pix_expires_at: string | null
   paid_at: string | null
   created_at: string
+  updated_at: string
 }
 
 export interface PaymentWithBooking extends Payment {
   bookings?: BookingWithRelations | null
+  paid_mentorships?: PublicPaidMentorship | null
 }
 
 // -----------------------------------------------------------------------------

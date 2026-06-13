@@ -98,7 +98,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const actor = await requireRole("admin")
+    const actor = await requireRole("admin", "mentor")
     const { id } = await params
 
     const [mentee] = await db

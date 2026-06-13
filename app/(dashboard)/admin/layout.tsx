@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { getProfile } from "@/lib/utils/auth"
+import { MentorFilterProvider } from "@/components/dashboard/admin/mentor-filter"
 
 export default async function AdminLayout({
   children,
@@ -16,5 +17,5 @@ export default async function AdminLayout({
     redirect("/dashboard")
   }
 
-  return <>{children}</>
+  return <MentorFilterProvider>{children}</MentorFilterProvider>
 }

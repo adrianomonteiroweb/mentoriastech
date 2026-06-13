@@ -5,15 +5,15 @@ import { DateTimeStep } from "@/components/booking/steps/datetime-step"
 import type { ScheduleSlot } from "@/lib/types/booking"
 
 const mockFreeSlots: ScheduleSlot[] = [
-  { id: "s1", dayOfWeek: 5, dayName: "Sexta-feira", startTime: "20:00", slotType: "free", date: "2026-04-10", bookings: [], isAvailable: true },
-  { id: "s2", dayOfWeek: 6, dayName: "Sábado", startTime: "09:00", slotType: "free", date: "2026-04-11", bookings: [], isAvailable: true },
-  { id: "s3", dayOfWeek: 6, dayName: "Sábado", startTime: "14:00", slotType: "free", date: "2026-04-11", bookings: [{ id: "b1" }], isAvailable: false },
+  { id: "s1", slotId: "11111111-1111-4111-8111-111111111111", dayOfWeek: 5, dayName: "Sexta-feira", startTime: "20:00", slotType: "free", date: "2026-04-10", bookings: [], isAvailable: true },
+  { id: "s2", slotId: "22222222-2222-4222-8222-222222222222", dayOfWeek: 6, dayName: "Sábado", startTime: "09:00", slotType: "free", date: "2026-04-11", bookings: [], isAvailable: true },
+  { id: "s3", slotId: "33333333-3333-4333-8333-333333333333", dayOfWeek: 6, dayName: "Sábado", startTime: "14:00", slotType: "free", date: "2026-04-11", bookings: [{ id: "b1" }], isAvailable: false },
 ]
 
 const mockPaidSlots: ScheduleSlot[] = [
-  { id: "p1_2026-04-13", dayOfWeek: 1, dayName: "Segunda-feira", startTime: "14:00", slotType: "paid", date: "2026-04-13", bookings: [], isAvailable: true },
-  { id: "p1_2026-04-15", dayOfWeek: 3, dayName: "Quarta-feira", startTime: "14:00", slotType: "paid", date: "2026-04-15", bookings: [], isAvailable: true },
-  { id: "p1_2026-04-17", dayOfWeek: 5, dayName: "Sexta-feira", startTime: "14:00", slotType: "paid", date: "2026-04-17", bookings: [{ id: "b2" }], isAvailable: false },
+  { id: "p1_2026-04-13", slotId: "44444444-4444-4444-8444-444444444444", dayOfWeek: 1, dayName: "Segunda-feira", startTime: "14:00", slotType: "paid", date: "2026-04-13", bookings: [], isAvailable: true },
+  { id: "p1_2026-04-15", slotId: "44444444-4444-4444-8444-444444444444", dayOfWeek: 3, dayName: "Quarta-feira", startTime: "14:00", slotType: "paid", date: "2026-04-15", bookings: [], isAvailable: true },
+  { id: "p1_2026-04-17", slotId: "44444444-4444-4444-8444-444444444444", dayOfWeek: 5, dayName: "Sexta-feira", startTime: "14:00", slotType: "paid", date: "2026-04-17", bookings: [{ id: "b2" }], isAvailable: false },
 ]
 
 describe("DateTimeStep — free slots", () => {
@@ -64,7 +64,12 @@ describe("DateTimeStep — free slots", () => {
     render(<DateTimeStep {...defaultProps} onSelectSlot={onSelectSlot} />)
 
     await user.click(screen.getByText("Sexta-feira"))
-    expect(onSelectSlot).toHaveBeenCalledWith("s1", "2026-04-10", "20:00", "Sexta-feira")
+    expect(onSelectSlot).toHaveBeenCalledWith(
+      "11111111-1111-4111-8111-111111111111",
+      "2026-04-10",
+      "20:00",
+      "Sexta-feira",
+    )
   })
 
   it("should disable Próximo button when no slot selected", () => {

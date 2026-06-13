@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Loader2, UserPlus } from "lucide-react"
+import { Loader2, Shield, UserPlus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -47,9 +47,16 @@ export default function RegisterPage() {
     <main className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-foreground">Criar conta</h1>
+          <h1 className="text-xl font-semibold text-foreground">Acesso para Mentores</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Cadastre-se para acessar mentorias, conteudos e vagas
+            Area exclusiva para mentores convidados
+          </p>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+          <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <p className="text-xs text-muted-foreground">
+            Este cadastro e restrito a mentores convidados. Use o e-mail informado pelo administrador ao criar sua mentoria.
           </p>
         </div>
 

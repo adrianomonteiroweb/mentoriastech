@@ -8,7 +8,7 @@
 -- -----------------------------------------------------------------------------
 CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'mentee' CHECK (role IN ('admin', 'mentee', 'hr')),
+  role TEXT NOT NULL DEFAULT 'mentee' CHECK (role IN ('admin', 'mentor', 'mentee', 'hr')),
   full_name TEXT,
   email TEXT,
   whatsapp TEXT,
@@ -27,7 +27,7 @@ CREATE TABLE public.profiles (
 
 CREATE TABLE public.user_roles (
   user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL DEFAULT 'mentee' CHECK (role IN ('admin', 'mentee', 'hr')),
+  role TEXT NOT NULL DEFAULT 'mentee' CHECK (role IN ('admin', 'mentor', 'mentee', 'hr')),
   assigned_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -253,6 +253,7 @@ CREATE TABLE public.mentoring_slots (
   rrule TEXT,                    -- Ex: "FREQ=WEEKLY;BYDAY=MO,WE"
   recurrence_start DATE,         -- Data de início da recorrência
   recurrence_end DATE,           -- Data de fim da recorrência (opcional)
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -279,6 +280,7 @@ CREATE TABLE public.mentoring_topics (
   description TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   sort_order INTEGER NOT NULL DEFAULT 0,
+  mentor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -296,8 +298,51 @@ CREATE POLICY "Admin can manage topics"
 -- -----------------------------------------------------------------------------
 -- 4. BOOKINGS — Agendamentos de mentoria
 -- -----------------------------------------------------------------------------
+CREATE TABLE public.paid_mentorships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  image_url TEXT,
+  image_alt TEXT,
+  amount_cents INTEGER NOT NULL CHECK (amount_cents >= 50),
+  currency TEXT NOT NULL DEFAULT 'BRL',
+  pix_expires_after_seconds INTEGER NOT NULL DEFAULT 86400 CHECK (
+    pix_expires_after_seconds BETWEEN 10 AND 1209600
+  ),
+  pix_amount_includes_iof TEXT NOT NULL DEFAULT 'never' CHECK (
+    pix_amount_includes_iof IN ('always', 'never')
+  ),
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  mentor_email TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.paid_mentorships ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read active paid mentorships"
+  ON public.paid_mentorships FOR SELECT
+  USING (is_active = true);
+
+CREATE POLICY "Admin can manage paid mentorships"
+  ON public.paid_mentorships FOR ALL
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
+
+CREATE TRIGGER paid_mentorships_updated_at
+  BEFORE UPDATE ON public.paid_mentorships
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- -----------------------------------------------------------------------------
+-- 4. BOOKINGS â€” Agendamentos de mentoria
+-- -----------------------------------------------------------------------------
 CREATE TABLE public.bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Mentor responsável
+  mentor_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   -- Mentorado autenticado (nullable para bookings de visitantes)
   mentee_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   -- Campos para visitantes não autenticados
@@ -307,6 +352,7 @@ CREATE TABLE public.bookings (
   -- Referências
   slot_id UUID REFERENCES public.mentoring_slots(id),
   topic_id UUID REFERENCES public.mentoring_topics(id),
+  paid_mentorship_id UUID REFERENCES public.paid_mentorships(id) ON DELETE SET NULL,
   -- Dados da sessão
   session_date DATE,
   start_time TIME,
@@ -395,6 +441,7 @@ CREATE TRIGGER update_booking_history_sync_queue_updated_at
 CREATE TABLE public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID NOT NULL REFERENCES public.bookings(id) ON DELETE CASCADE,
+  paid_mentorship_id UUID REFERENCES public.paid_mentorships(id) ON DELETE SET NULL,
   amount_cents INTEGER NOT NULL,
   currency TEXT NOT NULL DEFAULT 'BRL',
   method TEXT NOT NULL DEFAULT 'pix',
@@ -402,8 +449,16 @@ CREATE TABLE public.payments (
     status IN ('pending', 'confirmed', 'failed', 'refunded')
   ),
   pix_txid TEXT,
+  stripe_payment_intent_id TEXT UNIQUE,
+  stripe_payment_intent_status TEXT,
+  pix_qr_code_data TEXT,
+  pix_qr_code_image_url_png TEXT,
+  pix_qr_code_image_url_svg TEXT,
+  pix_hosted_instructions_url TEXT,
+  pix_expires_at TIMESTAMPTZ,
   paid_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
@@ -423,6 +478,10 @@ CREATE POLICY "Admin can manage all payments"
   ON public.payments FOR ALL
   USING (public.current_user_is_admin())
   WITH CHECK (public.current_user_is_admin());
+
+CREATE TRIGGER payments_updated_at
+  BEFORE UPDATE ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- -----------------------------------------------------------------------------
 -- 6. CONTENT_CATEGORIES — Categorias de conteúdo
@@ -822,8 +881,12 @@ INSERT INTO public.content_items (category_id, title, description, content_type,
 -- INDEXES — Índices para performance
 -- =============================================================================
 CREATE INDEX idx_bookings_mentee_id ON public.bookings(mentee_id);
+CREATE INDEX idx_bookings_paid_mentorship ON public.bookings(paid_mentorship_id);
 CREATE INDEX idx_bookings_session_date ON public.bookings(session_date);
 CREATE INDEX idx_bookings_status ON public.bookings(status);
+CREATE INDEX idx_paid_mentorships_active_order ON public.paid_mentorships(is_active, sort_order, created_at);
+CREATE INDEX idx_payments_paid_mentorship ON public.payments(paid_mentorship_id);
+CREATE INDEX idx_payments_stripe_payment_intent ON public.payments(stripe_payment_intent_id);
 CREATE INDEX idx_content_items_category ON public.content_items(category_id);
 CREATE INDEX idx_content_items_published ON public.content_items(is_published);
 CREATE INDEX idx_content_items_share_count ON public.content_items(share_count DESC);

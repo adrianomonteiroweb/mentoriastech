@@ -7,6 +7,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "luc
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { BookingStatus, BookingWithRelations } from "@/lib/types/database"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 const DEFAULT_START_HOUR = 7
 const DEFAULT_END_HOUR = 22
@@ -100,6 +101,7 @@ export function AgendaCalendar() {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const { mentorId, buildUrl } = useMentorFilter()
 
   const weekDays = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
@@ -114,7 +116,7 @@ export function AgendaCalendar() {
     setLoading(true)
     setError("")
 
-    fetch(`/api/admin/bookings?date_from=${weekStartIso}&date_to=${weekEndIso}&pageSize=200`)
+    fetch(buildUrl(`/api/admin/bookings?date_from=${weekStartIso}&date_to=${weekEndIso}&pageSize=200`))
       .then(async (response) => {
         const json = await response.json()
         if (!response.ok) {
@@ -129,7 +131,7 @@ export function AgendaCalendar() {
         setError(err instanceof Error ? err.message : "Erro ao carregar agenda")
       })
       .finally(() => setLoading(false))
-  }, [weekStartIso, weekEndIso])
+  }, [weekStartIso, weekEndIso, mentorId])
 
   const bookingsByDay = useMemo(() => {
     const map = new Map<string, BookingWithRelations[]>()

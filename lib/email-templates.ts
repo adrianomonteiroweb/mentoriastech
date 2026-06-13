@@ -122,6 +122,80 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
   return { subject, html }
 }
 
+interface PaidMentorshipToMentorParams {
+  name: string
+  email: string
+  whatsapp?: string
+  mentorshipTitle: string
+  sessionDate: string
+  startTime: string
+  amountFormatted: string
+  notes?: string
+}
+
+export function paidMentorshipRequestToMentorEmail(params: PaidMentorshipToMentorParams) {
+  const safeName = escapeHtml(params.name)
+  const safeEmail = escapeHtml(params.email)
+  const safeWhatsapp = escapeHtml(params.whatsapp || "Nao informado")
+  const safeTitle = escapeHtml(params.mentorshipTitle)
+
+  const rows = [
+    { label: "Nome", value: safeName },
+    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #0d9488; text-decoration: none;">${safeEmail}</a>` },
+    {
+      label: "WhatsApp",
+      value: params.whatsapp
+        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>`
+        : safeWhatsapp,
+    },
+    { label: "Mentoria", value: safeTitle },
+    { label: "Valor", value: escapeHtml(params.amountFormatted) },
+    { label: "Data", value: formatDateBR(params.sessionDate) },
+    { label: "Horario", value: formatTimeBR(params.startTime) },
+  ]
+
+  if (params.notes) {
+    rows.push({ label: "Observacoes", value: escapeHtml(params.notes) })
+  }
+
+  return {
+    subject: `Solicitacao de mentoria paga - ${safeTitle} - ${safeName}`,
+    html: baseLayout(
+      "Nova solicitacao de mentoria paga",
+      "Aguardando confirmacao do Pix pela Stripe",
+      infoTable(rows) +
+        actionBox(
+          "<strong>Status:</strong> o horario foi reservado como pagamento pendente. A mentoria so deve ser considerada confirmada quando a Stripe confirmar o Pix.",
+        ),
+    ),
+  }
+}
+
+export function paidMentorshipPaidToMentorEmail(params: PaidMentorshipToMentorParams) {
+  const safeName = escapeHtml(params.name)
+  const safeTitle = escapeHtml(params.mentorshipTitle)
+
+  const rows = [
+    { label: "Mentorado", value: safeName },
+    { label: "Mentoria", value: safeTitle },
+    { label: "Valor", value: escapeHtml(params.amountFormatted) },
+    { label: "Data", value: formatDateBR(params.sessionDate) },
+    { label: "Horario", value: formatTimeBR(params.startTime) },
+  ]
+
+  return {
+    subject: `Pix confirmado - ${safeTitle} - ${safeName}`,
+    html: baseLayout(
+      "Pagamento Pix confirmado",
+      "A mentoria paga agora pode ser agendada",
+      infoTable(rows) +
+        actionBox(
+          "<strong>Proximo passo:</strong> acesse o admin para agendar a mentoria e criar o evento na agenda.",
+        ),
+    ),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Emails para o MENTORADO quando status do booking muda
 // ---------------------------------------------------------------------------

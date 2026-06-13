@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db, profiles } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess } from "@/lib/utils/auth"
 import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
 
@@ -37,7 +37,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { id } = await params
     const body = await request.json()
 
@@ -93,7 +93,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { id } = await params
 
     const [mentee] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1)

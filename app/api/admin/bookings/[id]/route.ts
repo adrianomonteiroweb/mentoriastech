@@ -10,7 +10,7 @@ import {
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { toBooking } from "@/lib/db/mappers"
 import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess } from "@/lib/utils/auth"
 import {
   bookingCancelledEmail,
   bookingCompletedEmail,
@@ -93,7 +93,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { id } = await params
     const body = await request.json()
 
@@ -314,7 +314,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { id } = await params
 
     const row = await loadBooking(id)

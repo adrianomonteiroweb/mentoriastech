@@ -7,6 +7,8 @@ import type {
   Job as DbJob,
   MentoringSlot as DbMentoringSlot,
   MentoringTopic as DbMentoringTopic,
+  PaidMentorship as DbPaidMentorship,
+  Payment as DbPayment,
   Profile as DbProfile,
   Tip as DbTip,
 } from "@/lib/db/schema"
@@ -19,6 +21,8 @@ import type {
   Job,
   MentoringSlot,
   MentoringTopic,
+  PaidMentorship,
+  Payment,
   Profile,
   Tip,
 } from "@/lib/types/database"
@@ -50,6 +54,63 @@ export function toAd(row: DbAd): Ad {
     click_count: row.clickCount,
     max_clicks: row.maxClicks ?? null,
     created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toPaidMentorship(row: DbPaidMentorship): PaidMentorship {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    image_url: row.imageUrl,
+    image_alt: row.imageAlt,
+    amount_cents: row.amountCents,
+    currency: row.currency,
+    pix_expires_after_seconds: row.pixExpiresAfterSeconds,
+    pix_amount_includes_iof: row.pixAmountIncludesIof,
+    mentor_id: row.mentorId,
+    mentor_email: row.mentorEmail,
+    sort_order: row.sortOrder,
+    is_active: row.isActive,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toPublicPaidMentorship(row: DbPaidMentorship) {
+  const mentorship = toPaidMentorship(row)
+  const {
+    mentor_email: _mentorEmail,
+    created_by: _createdBy,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    ...publicMentorship
+  } = mentorship
+
+  return publicMentorship
+}
+
+export function toPayment(row: DbPayment): Payment {
+  return {
+    id: row.id,
+    booking_id: row.bookingId,
+    paid_mentorship_id: row.paidMentorshipId,
+    amount_cents: row.amountCents,
+    currency: row.currency,
+    method: row.method,
+    status: row.status,
+    pix_txid: row.pixTxid,
+    stripe_payment_intent_id: row.stripePaymentIntentId,
+    stripe_payment_intent_status: row.stripePaymentIntentStatus,
+    pix_qr_code_data: row.pixQrCodeData,
+    pix_qr_code_image_url_png: row.pixQrCodeImageUrlPng,
+    pix_qr_code_image_url_svg: row.pixQrCodeImageUrlSvg,
+    pix_hosted_instructions_url: row.pixHostedInstructionsUrl,
+    pix_expires_at: toIso(row.pixExpiresAt),
+    paid_at: toIso(row.paidAt),
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }
@@ -140,12 +201,14 @@ export function toContentItem(row: DbContentItem): ContentItem {
 export function toBooking(row: BookingMapperRow): Booking {
   return {
     id: row.id,
+    mentor_id: row.mentorId,
     mentee_id: row.menteeId,
     guest_name: row.guestName,
     guest_email: row.guestEmail,
     guest_whatsapp: row.guestWhatsapp,
     slot_id: row.slotId,
     topic_id: row.topicId,
+    paid_mentorship_id: row.paidMentorshipId,
     session_date: row.sessionDate,
     start_time: row.startTime,
     booking_type: row.bookingType,
@@ -173,6 +236,7 @@ export function toMentoringTopic(row: DbMentoringTopic): MentoringTopic {
     description: row.description,
     is_active: row.isActive,
     sort_order: row.sortOrder,
+    mentor_id: row.mentorId,
     created_at: toIso(row.createdAt) || "",
   }
 }
@@ -187,6 +251,7 @@ export function toMentoringSlot(row: DbMentoringSlot): MentoringSlot {
     rrule: row.rrule,
     recurrence_start: row.recurrenceStart,
     recurrence_end: row.recurrenceEnd,
+    mentor_id: row.mentorId,
     created_at: toIso(row.createdAt) || "",
   }
 }

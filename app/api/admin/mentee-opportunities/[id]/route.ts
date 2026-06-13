@@ -18,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    await requireRole("admin", "mentor")
     const { id } = await params
 
     const [row] = await db

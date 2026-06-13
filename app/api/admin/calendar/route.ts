@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess } from "@/lib/utils/auth"
 import { createCalendarEvent } from "@/lib/google-calendar"
 import { z } from "zod"
 
@@ -13,7 +13,7 @@ const createEventSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const body = await request.json()
 
     const parsed = createEventSchema.safeParse(body)

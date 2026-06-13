@@ -17,18 +17,21 @@ import {
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminStats } from "@/lib/types/database"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 export function StatsCards() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const { mentorId, buildUrl } = useMentorFilter()
 
   useEffect(() => {
-    fetch("/api/admin/stats")
+    setLoading(true)
+    fetch(buildUrl("/api/admin/stats"))
       .then((r) => r.json())
       .then((json) => setStats(json.data))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }, [mentorId])
 
   const cards = [
     { label: "Total Agendamentos", value: stats?.totalBookings, icon: BookOpen, color: "text-blue-400" },

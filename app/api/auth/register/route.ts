@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
-import { db, profiles } from "@/lib/db"
+import { db, paidMentorships, profiles, userRoles } from "@/lib/db"
 import { signToken } from "@/lib/auth/jwt"
 import { AUTH_COOKIE, authCookieOptions } from "@/lib/auth/cookies"
 
@@ -40,6 +40,19 @@ export async function POST(request: Request) {
       )
     }
 
+    const [mentorAssignment] = await db
+      .select({ id: paidMentorships.id })
+      .from(paidMentorships)
+      .where(eq(paidMentorships.mentorEmail, email))
+      .limit(1)
+
+    if (!mentorAssignment) {
+      return NextResponse.json(
+        { error: "Cadastro restrito a mentores convidados. Use o e-mail informado pelo administrador." },
+        { status: 403 },
+      )
+    }
+
     const passwordHash = await bcrypt.hash(parsed.data.password, BCRYPT_ROUNDS)
 
     const [newUser] = await db
@@ -49,13 +62,24 @@ export async function POST(request: Request) {
         fullName: parsed.data.fullName,
         whatsapp: parsed.data.whatsapp,
         passwordHash,
-        role: "mentee",
+        role: "mentor",
       })
       .returning({ id: profiles.id, email: profiles.email, role: profiles.role })
 
     if (!newUser) {
       return NextResponse.json({ error: "Erro ao criar conta" }, { status: 500 })
     }
+
+    await db.insert(userRoles).values({
+      userId: newUser.id,
+      role: newUser.role,
+      assignedBy: null,
+    }).onConflictDoNothing()
+
+    await db
+      .update(paidMentorships)
+      .set({ mentorId: newUser.id, updatedAt: new Date() })
+      .where(eq(paidMentorships.mentorEmail, email))
 
     const token = await signToken({
       userId: newUser.id,

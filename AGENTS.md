@@ -165,6 +165,10 @@ SMTP_PASS                       # Senha SMTP
 GOOGLE_CLIENT_ID                # Client ID do Google Cloud
 GOOGLE_CLIENT_SECRET            # Client Secret do Google Cloud
 GOOGLE_CALENDAR_ID              # Email do calendário
+
+# Stripe (PIX)
+STRIPE_SECRET_KEY               # Chave secreta da conta Stripe
+STRIPE_WEBHOOK_SECRET           # Secret do endpoint /api/stripe/webhook
 ```
 
 ## Roles de Usuário

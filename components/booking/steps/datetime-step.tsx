@@ -1,19 +1,24 @@
-"use client"
+"use client";
 
-import type { ScheduleSlot } from "@/lib/types/booking"
-import { Badge } from "@/components/ui/badge"
-import { CalendarDays, Clock, Loader2, AlertTriangle } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { StepNavigation } from "../step-navigation"
+import type { ScheduleSlot } from "@/lib/types/booking";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { StepNavigation } from "../step-navigation";
 
 interface DateTimeStepProps {
-  slots: ScheduleSlot[]
-  slotsLoading: boolean
-  slotsError?: boolean
-  selectedSlotId: string
-  onSelectSlot: (slotId: string, sessionDate: string, startTime: string, dayName: string) => void
-  onNext: () => void
-  onBack: () => void
+  slots: ScheduleSlot[];
+  slotsLoading: boolean;
+  slotsError?: boolean;
+  selectedSlotId: string;
+  onSelectSlot: (
+    slotId: string,
+    sessionDate: string,
+    startTime: string,
+    dayName: string,
+  ) => void;
+  onNext: () => void;
+  onBack: () => void;
 }
 
 export function DateTimeStep({
@@ -25,8 +30,8 @@ export function DateTimeStep({
   onNext,
   onBack,
 }: DateTimeStepProps) {
-  const availableSlots = slots.filter((s) => s.isAvailable && s.slotType === "free")
-  const availableCount = availableSlots.length
+  const availableSlots = slots.filter((s) => s.isAvailable);
+  const availableCount = availableSlots.length;
 
   if (slotsLoading) {
     return (
@@ -34,7 +39,7 @@ export function DateTimeStep({
         <Loader2 className="h-4 w-4 animate-spin" />
         Carregando horários...
       </div>
-    )
+    );
   }
 
   return (
@@ -44,7 +49,10 @@ export function DateTimeStep({
           Escolha um horário disponível:
         </p>
         {availableCount > 0 && availableCount <= 2 && (
-          <Badge variant="secondary" className="gap-1 text-amber-500 border-amber-500/30 bg-amber-500/10">
+          <Badge
+            variant="secondary"
+            className="gap-1 text-amber-500 border-amber-500/30 bg-amber-500/10"
+          >
             <AlertTriangle className="h-3 w-3" />
             Últimos horários!
           </Badge>
@@ -68,25 +76,47 @@ export function DateTimeStep({
       ) : (
         <div className="grid grid-cols-1 gap-2 max-h-[360px] overflow-y-auto pr-1">
           {availableSlots.map((slot, index) => {
-            const dateFormatted = slot.date.split("-").reverse().slice(0, 2).join("/")
+            const persistedSlotId = slot.slotId;
+            const isPersistable = Boolean(persistedSlotId);
+            const dateFormatted = slot.date
+              .split("-")
+              .reverse()
+              .slice(0, 2)
+              .join("/");
             return (
               <button
                 key={slot.id}
                 type="button"
-                onClick={() => onSelectSlot(slot.id, slot.date, slot.startTime, slot.dayName)}
+                disabled={!isPersistable}
+                onClick={() =>
+                  onSelectSlot(
+                    persistedSlotId,
+                    slot.date,
+                    slot.startTime,
+                    slot.dayName,
+                  )
+                }
                 className={cn(
                   "flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200",
-                  selectedSlotId === slot.id
+                  selectedSlotId === persistedSlotId
                     ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/20"
                     : "border-border bg-card hover:border-muted-foreground/30",
-                  index === 0 && selectedSlotId === "" && "border-primary/30 bg-primary/5",
+                  index === 0 &&
+                    selectedSlotId === "" &&
+                    "border-primary/30 bg-primary/5",
+                  !isPersistable && "opacity-50 cursor-not-allowed",
                 )}
               >
                 <CalendarDays className="h-4 w-4 shrink-0" />
                 <span className="font-medium">{slot.dayName}</span>
-                <span className="text-xs text-muted-foreground">{dateFormatted}</span>
+                <span className="text-xs text-muted-foreground">
+                  {dateFormatted}
+                </span>
                 {index === 0 && selectedSlotId === "" && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-1">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1.5 py-0 ml-1"
+                  >
                     Próximo
                   </Badge>
                 )}
@@ -95,7 +125,7 @@ export function DateTimeStep({
                   {slot.startTime}
                 </span>
               </button>
-            )
+            );
           })}
         </div>
       )}
@@ -108,5 +138,5 @@ export function DateTimeStep({
         isLast={false}
       />
     </div>
-  )
+  );
 }

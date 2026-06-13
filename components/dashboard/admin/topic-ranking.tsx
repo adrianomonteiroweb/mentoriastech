@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { TopicRanking as TopicRankingType } from "@/lib/types/database"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 const TOPIC_ICONS: LucideIcon[] = [
   Code2, Briefcase, Brain, Target, Rocket, Lightbulb,
@@ -49,14 +50,16 @@ function getIconForTopic(index: number): LucideIcon {
 export function TopicRanking() {
   const [topics, setTopics] = useState<TopicRankingType[]>([])
   const [loading, setLoading] = useState(true)
+  const { mentorId, buildUrl } = useMentorFilter()
 
   useEffect(() => {
-    fetch("/api/admin/stats")
+    setLoading(true)
+    fetch(buildUrl("/api/admin/stats"))
       .then((r) => r.json())
       .then((json) => setTopics(json.topicRanking || []))
       .catch(console.error)
       .finally(() => setLoading(false))
-  }, [])
+  }, [mentorId])
 
   const maxCount = topics.length > 0 ? topics[0].bookingCount : 0
 

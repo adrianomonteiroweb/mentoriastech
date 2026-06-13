@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm"
-import { requireRole } from "@/lib/utils/auth"
+import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm"
+import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import {
   auditLogs,
   bookings,
@@ -14,9 +14,17 @@ import {
 } from "@/lib/db"
 import type { AdminStats, TopicRanking } from "@/lib/types/database"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
+
+    const url = new URL(request.url)
+    const filterMentorId = profile.role === "admin"
+      ? url.searchParams.get("mentorId") || mentorId
+      : mentorId
+
+    const mentorFilter = eq(bookings.mentorId, filterMentorId)
 
     const [
       totalBookings,
@@ -35,12 +43,12 @@ export async function GET() {
       opportunityToolUses,
       resumeJobToolUses,
     ] = await Promise.all([
-      db.select({ value: count() }).from(bookings),
-      db.select({ value: count() }).from(bookings).where(eq(bookings.status, "pending")),
-      db.select({ value: count() }).from(profiles).where(eq(profiles.role, "mentee")),
+      db.select({ value: count() }).from(bookings).where(mentorFilter),
+      db.select({ value: count() }).from(bookings).where(and(eq(bookings.status, "pending"), mentorFilter)),
+      db.select({ value: countDistinct(bookings.menteeId) }).from(bookings).where(mentorFilter),
       db.select({ value: count() }).from(jobs).where(eq(jobs.status, "pending")),
       db.select({ value: count() }).from(contentItems).where(eq(contentItems.isPublished, true)),
-      db.select({ value: count() }).from(bookings).where(eq(bookings.status, "completed")),
+      db.select({ value: count() }).from(bookings).where(and(eq(bookings.status, "completed"), mentorFilter)),
       db.select({ value: countDistinct(jobActions.jobId) }).from(jobActions).where(inArray(jobActions.actionType, ["link_issue", "closed"])),
       db.select({ value: count() }).from(jobActions).where(eq(jobActions.actionType, "applied")),
       db.select({ value: sql<number>`coalesce(sum(${pageShares.shareCount}), 0)::int` }).from(pageShares),
@@ -68,8 +76,8 @@ export async function GET() {
         bookingCount: count(bookings.id),
       })
       .from(mentoringTopics)
-      .leftJoin(bookings, eq(bookings.topicId, mentoringTopics.id))
-      .where(eq(mentoringTopics.isActive, true))
+      .leftJoin(bookings, and(eq(bookings.topicId, mentoringTopics.id), mentorFilter))
+      .where(and(eq(mentoringTopics.isActive, true), eq(mentoringTopics.mentorId, filterMentorId)))
       .groupBy(mentoringTopics.id, mentoringTopics.name, mentoringTopics.category)
       .orderBy(desc(count(bookings.id)))
 

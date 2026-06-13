@@ -2,7 +2,7 @@ import { PlatformLinks } from "@/components/platform-links";
 import { ProfileHeader } from "@/components/profile-header";
 import { ShareButton } from "@/components/share-button";
 import { SocialLinks } from "@/components/social-links";
-import { UnifiedBookingForm } from "@/components/booking/unified-booking-form";
+import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
 import { CalendarDays } from "lucide-react";
 
 export default function Page() {
@@ -48,7 +48,7 @@ export default function Page() {
                 com contexto.
               </p>
             </div>
-            <UnifiedBookingForm />
+            <MentorshipRequestTabs />
           </section>
         </div>
 

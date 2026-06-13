@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
-import { requireRole } from "@/lib/utils/auth"
+import { and, eq } from "drizzle-orm"
+import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import { db, mentoringTopics } from "@/lib/db"
 import { toMentoringTopic } from "@/lib/db/mappers"
 import { z } from "zod"
@@ -18,7 +18,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
     const { id } = await params
     const body = await request.json()
 
@@ -35,10 +36,14 @@ export async function PUT(
     if (parsed.data.is_active !== undefined) updateData.isActive = parsed.data.is_active
     if (parsed.data.sort_order !== undefined) updateData.sortOrder = parsed.data.sort_order
 
+    const ownershipFilter = profile.role === "admin"
+      ? eq(mentoringTopics.id, id)
+      : and(eq(mentoringTopics.id, id), eq(mentoringTopics.mentorId, mentorId))
+
     const [data] = await db
       .update(mentoringTopics)
       .set(updateData)
-      .where(eq(mentoringTopics.id, id))
+      .where(ownershipFilter)
       .returning()
 
     if (!data) {
@@ -58,10 +63,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
     const { id } = await params
 
-    await db.delete(mentoringTopics).where(eq(mentoringTopics.id, id))
+    const ownershipFilter = profile.role === "admin"
+      ? eq(mentoringTopics.id, id)
+      : and(eq(mentoringTopics.id, id), eq(mentoringTopics.mentorId, mentorId))
+
+    await db.delete(mentoringTopics).where(ownershipFilter)
 
     return NextResponse.json({ success: true })
   } catch (error) {

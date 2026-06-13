@@ -6,8 +6,9 @@ import { bookings, db, profiles } from "@/lib/db"
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { newBookingToMentorEmail } from "@/lib/email-templates"
+import { getDefaultMentorId } from "@/lib/utils/auth"
 
-const TO_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
+const FALLBACK_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
 
 const schema = z.object({
   name: z.string().optional(),
@@ -22,6 +23,7 @@ const schema = z.object({
   isReturningMentee: z.boolean().optional(),
   originCategory: z.enum(["linkedin", "palestra", "indicacao", "instagram", "evento"]).optional(),
   originDescription: z.string().max(500).optional(),
+  mentorId: z.string().uuid().optional(),
 })
 
 const ORIGIN_LABELS = {
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
     }
 
     const data = parsed.data
+    const mentorId = data.mentorId || await getDefaultMentorId()
     const isReturningMentee = data.isReturningMentee === true
     const providedName = data.name?.trim() || ""
     const providedWhatsapp = data.whatsapp?.trim() || ""
@@ -120,6 +123,7 @@ export async function POST(request: Request) {
         await hasBookingConflict({
           sessionDate: data.sessionDate,
           startTime: data.time,
+          mentorId,
         })
       ) {
         return NextResponse.json(
@@ -158,6 +162,7 @@ export async function POST(request: Request) {
           })
 
       const bookingData: typeof bookings.$inferInsert = {
+        mentorId,
         menteeId: mentee.id,
         guestName,
         guestEmail: data.email.trim().toLowerCase(),
@@ -211,6 +216,15 @@ export async function POST(request: Request) {
       const smtpPass = process.env.SMTP_PASS
 
       if (smtpHost && smtpUser && smtpPass) {
+        const [mentorProfile] = await db
+          .select({ email: profiles.email, fullName: profiles.fullName })
+          .from(profiles)
+          .where(eq(profiles.id, mentorId))
+          .limit(1)
+
+        const mentorEmail = mentorProfile?.email || FALLBACK_EMAIL
+        const mentorName = mentorProfile?.fullName || "Mentor"
+
         const transporter = nodemailer.createTransport({
           host: smtpHost,
           port: smtpPort,
@@ -231,8 +245,8 @@ export async function POST(request: Request) {
         })
 
         await transporter.sendMail({
-          from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
-          to: TO_EMAIL,
+          from: `"Mentoria - ${mentorName}" <${smtpUser}>`,
+          to: mentorEmail,
           subject,
           html,
           replyTo: data.email,

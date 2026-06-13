@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/utils/auth"
+import { eq } from "drizzle-orm"
+import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import { db, mentoringTopics } from "@/lib/db"
 import { toMentoringTopic } from "@/lib/db/mappers"
 import { z } from "zod"
@@ -12,13 +13,20 @@ const createSchema = z.object({
   sort_order: z.number().default(0),
 })
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
+
+    const url = new URL(request.url)
+    const filterMentorId = profile.role === "admin"
+      ? url.searchParams.get("mentorId") || mentorId
+      : mentorId
 
     const data = await db
       .select()
       .from(mentoringTopics)
+      .where(eq(mentoringTopics.mentorId, filterMentorId))
       .orderBy(mentoringTopics.sortOrder)
 
     return NextResponse.json({ data: data.map(toMentoringTopic) })
@@ -31,7 +39,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
     const body = await request.json()
 
     const parsed = createSchema.safeParse(body)
@@ -47,6 +56,7 @@ export async function POST(request: Request) {
         description: parsed.data.description,
         isActive: parsed.data.is_active,
         sortOrder: parsed.data.sort_order,
+        mentorId,
       })
       .returning()
 

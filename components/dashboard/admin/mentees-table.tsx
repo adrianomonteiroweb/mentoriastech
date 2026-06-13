@@ -40,6 +40,7 @@ import {
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
 import type { CareerStatus, MentoringTopic, OriginCategory, Profile, Seniority } from "@/lib/types/database"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 type PresenceFilter = "all" | "with" | "without"
 
@@ -122,6 +123,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const { mentorId: filterMentorId, buildUrl } = useMentorFilter()
   const [historyFilter, setHistoryFilter] = useState<PresenceFilter>("all")
   const [linkedinFilter, setLinkedinFilter] = useState<PresenceFilter>("all")
   const [resumeFilter, setResumeFilter] = useState<PresenceFilter>("all")
@@ -188,7 +190,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
 
     params.set("pageSize", "200")
     const query = params.toString()
-    fetch(`/api/admin/mentees?${query}`)
+    fetch(buildUrl(`/api/admin/mentees?${query}`))
       .then((r) => r.json())
       .then((json) => {
         setMentees(json.data || [])
@@ -210,6 +212,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
     careerStatusFilter,
     seniorityFilter,
     originFilter,
+    filterMentorId,
   ])
 
   function openEdit(mentee: Profile) {

@@ -134,6 +134,27 @@
       "when": 1780600000000,
       "tag": "0018_public_job_likes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1780640000000,
+      "tag": "0019_paid_mentorships_stripe_pix",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1781049600000,
+      "tag": "0020_add_multi_mentor",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781373190697,
+      "tag": "0021_sharp_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

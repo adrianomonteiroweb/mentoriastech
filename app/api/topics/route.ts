@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server"
-import { asc, eq } from "drizzle-orm"
+import { and, asc, eq } from "drizzle-orm"
 import { db, mentoringTopics } from "@/lib/db"
 import { toMentoringTopic } from "@/lib/db/mappers"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const mentorId = searchParams.get("mentorId")
+
+    const filters = [eq(mentoringTopics.isActive, true)]
+    if (mentorId) filters.push(eq(mentoringTopics.mentorId, mentorId))
+
     const topics = await db
       .select()
       .from(mentoringTopics)
-      .where(eq(mentoringTopics.isActive, true))
+      .where(and(...filters))
       .orderBy(asc(mentoringTopics.sortOrder))
 
     return NextResponse.json({ topics: topics.map(toMentoringTopic) })

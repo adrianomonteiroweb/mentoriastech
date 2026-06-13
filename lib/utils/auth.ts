@@ -59,6 +59,25 @@ export async function requireRole(...roles: UserRole[]) {
   return toProfile(profile)
 }
 
+export async function requireMentorAccess() {
+  return requireRole("admin", "mentor")
+}
+
+export function getMentorId(profile: Profile): string {
+  return profile.id
+}
+
+export async function getDefaultMentorId(): Promise<string> {
+  const [admin] = await db
+    .select({ id: profiles.id })
+    .from(profiles)
+    .where(eq(profiles.role, "admin"))
+    .limit(1)
+
+  if (!admin) throw new Error("Admin profile not found")
+  return admin.id
+}
+
 export class AuthError extends Error {
   status: number
 

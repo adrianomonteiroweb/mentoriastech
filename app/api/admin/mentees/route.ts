@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 import { db, profiles, bookings } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess, getMentorId, requireRole } from "@/lib/utils/auth"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
@@ -23,7 +23,7 @@ function isInValues<T extends readonly string[]>(value: string | null, values: T
 
 export async function POST(request: Request) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const body = await request.json()
 
     const parsed = createMenteeSchema.safeParse(body)
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    await requireRole("admin", "hr")
+    const actorProfile = await requireRole("admin", "mentor", "hr")
     const { searchParams } = new URL(request.url)
 
     const search = searchParams.get("search")?.trim()
@@ -67,6 +67,15 @@ export async function GET(request: Request) {
     const pageSize = parseInt(searchParams.get("pageSize") || "20")
 
     const filters = [eq(profiles.role, "mentee")]
+
+    if (actorProfile.role === "mentor") {
+      const actorMentorId = getMentorId(actorProfile)
+      filters.push(sql`EXISTS (
+        SELECT 1 FROM ${bookings}
+        WHERE ${bookings.menteeId} = ${profiles.id}
+        AND ${bookings.mentorId} = ${actorMentorId}
+      )`)
+    }
     if (search) {
       filters.push(
         or(

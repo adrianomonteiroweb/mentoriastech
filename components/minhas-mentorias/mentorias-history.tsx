@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BookOpen,
+  BookOpenCheck,
   CalendarDays,
   ChevronDown,
   ChevronUp,
@@ -230,6 +231,16 @@ export function MentoriasHistory({ email, bookings }: Props) {
             <span className="flex items-center gap-2">
               <Briefcase className="h-4 w-4" />
               Painel de Oportunidades
+            </span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link
+            href="/minhas-mentorias/plano-de-estudos"
+            className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+          >
+            <span className="flex items-center gap-2">
+              <BookOpenCheck className="h-4 w-4" />
+              Plano de Estudos com IA
             </span>
             <ArrowRight className="h-4 w-4" />
           </Link>

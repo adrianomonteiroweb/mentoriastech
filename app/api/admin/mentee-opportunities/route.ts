@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic"
 // GET /api/admin/mentee-opportunities?mentee_id=uuid
 export async function GET(request: Request) {
   try {
-    await requireRole("admin")
+    await requireRole("admin", "mentor")
 
     const { searchParams } = new URL(request.url)
     const menteeId = searchParams.get("mentee_id")

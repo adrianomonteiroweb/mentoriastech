@@ -2,14 +2,14 @@ import { NextResponse, type NextRequest } from "next/server"
 import { jwtVerify } from "jose"
 
 const AUTH_COOKIE = "auth_token"
-const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/hr", "/mentee"]
+const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/mentor", "/hr", "/mentee"]
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com",
+  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.stripe.com",
   "font-src 'self' data:",
   "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.vercel-storage.com https://*.public.blob.vercel-storage.com",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",

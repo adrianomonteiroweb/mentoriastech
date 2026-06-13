@@ -33,6 +33,7 @@ import { Check, Copy, ExternalLink, Loader2, MessageCircle, Pencil, Trash2 } fro
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { BookingWithRelations, BookingStatus, MentoringTopic } from "@/lib/types/database"
 import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 interface BookingsTableProps {
   bookingId?: string
@@ -97,6 +98,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   const [topics, setTopics] = useState<MentoringTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>("all")
+  const { mentorId: filterMentorId, buildUrl } = useMentorFilter()
   const [editingBooking, setEditingBooking] = useState<BookingWithRelations | null>(null)
   const [completingBooking, setCompletingBooking] = useState<BookingWithRelations | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null)
@@ -127,7 +129,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
 
     const query = params.toString()
 
-    fetch(`/api/admin/bookings${query ? `?${query}` : ""}`)
+    fetch(buildUrl(`/api/admin/bookings${query ? `?${query}` : ""}`))
       .then(async (r) => {
         const json = await r.json()
         if (!r.ok) {
@@ -146,7 +148,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
 
   useEffect(() => {
     loadBookings()
-  }, [filter, bookingId])
+  }, [filter, bookingId, filterMentorId])
 
   useEffect(() => {
     fetch("/api/topics")
@@ -259,7 +261,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   const getEmail = (b: BookingWithRelations) =>
     b.profiles?.email || b.guest_email || ""
   const getTopic = (b: BookingWithRelations) =>
-    b.mentoring_topics?.name || "—"
+    b.paid_mentorships?.title || b.mentoring_topics?.name || "—"
   const isSingleBookingFilter = !!bookingId
 
   return (

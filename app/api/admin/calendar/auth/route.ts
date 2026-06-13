@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess } from "@/lib/utils/auth"
 import { getConsentUrl, exchangeCodeForTokens } from "@/lib/google-calendar"
 import { db, sitePrivateSettings, siteSettings } from "@/lib/db"
 
 // GET: Gera URL de consentimento OAuth
 export async function GET(request: Request) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { origin } = new URL(request.url)
     const redirectUri = `${origin}/api/admin/calendar/auth`
 
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 // POST: Troca code por tokens e salva refresh_token
 export async function POST(request: Request) {
   try {
-    await requireRole("admin")
+    await requireMentorAccess()
     const { code } = await request.json()
     const { origin } = new URL(request.url)
     const redirectUri = `${origin}/api/admin/calendar/auth`

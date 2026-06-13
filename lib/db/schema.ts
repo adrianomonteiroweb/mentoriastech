@@ -20,7 +20,7 @@ import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 export const profiles = pgTable("profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  role: text("role", { enum: ["admin", "mentee", "hr"] }).notNull().default("mentee"),
+  role: text("role", { enum: ["admin", "mentor", "mentee", "hr"] }).notNull().default("mentee"),
   fullName: text("full_name"),
   whatsapp: text("whatsapp"),
   linkedinUrl: text("linkedin_url"),
@@ -45,7 +45,7 @@ export const profiles = pgTable("profiles", {
 
 export const userRoles = pgTable("user_roles", {
   userId: uuid("user_id").primaryKey().references(() => profiles.id, { onDelete: "cascade" }),
-  role: text("role", { enum: ["admin", "mentee", "hr"] }).notNull().default("mentee"),
+  role: text("role", { enum: ["admin", "mentor", "mentee", "hr"] }).notNull().default("mentee"),
   assignedBy: uuid("assigned_by").references(() => profiles.id, { onDelete: "set null" }),
   assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -64,6 +64,7 @@ export const mentoringSlots = pgTable("mentoring_slots", {
   rrule: text("rrule"),
   recurrenceStart: date("recurrence_start"),
   recurrenceEnd: date("recurrence_end"),
+  mentorId: uuid("mentor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
@@ -77,20 +78,50 @@ export const mentoringTopics = pgTable("mentoring_topics", {
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  mentorId: uuid("mentor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })
+
+export const paidMentorships = pgTable("paid_mentorships", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  imageUrl: text("image_url"),
+  imageAlt: text("image_alt"),
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull().default("BRL"),
+  pixExpiresAfterSeconds: integer("pix_expires_after_seconds").notNull().default(86400),
+  pixAmountIncludesIof: text("pix_amount_includes_iof", {
+    enum: ["always", "never"],
+  }).notNull().default("never"),
+  mentorId: uuid("mentor_id").references(() => profiles.id, { onDelete: "set null" }),
+  mentorEmail: text("mentor_email").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  check("paid_mentorships_amount_min", sql`${table.amountCents} >= 50`),
+  check(
+    "paid_mentorships_pix_expiration_range",
+    sql`${table.pixExpiresAfterSeconds} BETWEEN 10 AND 1209600`,
+  ),
+])
 
 // -----------------------------------------------------------------------------
 // BOOKINGS — agendamentos
 // -----------------------------------------------------------------------------
 export const bookings = pgTable("bookings", {
   id: uuid("id").primaryKey().defaultRandom(),
+  mentorId: uuid("mentor_id").references(() => profiles.id, { onDelete: "set null" }),
   menteeId: uuid("mentee_id").references(() => profiles.id, { onDelete: "set null" }),
   guestName: text("guest_name"),
   guestEmail: text("guest_email"),
   guestWhatsapp: text("guest_whatsapp"),
   slotId: uuid("slot_id").references(() => mentoringSlots.id),
   topicId: uuid("topic_id").references(() => mentoringTopics.id),
+  paidMentorshipId: uuid("paid_mentorship_id").references(() => paidMentorships.id, { onDelete: "set null" }),
   sessionDate: date("session_date"),
   startTime: time("start_time"),
   bookingType: text("booking_type", { enum: ["free", "paid", "private"] }).notNull().default("free"),
@@ -137,14 +168,25 @@ export const bookingHistorySyncQueue = pgTable("booking_history_sync_queue", {
 export const payments = pgTable("payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  paidMentorshipId: uuid("paid_mentorship_id").references(() => paidMentorships.id, { onDelete: "set null" }),
   amountCents: integer("amount_cents").notNull(),
   currency: text("currency").notNull().default("BRL"),
   method: text("method").notNull().default("pix"),
   status: text("status", { enum: ["pending", "confirmed", "failed", "refunded"] }).notNull().default("pending"),
   pixTxid: text("pix_txid"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripePaymentIntentStatus: text("stripe_payment_intent_status"),
+  pixQrCodeData: text("pix_qr_code_data"),
+  pixQrCodeImageUrlPng: text("pix_qr_code_image_url_png"),
+  pixQrCodeImageUrlSvg: text("pix_qr_code_image_url_svg"),
+  pixHostedInstructionsUrl: text("pix_hosted_instructions_url"),
+  pixExpiresAt: timestamp("pix_expires_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-})
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("payments_stripe_payment_intent_id_unique").on(table.stripePaymentIntentId),
+])
 
 // -----------------------------------------------------------------------------
 // CONTENT_CATEGORIES
@@ -450,6 +492,35 @@ export const opportunityEvents = pgTable("opportunity_events", {
 })
 
 // -----------------------------------------------------------------------------
+// STUDY_PLANS — planos de estudo gerados por IA (Minhas Mentorias)
+// -----------------------------------------------------------------------------
+export const studyPlans = pgTable("study_plans", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  title: text("title"),
+  // Posição-alvo
+  roleType: text("role_type"), // desenvolvedor, engenheiro, analista, tech_lead, outro
+  stack: text("stack", { enum: ["fullstack", "backend", "frontend", "mobile", "data", "devops", "outro"] }),
+  seniority: text("seniority", { enum: ["internship", "trainee", "junior", "mid", "senior"] }),
+  languages: jsonb("languages").$type<string[]>(),
+  frameworks: jsonb("frameworks").$type<string[]>(),
+  // Diagnóstico de ponto de partida
+  strengths: text("strengths"),
+  weaknesses: text("weaknesses"),
+  experience: text("experience"),
+  minutesPerDay: integer("minutes_per_day").notNull().default(30),
+  // Vagas vinculadas (oportunidades existentes do mentorado)
+  linkedOpportunityIds: jsonb("linked_opportunity_ids").$type<string[]>(),
+  // Saída da IA + acompanhamento
+  planMarkdown: text("plan_markdown"),
+  progress: jsonb("progress").$type<{ id: string; label: string; checked: boolean }[]>(),
+  status: text("status", { enum: ["draft", "active", "completed"] }).notNull().default("active"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // MESSAGE_TEMPLATES — templates de mensagem do sistema
 // -----------------------------------------------------------------------------
 export const messageTemplates = pgTable("message_templates", {
@@ -476,6 +547,8 @@ export type NewProfile = typeof profiles.$inferInsert
 export type UserRoleAssignment = typeof userRoles.$inferSelect
 export type MentoringSlot = typeof mentoringSlots.$inferSelect
 export type MentoringTopic = typeof mentoringTopics.$inferSelect
+export type PaidMentorship = typeof paidMentorships.$inferSelect
+export type NewPaidMentorship = typeof paidMentorships.$inferInsert
 export type Booking = typeof bookings.$inferSelect
 export type BookingHistorySyncQueueItem = typeof bookingHistorySyncQueue.$inferSelect
 export type Payment = typeof payments.$inferSelect

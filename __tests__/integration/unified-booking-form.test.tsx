@@ -21,6 +21,7 @@ vi.mock("@/lib/supabase/client", () => ({
 const mockFreeSlots = [
   {
     id: "s1",
+    slotId: "11111111-1111-4111-8111-111111111111",
     dayOfWeek: 5,
     dayName: "Sexta-feira",
     startTime: "20:00",
@@ -31,6 +32,7 @@ const mockFreeSlots = [
   },
   {
     id: "s2",
+    slotId: "22222222-2222-4222-8222-222222222222",
     dayOfWeek: 6,
     dayName: "Sábado",
     startTime: "09:00",
@@ -44,6 +46,7 @@ const mockFreeSlots = [
 const mockPaidSlots = [
   {
     id: "p1_2026-04-13",
+    slotId: "44444444-4444-4444-8444-444444444444",
     dayOfWeek: 1,
     dayName: "Segunda-feira",
     startTime: "14:00",

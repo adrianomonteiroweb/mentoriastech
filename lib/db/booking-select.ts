@@ -5,12 +5,16 @@ import type { Booking } from "@/lib/types/database"
 
 export const bookingSelect = {
   id: bookings.id,
+  mentorId: bookings.mentorId,
   menteeId: bookings.menteeId,
   guestName: bookings.guestName,
   guestEmail: bookings.guestEmail,
   guestWhatsapp: bookings.guestWhatsapp,
   slotId: bookings.slotId,
   topicId: bookings.topicId,
+  paidMentorshipId: sql<Booking["paid_mentorship_id"]>`
+    to_jsonb(bookings) ->> 'paid_mentorship_id'
+  `,
   sessionDate: bookings.sessionDate,
   startTime: bookings.startTime,
   bookingType: bookings.bookingType,
@@ -56,6 +60,7 @@ export function isOptionalBookingMetadataPersistenceError(error: unknown) {
   return (
     message.includes("mentorship_checklist") ||
     message.includes("origin_category") ||
-    message.includes("origin_description")
+    message.includes("origin_description") ||
+    message.includes("paid_mentorship_id")
   )
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm"
-import { bookings, db, mentoringSlots, mentoringTopics, profiles } from "@/lib/db"
+import { bookings, db, mentoringSlots, mentoringTopics, paidMentorships, profiles } from "@/lib/db"
 import {
   bookingSelect,
   isOptionalBookingMetadataPersistenceError,
@@ -9,10 +9,11 @@ import {
   toBooking,
   toMentoringSlot,
   toMentoringTopic,
+  toPublicPaidMentorship,
   toProfile,
 } from "@/lib/db/mappers"
 import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import { z } from "zod"
 import type { Booking, BookingStatus, BookingType } from "@/lib/types/database"
 
@@ -26,7 +27,8 @@ const mentorshipChecklistItemSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
     const { searchParams } = new URL(request.url)
 
     const status = searchParams.get("status") as BookingStatus | null
@@ -42,7 +44,11 @@ export async function GET(request: Request) {
 
     const menteeId = searchParams.get("mentee_id")
 
-    const filters = []
+    const filterMentorId = profile.role === "admin"
+      ? searchParams.get("mentorId") || mentorId
+      : mentorId
+
+    const filters = [eq(bookings.mentorId, filterMentorId)]
     if (bookingId && z.string().uuid().safeParse(bookingId).success) {
       filters.push(eq(bookings.id, bookingId))
     }
@@ -63,11 +69,13 @@ export async function GET(request: Request) {
           booking: bookingSelect,
           topic: mentoringTopics,
           slot: mentoringSlots,
+          paidMentorship: paidMentorships,
           profile: profiles,
         })
         .from(bookings)
         .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
         .leftJoin(mentoringSlots, eq(bookings.slotId, mentoringSlots.id))
+        .leftJoin(paidMentorships, eq(bookings.paidMentorshipId, paidMentorships.id))
         .leftJoin(profiles, eq(bookings.menteeId, profiles.id))
         .where(where)
         .orderBy(desc(bookings.createdAt))
@@ -81,6 +89,7 @@ export async function GET(request: Request) {
         ...toBooking(row.booking),
         mentoring_topics: row.topic ? toMentoringTopic(row.topic) : null,
         mentoring_slots: row.slot ? toMentoringSlot(row.slot) : null,
+        paid_mentorships: row.paidMentorship ? toPublicPaidMentorship(row.paidMentorship) : null,
         profiles: row.profile ? toProfile(row.profile) : null,
       })),
       total: totalRows[0]?.value || 0,
@@ -111,12 +120,14 @@ const createSchema = z.object({
 
 type CreatedBookingRow = {
   id: string
+  mentorId: string | null
   menteeId: string | null
   guestName: string | null
   guestEmail: string | null
   guestWhatsapp: string | null
   slotId: string | null
   topicId: string | null
+  paidMentorshipId: string | null
   sessionDate: string | null
   startTime: string | null
   bookingType: BookingType
@@ -137,7 +148,8 @@ type CreatedBookingRow = {
 
 export async function POST(request: Request) {
   try {
-    await requireRole("admin")
+    const profile = await requireMentorAccess()
+    const mentorId = getMentorId(profile)
     const body = await request.json()
 
     const parsed = createSchema.safeParse(body)
@@ -153,6 +165,7 @@ export async function POST(request: Request) {
 
     const result = await db.execute<CreatedBookingRow>(sql`
       insert into bookings (
+        mentor_id,
         mentee_id,
         topic_id,
         session_date,
@@ -166,6 +179,7 @@ export async function POST(request: Request) {
         admin_notes
       )
       values (
+        ${mentorId},
         ${parsed.data.mentee_id},
         ${parsed.data.topic_id || null},
         ${parsed.data.session_date},
@@ -180,12 +194,14 @@ export async function POST(request: Request) {
       )
       returning
         id,
+        mentor_id as "mentorId",
         mentee_id as "menteeId",
         guest_name as "guestName",
         guest_email as "guestEmail",
         guest_whatsapp as "guestWhatsapp",
         slot_id as "slotId",
         topic_id as "topicId",
+        paid_mentorship_id as "paidMentorshipId",
         session_date as "sessionDate",
         start_time as "startTime",
         booking_type as "bookingType",

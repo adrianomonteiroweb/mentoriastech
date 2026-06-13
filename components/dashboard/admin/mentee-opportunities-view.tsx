@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 // ---------- Types (inline, API shapes) ----------
 
@@ -133,12 +134,13 @@ function MenteeSelector({
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const { buildUrl } = useMentorFilter()
 
   useEffect(() => {
     async function load() {
       try {
         const params = new URLSearchParams({ pageSize: "200" })
-        const res = await fetch(`/api/admin/mentees?${params}`)
+        const res = await fetch(buildUrl(`/api/admin/mentees?${params}`))
         const json = await res.json()
         setMentees(json.data || [])
       } catch {

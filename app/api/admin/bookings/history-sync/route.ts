@@ -6,7 +6,7 @@ import { bookingHistorySyncQueue, bookings, db } from "@/lib/db"
 import { bookingSelect } from "@/lib/db/booking-select"
 import { normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { toBooking } from "@/lib/db/mappers"
-import { requireRole } from "@/lib/utils/auth"
+import { requireMentorAccess } from "@/lib/utils/auth"
 
 const historyPayloadSchema = z.object({
   topic_id: z.string().uuid().or(z.literal("")),
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   let mutationId: string | null = null
 
   try {
-    const admin = await requireRole("admin")
+    const admin = await requireMentorAccess()
     const body = await request.json()
     const parsed = syncSchema.safeParse(body)
 

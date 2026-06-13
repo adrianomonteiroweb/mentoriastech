@@ -21,7 +21,8 @@
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\Gabriele Bernardo\\\\Downloads\\\\Currículo - Desenvolvedor Full Stack Júnior - Adriano Monteiro.pdf\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); $b64.Length)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\Gabriele Bernardo\\\\Downloads\\\\Currículo - Desenvolvedor Full Stack Júnior - Adriano Monteiro.pdf\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); $chunkSize = 30000; $chunks = [System.Collections.ArrayList]::new\\(\\); for \\($i = 0; $i -lt $b64.Length; $i += $chunkSize\\) { $len = [Math]::Min\\($chunkSize, $b64.Length - $i\\); [void]$chunks.Add\\($b64.Substring\\($i, $len\\)\\) }; \"Total chunks: $\\($chunks.Count\\)\"; for \\($j = 0; $j -lt $chunks.Count; $j++\\) { $chunks[$j] | Out-File -Encoding utf8 -FilePath \"scripts\\\\chunk_$j.txt\" -NoNewline }; \"done\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Select-Object -Last 5)"
     ]
   }
 }

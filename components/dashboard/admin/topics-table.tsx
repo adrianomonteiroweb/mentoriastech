@@ -9,21 +9,23 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Plus, Trash2 } from "lucide-react"
 import type { MentoringTopic } from "@/lib/types/database"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 export function TopicsTable() {
   const [topics, setTopics] = useState<MentoringTopic[]>([])
   const [loading, setLoading] = useState(true)
+  const { mentorId, buildUrl } = useMentorFilter()
 
   function loadTopics() {
     setLoading(true)
-    fetch("/api/admin/topics")
+    fetch(buildUrl("/api/admin/topics"))
       .then((r) => r.json())
       .then((json) => setTopics(json.data || []))
       .catch(console.error)
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadTopics() }, [])
+  useEffect(() => { loadTopics() }, [mentorId])
 
   async function toggleActive(id: string, isActive: boolean) {
     await fetch(`/api/admin/topics/${id}`, {

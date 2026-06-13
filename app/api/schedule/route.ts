@@ -18,18 +18,27 @@ function normalizeTime(time: string | null | undefined) {
   return time.length === 5 ? `${time}:00` : time
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const mentorId = searchParams.get("mentorId")
+
+    const slotFilters = [eq(mentoringSlots.isActive, true)]
+    if (mentorId) slotFilters.push(eq(mentoringSlots.mentorId, mentorId))
+
+    const topicFilters = [eq(mentoringTopics.isActive, true)]
+    if (mentorId) topicFilters.push(eq(mentoringTopics.mentorId, mentorId))
+
     const [slots, topics] = await Promise.all([
       db
         .select()
         .from(mentoringSlots)
-        .where(eq(mentoringSlots.isActive, true))
+        .where(and(...slotFilters))
         .orderBy(asc(mentoringSlots.startTime)),
       db
         .select()
         .from(mentoringTopics)
-        .where(eq(mentoringTopics.isActive, true))
+        .where(and(...topicFilters))
         .orderBy(asc(mentoringTopics.sortOrder)),
     ])
 
@@ -67,9 +76,10 @@ export async function GET() {
       .from(bookings)
       .where(
         and(
+          ...(mentorId ? [eq(bookings.mentorId, mentorId)] : []),
           gte(bookings.sessionDate, mondayStr),
           lte(bookings.sessionDate, horizonStr),
-          inArray(bookings.status, ["pending", "confirmed", "paid", "scheduled"]),
+          inArray(bookings.status, ["pending", "confirmed", "payment_pending", "paid", "scheduled"]),
         ),
       )
 
