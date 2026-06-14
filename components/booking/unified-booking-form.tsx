@@ -131,21 +131,17 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
   // Merge free topics + paid mentorships into a single unified list
   const allTopics: TopicItem[] = useMemo(() => {
     const freeItems = topics.filter((t) => t.category === "free");
-    // Mentorias pagas temporariamente desabilitadas na pagina publica
-    // (fluxo de pagamento Pagar.me ainda em finalizacao). Para reativar,
-    // descomente o bloco abaixo.
-    // const paidItems: TopicItem[] = paidMentorships.map((pm) => ({
-    //   id: `paid-${pm.id}`,
-    //   name: pm.title,
-    //   category: "paid" as const,
-    //   description: pm.description,
-    //   amountCents: pm.amount_cents,
-    //   currency: pm.currency,
-    //   paidMentorshipId: pm.id,
-    //   imageUrl: pm.image_url,
-    // }));
-    // return [...paidItems, ...freeItems];
-    return freeItems;
+    const paidItems: TopicItem[] = paidMentorships.map((pm) => ({
+      id: `paid-${pm.id}`,
+      name: pm.title,
+      category: "paid" as const,
+      description: pm.description,
+      amountCents: pm.amount_cents,
+      currency: pm.currency,
+      paidMentorshipId: pm.id,
+      imageUrl: pm.image_url,
+    }));
+    return [...paidItems, ...freeItems];
   }, [topics, paidMentorships]);
 
   // Count available free slots for scarcity cue
