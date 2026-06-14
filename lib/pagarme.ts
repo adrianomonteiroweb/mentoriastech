@@ -214,6 +214,12 @@ export function pagarmePixOrderErrorMessage(error: unknown): string {
     return "Chave secreta da Pagar.me invalida ou ausente. Confira PAGARME_SECRET_KEY em .env.local e reinicie o servidor."
   }
 
+  // 404 "no route matched with those values" e a resposta do gateway (Kong) da Pagar.me
+  // quando a URL nao bate com nenhuma rota — quase sempre PAGARME_BASE_URL sem /core/v5.
+  if (lower.includes("no route matched")) {
+    return "Configuracao da API Pagar.me incorreta: PAGARME_BASE_URL ausente ou sem /core/v5. Use https://sdx-api.pagar.me/core/v5 (teste) ou https://api.pagar.me/core/v5 (producao)."
+  }
+
   if (lower.includes("document") || lower.includes("cpf") || lower.includes("documento")) {
     return "Sua conta Pagar.me exige o CPF do cliente para gerar o Pix. Preencha o campo CPF e tente novamente."
   }
