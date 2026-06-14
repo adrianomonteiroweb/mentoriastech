@@ -80,6 +80,7 @@ describe("ContactStep", () => {
         name="Maria Teste"
         email="maria@test.com"
         whatsapp="85999990000"
+        originCategory="linkedin"
       />,
     )
 
