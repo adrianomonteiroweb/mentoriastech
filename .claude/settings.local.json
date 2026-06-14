@@ -22,7 +22,17 @@
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "PowerShell($bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\Gabriele Bernardo\\\\Downloads\\\\Currículo - Desenvolvedor Full Stack Júnior - Adriano Monteiro.pdf\"\\); $b64 = [Convert]::ToBase64String\\($bytes\\); $chunkSize = 30000; $chunks = [System.Collections.ArrayList]::new\\(\\); for \\($i = 0; $i -lt $b64.Length; $i += $chunkSize\\) { $len = [Math]::Min\\($chunkSize, $b64.Length - $i\\); [void]$chunks.Add\\($b64.Substring\\($i, $len\\)\\) }; \"Total chunks: $\\($chunks.Count\\)\"; for \\($j = 0; $j -lt $chunks.Count; $j++\\) { $chunks[$j] | Out-File -Encoding utf8 -FilePath \"scripts\\\\chunk_$j.txt\" -NoNewline }; \"done\")",
       "Bash(npx tsc *)",
-      "Bash(Select-Object -Last 5)"
+      "Bash(Select-Object -Last 5)",
+      "Bash(powershell -Command \"Get-Content drizzle/meta/_journal.json | ConvertFrom-Json | Select-Object -ExpandProperty entries | Select-Object -Last 6 | Format-Table idx,tag\")",
+      "Bash(findstr /v \".sql.bak\")",
+      "Bash(powershell -Command \"Get-Content app/api/admin/mentees/route.ts\")",
+      "Bash(powershell -Command \"\\(Get-Content components/dashboard/admin/mentees-table.tsx | Measure-Object -Line\\).Lines\")",
+      "Bash(powershell -Command \"Get-ChildItem components/ui -Name | Select-String -Pattern 'checkbox|command|combobox|popover|select|table|dialog|badge|tabs|card'\")",
+      "Bash(pnpm db:migrate)",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('drizzle-orm/neon-http/migrator'\\)\\)\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('drizzle-orm/neon-http/migrator'\\)\\)\")",
+      "Bash(npx tsx *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

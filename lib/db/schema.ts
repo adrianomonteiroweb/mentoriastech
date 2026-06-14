@@ -176,6 +176,9 @@ export const payments = pgTable("payments", {
   pixTxid: text("pix_txid"),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   stripePaymentIntentStatus: text("stripe_payment_intent_status"),
+  pagarmeOrderId: text("pagarme_order_id"),
+  pagarmeChargeId: text("pagarme_charge_id"),
+  pagarmeStatus: text("pagarme_status"),
   pixQrCodeData: text("pix_qr_code_data"),
   pixQrCodeImageUrlPng: text("pix_qr_code_image_url_png"),
   pixQrCodeImageUrlSvg: text("pix_qr_code_image_url_svg"),
@@ -186,6 +189,7 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex("payments_stripe_payment_intent_id_unique").on(table.stripePaymentIntentId),
+  uniqueIndex("payments_pagarme_charge_id_unique").on(table.pagarmeChargeId),
 ])
 
 // -----------------------------------------------------------------------------
@@ -540,6 +544,36 @@ export const messageTemplates = pgTable("message_templates", {
 })
 
 // -----------------------------------------------------------------------------
+// SELECTION_PROCESSES — processos seletivos (empresa + posicao)
+// -----------------------------------------------------------------------------
+export const selectionProcesses = pgTable("selection_processes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  company: text("company").notNull(),
+  position: text("position").notNull(),
+  description: text("description"),
+  status: text("status", { enum: ["open", "closed"] }).notNull().default("open"),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
+// SELECTION_PROCESS_CANDIDATES — mentorados participantes de um processo seletivo
+// -----------------------------------------------------------------------------
+export const selectionProcessCandidates = pgTable("selection_process_candidates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  processId: uuid("process_id").notNull().references(() => selectionProcesses.id, { onDelete: "cascade" }),
+  menteeId: uuid("mentee_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+  score: integer("score"),
+  checklist: jsonb("checklist").$type<{ id: string; label: string; checked: boolean }[]>(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("idx_selection_process_candidates_unique").on(table.processId, table.menteeId),
+])
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect
@@ -577,3 +611,7 @@ export type OpportunityEvent = typeof opportunityEvents.$inferSelect
 export type OpportunityResume = typeof opportunityResumes.$inferSelect
 export type NewOpportunityResume = typeof opportunityResumes.$inferInsert
 export type MessageTemplate = typeof messageTemplates.$inferSelect
+export type SelectionProcess = typeof selectionProcesses.$inferSelect
+export type NewSelectionProcess = typeof selectionProcesses.$inferInsert
+export type SelectionProcessCandidate = typeof selectionProcessCandidates.$inferSelect
+export type NewSelectionProcessCandidate = typeof selectionProcessCandidates.$inferInsert

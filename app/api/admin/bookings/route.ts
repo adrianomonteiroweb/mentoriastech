@@ -45,10 +45,11 @@ export async function GET(request: Request) {
     const menteeId = searchParams.get("mentee_id")
 
     const filterMentorId = profile.role === "admin"
-      ? searchParams.get("mentorId") || mentorId
+      ? searchParams.get("mentorId") || (menteeId ? null : mentorId)
       : mentorId
 
-    const filters = [eq(bookings.mentorId, filterMentorId)]
+    const filters = []
+    if (filterMentorId) filters.push(eq(bookings.mentorId, filterMentorId))
     if (bookingId && z.string().uuid().safeParse(bookingId).success) {
       filters.push(eq(bookings.id, bookingId))
     }

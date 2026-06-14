@@ -9,7 +9,7 @@ const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.stripe.com",
+  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.pagar.me https://*.mundipagg.com",
   "font-src 'self' data:",
   "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.vercel-storage.com https://*.public.blob.vercel-storage.com",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",

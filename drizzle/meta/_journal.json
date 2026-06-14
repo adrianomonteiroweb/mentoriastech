@@ -155,6 +155,27 @@
       "when": 1781373190697,
       "tag": "0021_sharp_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1781460000000,
+      "tag": "0022_pagarme_pix",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1781500000000,
+      "tag": "0023_selection_processes",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1781550000000,
+      "tag": "0024_selection_process_checklist",
+      "breakpoints": true
     }
   ]
 }

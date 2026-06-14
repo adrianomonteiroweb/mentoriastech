@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
-import { db, profiles, bookings } from "@/lib/db"
+import { db, profiles, bookings, selectionProcesses, selectionProcessCandidates } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
+import type { MenteeSelectionProcessSummary } from "@/lib/types/database"
 import { requireMentorAccess, getMentorId, requireRole } from "@/lib/utils/auth"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { safeProfileResumeHref } from "@/lib/utils/resume-access"
@@ -153,6 +154,28 @@ export async function GET(request: Request) {
 
     const countMap = new Map(bookingCounts.map((r) => [r.menteeId, r.cnt]))
 
+    const selectionProcessRows =
+      menteeIds.length > 0
+        ? await db
+            .select({
+              menteeId: selectionProcessCandidates.menteeId,
+              id: selectionProcesses.id,
+              company: selectionProcesses.company,
+              position: selectionProcesses.position,
+              status: selectionProcesses.status,
+            })
+            .from(selectionProcessCandidates)
+            .innerJoin(selectionProcesses, eq(selectionProcessCandidates.processId, selectionProcesses.id))
+            .where(inArray(selectionProcessCandidates.menteeId, menteeIds))
+        : []
+
+    const selectionProcessMap = new Map<string, MenteeSelectionProcessSummary[]>()
+    for (const row of selectionProcessRows) {
+      const list = selectionProcessMap.get(row.menteeId) || []
+      list.push({ id: row.id, company: row.company, position: row.position, status: row.status })
+      selectionProcessMap.set(row.menteeId, list)
+    }
+
     return NextResponse.json({
       data: rows.map((row) => {
         const profile = toProfile(row)
@@ -160,6 +183,7 @@ export async function GET(request: Request) {
           ...profile,
           resume_url: safeProfileResumeHref(profile.id, profile.resume_url),
           booking_count: countMap.get(row.id) ?? 0,
+          selection_processes: selectionProcessMap.get(row.id) ?? [],
         }
       }),
       total: totalRows[0]?.value || 0,

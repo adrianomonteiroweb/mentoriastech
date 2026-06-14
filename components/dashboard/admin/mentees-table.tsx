@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Link from "next/link"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -24,9 +25,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Award,
   CalendarPlus,
   ClipboardList,
   Download,
+  Eye,
   ExternalLink,
   Loader2,
   MessageCircle,
@@ -39,6 +42,7 @@ import {
 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
+import { AddMenteeToSelectionProcessDialog } from "@/components/dashboard/admin/add-mentee-to-selection-process-dialog"
 import type { CareerStatus, MentoringTopic, OriginCategory, Profile, Seniority } from "@/lib/types/database"
 import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
@@ -96,6 +100,24 @@ function WhatsAppLink({ mentee }: { mentee: Profile }) {
   )
 }
 
+function SelectionProcessesBadge({ mentee }: { mentee: Profile }) {
+  const processes = mentee.selection_processes || []
+  if (processes.length === 0) return null
+
+  const title = processes.map((p) => `${p.company} — ${p.position}`).join(", ")
+
+  return (
+    <Badge
+      variant="outline"
+      title={title}
+      className="w-fit gap-1 border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-500"
+    >
+      <Award className="h-3 w-3" />
+      {processes.length} processo{processes.length === 1 ? "" : "s"} seletivo{processes.length === 1 ? "" : "s"}
+    </Badge>
+  )
+}
+
 function OriginBadge({ mentee }: { mentee: Profile }) {
   if (!mentee.origin_category) return null
 
@@ -133,6 +155,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   const [originFilter, setOriginFilter] = useState<OriginCategory | "all" | "none">("all")
   const [editingMentee, setEditingMentee] = useState<Profile | null>(null)
   const [historyMentee, setHistoryMentee] = useState<Profile | null>(null)
+  const [selectionProcessMentee, setSelectionProcessMentee] = useState<Profile | null>(null)
   const [selectedMentee, setSelectedMentee] = useState<Profile | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -239,6 +262,11 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
   function openHistory(mentee: Profile) {
     setSelectedMentee(null)
     setHistoryMentee(mentee)
+  }
+
+  function openSelectionProcess(mentee: Profile) {
+    setSelectedMentee(null)
+    setSelectionProcessMentee(mentee)
   }
 
   async function saveMentee(e: React.FormEvent) {
@@ -606,6 +634,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <OriginBadge mentee={m} />
+                <SelectionProcessesBadge mentee={m} />
                 {m.career_status && (
                   <Badge variant="outline" className="text-[10px]">
                     {CAREER_STATUS_LABEL[m.career_status]}
@@ -670,6 +699,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                             {m.booking_count} mentoria{m.booking_count === 1 ? "" : "s"}
                           </Badge>
                         )}
+                        <SelectionProcessesBadge mentee={m} />
                       </div>
                     </div>
                   </TableCell>
@@ -742,6 +772,10 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                   {canManage && (
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="outline" className="h-7 text-xs" title="Detalhes" onClick={() => setSelectedMentee(m)}>
+                          <Eye className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden sm:inline">Detalhes</span>
+                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -759,18 +793,6 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                               {m.booking_count}
                             </Badge>
                           )}
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" title="Agendar" onClick={() => openBookingDialog(m)}>
-                          <CalendarPlus className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Agendar</span>
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" title="Editar" onClick={() => openEdit(m)}>
-                          <Pencil className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Editar</span>
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" title="Excluir" onClick={() => deleteMentee(m.id)}>
-                          <Trash2 className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Excluir</span>
                         </Button>
                       </div>
                     </TableCell>
@@ -827,6 +849,25 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                       <p className="whitespace-pre-line text-muted-foreground">{selectedMentee.bio}</p>
                     </div>
                   )}
+                  {(selectedMentee.selection_processes?.length ?? 0) > 0 && (
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Processos seletivos</span>
+                      <div className="flex flex-col gap-1.5">
+                        {selectedMentee.selection_processes!.map((sp) => (
+                          <Link
+                            key={sp.id}
+                            href={`/admin/selection-processes/${sp.id}`}
+                            className="flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-xs hover:bg-muted/50"
+                          >
+                            <span className="truncate">{sp.company} — {sp.position}</span>
+                            <Badge variant={sp.status === "open" ? "default" : "outline"} className="shrink-0 text-[10px]">
+                              {sp.status === "open" ? "Aberto" : "Encerrado"}
+                            </Badge>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-2">
@@ -876,6 +917,10 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                       <Button variant="ghost" className="justify-start" onClick={() => openBookingDialog(selectedMentee)}>
                         <CalendarPlus className="h-4 w-4" />
                         Agendar
+                      </Button>
+                      <Button variant="ghost" className="justify-start" onClick={() => openSelectionProcess(selectedMentee)}>
+                        <Award className="h-4 w-4" />
+                        Processo seletivo
                       </Button>
                       <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedMentee)}>
                         <Pencil className="h-4 w-4" />
@@ -1119,6 +1164,12 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
         mentee={historyMentee}
         open={!!historyMentee}
         onClose={() => setHistoryMentee(null)}
+      />
+
+      <AddMenteeToSelectionProcessDialog
+        mentee={selectionProcessMentee}
+        open={!!selectionProcessMentee}
+        onClose={() => setSelectionProcessMentee(null)}
       />
 
       <Dialog open={addingMentee} onOpenChange={(open) => !open && setAddingMentee(false)}>

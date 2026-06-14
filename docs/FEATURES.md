@@ -63,6 +63,9 @@ Plataforma de mentoria de programacao criada por Adriano Monteiro. Permite agend
 - Fila de aprovacao de vagas
 - Lista de mentorados com busca
 - Configuracoes (PIX, Google Calendar OAuth)
+- Processos seletivos: cadastro por empresa/posicao, selecao de mentorados participantes,
+  pontuacao (0-100) com ranking automatico, e visualizacao de historico de mentorias,
+  curriculo, LinkedIn e portfolio de cada candidato
 
 ### Dashboard Mentee
 - **Status**: Implementado
@@ -169,7 +172,7 @@ Plataforma de mentoria de programacao criada por Adriano Monteiro. Permite agend
 | Nodemailer (SMTP) | Envio de emails de notificacao | Implementado |
 | Google Calendar API | Agendamento automatico de mentorias pagas | Implementado |
 | PIX (Banco Central) | QR Code para doacoes e pagamentos manuais | Implementado |
-| Stripe (PIX) | Pagamento de mentorias pagas via PIX (PaymentIntent) | Implementado |
+| Pagar.me (PIX) | Pagamento de mentorias pagas via PIX inline (Orders API + webhook) | Implementado |
 
 ---
 

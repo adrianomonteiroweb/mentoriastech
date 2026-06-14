@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  Award,
   BarChart3,
   BookOpen,
   Briefcase,
@@ -58,6 +59,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Anúncios", href: "/admin/ads", icon: Megaphone },
     { label: "Mentorados", href: "/admin/mentees", icon: Users },
     { label: "Oportunidades", href: "/admin/opportunities", icon: Target },
+    { label: "Processos Seletivos", href: "/admin/selection-processes", icon: Award },
     { label: "Configuracoes", href: "/admin/settings", icon: Settings },
   ],
   mentee: [

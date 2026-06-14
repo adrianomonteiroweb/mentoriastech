@@ -131,17 +131,21 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
   // Merge free topics + paid mentorships into a single unified list
   const allTopics: TopicItem[] = useMemo(() => {
     const freeItems = topics.filter((t) => t.category === "free");
-    const paidItems: TopicItem[] = paidMentorships.map((pm) => ({
-      id: `paid-${pm.id}`,
-      name: pm.title,
-      category: "paid" as const,
-      description: pm.description,
-      amountCents: pm.amount_cents,
-      currency: pm.currency,
-      paidMentorshipId: pm.id,
-      imageUrl: pm.image_url,
-    }));
-    return [...paidItems, ...freeItems];
+    // Mentorias pagas temporariamente desabilitadas na pagina publica
+    // (fluxo de pagamento Pagar.me ainda em finalizacao). Para reativar,
+    // descomente o bloco abaixo.
+    // const paidItems: TopicItem[] = paidMentorships.map((pm) => ({
+    //   id: `paid-${pm.id}`,
+    //   name: pm.title,
+    //   category: "paid" as const,
+    //   description: pm.description,
+    //   amountCents: pm.amount_cents,
+    //   currency: pm.currency,
+    //   paidMentorshipId: pm.id,
+    //   imageUrl: pm.image_url,
+    // }));
+    // return [...paidItems, ...freeItems];
+    return freeItems;
   }, [topics, paidMentorships]);
 
   // Count available free slots for scarcity cue
@@ -288,6 +292,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
               slotsLoading={dataLoading}
               slotsError={scheduleLoadError}
               selectedSlotId={state.slotId}
+              selectedSessionDate={state.sessionDate}
               onSelectSlot={(id, date, time, day) =>
                 dispatch({
                   type: "SET_FREE_SLOT",
@@ -308,6 +313,8 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
               email={state.email}
               whatsapp={state.whatsapp}
               notes={state.notes}
+              document={state.document}
+              mentoringType={state.mentoringType}
               isReturningMentee={state.isReturningMentee}
               originCategory={state.originCategory}
               originDescription={state.originDescription}
@@ -337,6 +344,9 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
                 })
               }
               onChangeNotes={(v) => dispatch({ type: "SET_NOTES", notes: v })}
+              onChangeDocument={(v) =>
+                dispatch({ type: "SET_DOCUMENT", document: v })
+              }
               onChangeReturningMentee={(v) =>
                 dispatch({ type: "SET_RETURNING_MENTEE", isReturningMentee: v })
               }
@@ -397,6 +407,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
             slotsLoading={dataLoading}
             slotsError={scheduleLoadError}
             selectedSlotId={state.slotId}
+            selectedSessionDate={state.sessionDate}
             onSelectSlot={(id, date, time, day) =>
               dispatch({
                 type: "SET_FREE_SLOT",

@@ -11,6 +11,7 @@ interface DateTimeStepProps {
   slotsLoading: boolean;
   slotsError?: boolean;
   selectedSlotId: string;
+  selectedSessionDate?: string;
   onSelectSlot: (
     slotId: string,
     sessionDate: string,
@@ -26,6 +27,7 @@ export function DateTimeStep({
   slotsLoading,
   slotsError = false,
   selectedSlotId,
+  selectedSessionDate = "",
   onSelectSlot,
   onNext,
   onBack,
@@ -78,6 +80,11 @@ export function DateTimeStep({
           {availableSlots.map((slot, index) => {
             const persistedSlotId = slot.slotId;
             const isPersistable = Boolean(persistedSlotId);
+            // Slots recorrentes compartilham o mesmo slotId em datas diferentes;
+            // a ocorrencia so e identificada de forma unica por slotId + data.
+            const isSelected =
+              selectedSlotId === persistedSlotId &&
+              selectedSessionDate === slot.date;
             const dateFormatted = slot.date
               .split("-")
               .reverse()
@@ -98,7 +105,7 @@ export function DateTimeStep({
                 }
                 className={cn(
                   "flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200",
-                  selectedSlotId === persistedSlotId
+                  isSelected
                     ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/20"
                     : "border-border bg-card hover:border-muted-foreground/30",
                   index === 0 &&

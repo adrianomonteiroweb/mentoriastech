@@ -10,6 +10,8 @@ import type {
   PaidMentorship as DbPaidMentorship,
   Payment as DbPayment,
   Profile as DbProfile,
+  SelectionProcess as DbSelectionProcess,
+  SelectionProcessCandidate as DbSelectionProcessCandidate,
   Tip as DbTip,
 } from "@/lib/db/schema"
 import type {
@@ -24,8 +26,11 @@ import type {
   PaidMentorship,
   Payment,
   Profile,
+  SelectionProcess,
+  SelectionProcessCandidate,
   Tip,
 } from "@/lib/types/database"
+import { normalizeSelectionProcessChecklist } from "@/lib/selection-process-checklist"
 
 type BookingMapperRow = Omit<DbBooking, "mentorshipChecklist" | "createdAt" | "updatedAt"> & {
   mentorshipChecklist?: Booking["mentorship_checklist"] | null
@@ -105,6 +110,9 @@ export function toPayment(row: DbPayment): Payment {
     pix_txid: row.pixTxid,
     stripe_payment_intent_id: row.stripePaymentIntentId,
     stripe_payment_intent_status: row.stripePaymentIntentStatus,
+    pagarme_order_id: row.pagarmeOrderId,
+    pagarme_charge_id: row.pagarmeChargeId,
+    pagarme_status: row.pagarmeStatus,
     pix_qr_code_data: row.pixQrCodeData,
     pix_qr_code_image_url_png: row.pixQrCodeImageUrlPng,
     pix_qr_code_image_url_svg: row.pixQrCodeImageUrlSvg,
@@ -281,6 +289,32 @@ export function toJob(row: DbJob): Job {
     click_count: row.clickCount,
     share_count: row.shareCount,
     source_posted_at: toIso(row.sourcePostedAt) || "",
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toSelectionProcess(row: DbSelectionProcess): SelectionProcess {
+  return {
+    id: row.id,
+    company: row.company,
+    position: row.position,
+    description: row.description,
+    status: row.status,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toSelectionProcessCandidate(row: DbSelectionProcessCandidate): SelectionProcessCandidate {
+  return {
+    id: row.id,
+    process_id: row.processId,
+    mentee_id: row.menteeId,
+    score: row.score,
+    checklist: normalizeSelectionProcessChecklist(row.checklist),
+    notes: row.notes,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

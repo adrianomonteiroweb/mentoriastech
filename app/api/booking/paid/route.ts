@@ -14,11 +14,15 @@ import { toPayment, toPublicPaidMentorship } from "@/lib/db/mappers"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { paidMentorshipRequestToMentorEmail } from "@/lib/email-templates"
 import {
-  getStripe,
-  paymentIntentPixDetails,
-  paymentIntentStatusToPaymentStatus,
-  stripePixPaymentIntentErrorMessage,
-} from "@/lib/stripe"
+  PagarmeError,
+  chargePixDetails,
+  chargeStatusToPaymentStatus,
+  createPixOrder,
+  firstCharge,
+  getCharge,
+  getOrder,
+  pagarmePixOrderErrorMessage,
+} from "@/lib/pagarme"
 
 export const runtime = "nodejs"
 
@@ -34,6 +38,7 @@ const createSchema = z.object({
   name: z.string().trim().min(2, "Nome e obrigatorio"),
   email: z.string().trim().email("Email invalido"),
   whatsapp: z.string().trim().min(1, "WhatsApp e obrigatorio"),
+  document: z.string().trim().max(20).optional().default(""),
   slotId: z.string().uuid().optional(),
   sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida"),
   startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Horario invalido"),
@@ -93,18 +98,26 @@ async function sendMentorRequestEmail(params: {
   })
 }
 
-async function syncPaymentIntent(paymentId: string, bookingId: string, paymentIntentId: string) {
-  const stripe = getStripe()
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
-  const pix = paymentIntentPixDetails(paymentIntent)
-  const nextPaymentStatus = paymentIntentStatusToPaymentStatus(paymentIntent.status)
+async function syncPagarmeCharge(
+  paymentId: string,
+  bookingId: string,
+  chargeId: string | null,
+  orderId: string | null,
+) {
+  const charge = chargeId
+    ? await getCharge(chargeId)
+    : firstCharge(await getOrder(orderId as string))
+
+  const pix = chargePixDetails(charge)
+  const nextPaymentStatus = chargeStatusToPaymentStatus(charge?.status ?? "pending")
   const paidAt = nextPaymentStatus === "confirmed" ? new Date() : null
 
   const [payment] = await db
     .update(payments)
     .set({
       status: nextPaymentStatus,
-      stripePaymentIntentStatus: paymentIntent.status,
+      pagarmeChargeId: charge?.id ?? chargeId,
+      pagarmeStatus: charge?.status ?? null,
       pixQrCodeData: pix.data,
       pixQrCodeImageUrlPng: pix.imageUrlPng,
       pixQrCodeImageUrlSvg: pix.imageUrlSvg,
@@ -165,14 +178,20 @@ export async function GET(request: Request) {
     let payment = row.payment
     if (
       payment.status === "pending" &&
-      payment.stripePaymentIntentId &&
-      process.env.STRIPE_SECRET_KEY
+      (payment.pagarmeChargeId || payment.pagarmeOrderId) &&
+      process.env.PAGARME_SECRET_KEY
     ) {
-      payment = await syncPaymentIntent(
-        parsed.data.paymentId,
-        parsed.data.bookingId,
-        payment.stripePaymentIntentId,
-      ) || payment
+      try {
+        payment = await syncPagarmeCharge(
+          parsed.data.paymentId,
+          parsed.data.bookingId,
+          payment.pagarmeChargeId,
+          payment.pagarmeOrderId,
+        ) || payment
+      } catch (syncError) {
+        // Erro transitorio da Pagar.me nao deve quebrar o polling: devolve a linha em cache.
+        console.error("[booking/paid/status] Pagar.me sync error (non-blocking):", syncError)
+      }
     }
 
     const bookingStatus =
@@ -276,56 +295,59 @@ export async function POST(request: Request) {
       })
       .returning()
 
-    let paymentIntent
+    let order
     try {
-      const stripe = getStripe()
-      paymentIntent = await stripe.paymentIntents.create({
-        amount: mentorship.amountCents,
-        currency: mentorship.currency.toLowerCase(),
-        payment_method_types: ["pix"],
-        payment_method_data: {
-          type: "pix",
-          billing_details: {
-            name: data.name,
-            email: normalizedEmail,
-          },
-        },
-        payment_method_options: {
-          pix: {
-            amount_includes_iof: mentorship.pixAmountIncludesIof,
-            expires_after_seconds: mentorship.pixExpiresAfterSeconds,
-          },
-        },
-        confirm: true,
-        receipt_email: normalizedEmail,
+      order = await createPixOrder({
+        amountCents: mentorship.amountCents,
         description: `Mentoria paga: ${mentorship.title}`,
+        customerName: data.name,
+        customerEmail: normalizedEmail,
+        customerDocument: data.document || null,
+        expiresIn: mentorship.pixExpiresAfterSeconds,
         metadata: {
           booking_id: booking.id,
           paid_mentorship_id: mentorship.id,
           mentee_id: mentee.id,
         },
       })
-    } catch (stripeError) {
-      const stripeMessage = stripePixPaymentIntentErrorMessage(stripeError)
-
+    } catch (pagarmeError) {
       await db
         .update(bookings)
         .set({
           status: "cancelled",
-          adminNotes: `Falha ao criar Pix Stripe: ${(stripeError as Error).message}`,
+          adminNotes: `Falha ao criar Pix Pagar.me: ${(pagarmeError as Error).message}`,
           updatedAt: new Date(),
         })
         .where(eq(bookings.id, booking.id))
 
-      console.error("[booking/paid] Stripe error:", stripeError)
+      console.error("[booking/paid] Pagar.me error:", pagarmeError)
       return NextResponse.json(
-        { error: stripeMessage },
+        { error: pagarmePixOrderErrorMessage(pagarmeError) },
+        { status: pagarmeError instanceof PagarmeError ? pagarmeError.status : 502 },
+      )
+    }
+
+    const charge = firstCharge(order)
+    const pix = chargePixDetails(charge)
+    const paymentStatus = chargeStatusToPaymentStatus(charge?.status ?? "pending")
+
+    if (!pix.data && paymentStatus === "pending") {
+      await db
+        .update(bookings)
+        .set({
+          status: "cancelled",
+          adminNotes: `Pix Pagar.me sem QR Code (order ${order.id}).`,
+          updatedAt: new Date(),
+        })
+        .where(eq(bookings.id, booking.id))
+
+      console.error("[booking/paid] Pagar.me order without QR code:", order.id)
+      return NextResponse.json(
+        { error: "Nao foi possivel gerar o Pix. Tente novamente em instantes." },
         { status: 502 },
       )
     }
 
-    const pix = paymentIntentPixDetails(paymentIntent)
-    const paymentStatus = paymentIntentStatusToPaymentStatus(paymentIntent.status)
     const [payment] = await db
       .insert(payments)
       .values({
@@ -335,9 +357,10 @@ export async function POST(request: Request) {
         currency: mentorship.currency,
         method: "pix",
         status: paymentStatus,
-        stripePaymentIntentId: paymentIntent.id,
-        stripePaymentIntentStatus: paymentIntent.status,
-        pixTxid: paymentIntent.id,
+        pagarmeOrderId: order.id,
+        pagarmeChargeId: charge?.id ?? null,
+        pagarmeStatus: charge?.status ?? null,
+        pixTxid: charge?.id ?? order.id,
         pixQrCodeData: pix.data,
         pixQrCodeImageUrlPng: pix.imageUrlPng,
         pixQrCodeImageUrlSvg: pix.imageUrlSvg,

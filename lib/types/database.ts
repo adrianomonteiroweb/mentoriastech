@@ -1,5 +1,8 @@
 // Types TypeScript para todas as tabelas do banco de dados
 
+export type { SelectionProcessChecklistItem } from "@/lib/selection-process-checklist"
+import type { SelectionProcessChecklistItem } from "@/lib/selection-process-checklist"
+
 export type UserRole = "admin" | "mentor" | "mentee" | "hr"
 export type SlotType = "free" | "paid" | "private"
 export type TopicCategory = "free" | "paid"
@@ -61,6 +64,14 @@ export interface Profile {
   created_at: string
   updated_at: string
   booking_count?: number
+  selection_processes?: MenteeSelectionProcessSummary[]
+}
+
+export interface MenteeSelectionProcessSummary {
+  id: string
+  company: string
+  position: string
+  status: SelectionProcessStatus
 }
 
 export interface UserRoleAssignment {
@@ -181,6 +192,9 @@ export interface Payment {
   pix_txid: string | null
   stripe_payment_intent_id: string | null
   stripe_payment_intent_status: string | null
+  pagarme_order_id: string | null
+  pagarme_charge_id: string | null
+  pagarme_status: string | null
   pix_qr_code_data: string | null
   pix_qr_code_image_url_png: string | null
   pix_qr_code_image_url_svg: string | null
@@ -370,6 +384,39 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   pageSize: number
+}
+
+// -----------------------------------------------------------------------------
+// Selection Processes
+// -----------------------------------------------------------------------------
+export type SelectionProcessStatus = "open" | "closed"
+
+export interface SelectionProcess {
+  id: string
+  company: string
+  position: string
+  description: string | null
+  status: SelectionProcessStatus
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  candidate_count?: number
+}
+
+export interface SelectionProcessCandidate {
+  id: string
+  process_id: string
+  mentee_id: string
+  score: number | null
+  checklist: SelectionProcessChecklistItem[]
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SelectionProcessCandidateWithProfile extends SelectionProcessCandidate {
+  profiles?: Profile | null
+  booking_count?: number
 }
 
 // -----------------------------------------------------------------------------
