@@ -1,6 +1,6 @@
-import Image from "next/image"
 import Link from "next/link"
 import { ArrowRight, Bot, Code2, GraduationCap } from "lucide-react"
+import { BrandLogo } from "@/components/brand-logo"
 
 const highlights = [
   { label: "Software", icon: Code2 },
@@ -11,33 +11,23 @@ const highlights = [
 export function ProfileHeader() {
   return (
     <header className="flex flex-col items-center gap-5 text-center">
-      <div className="relative">
-        <Image
-          src="/images/avatar.jpg"
-          alt="Adriano Monteiro"
-          width={144}
-          height={144}
-          className="relative h-32 w-32 rounded-full border border-primary/50 object-cover shadow-xl shadow-primary/10 sm:h-36 sm:w-36"
-          priority
-        />
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-primary/30 bg-background px-3 py-1 text-[11px] font-semibold text-primary shadow-sm shadow-black/40">
-          mentoria 1:1
+      <div className="flex flex-col items-center gap-4">
+        <BrandLogo size="lg" showByline />
+        <span className="whitespace-nowrap rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+          plataforma de mentorias
         </span>
       </div>
 
       <div className="flex flex-col items-center gap-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-          Software, RPA e carreira tech
+          Conecte-se. Cresça. Transforme.
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-          Adriano Monteiro
-        </h1>
         <p className="max-w-sm text-sm font-medium leading-relaxed text-foreground/85">
-          Engenheiro de Software | Desenvolvedor RPA | Mentor em Desenvolvimento
-          de Software e Carreiras em Tecnologia.
+          Mentorias em desenvolvimento de software, automações RPA e carreira em
+          tecnologia, com mentores que já trilharam o caminho.
         </p>
         <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-          Mentoria prática para transformar dúvidas soltas em próximos passos:
+          Conversas práticas para transformar dúvidas soltas em próximos passos:
           carreira, portfólio, entrevistas, automações e desenvolvimento web.
         </p>
       </div>

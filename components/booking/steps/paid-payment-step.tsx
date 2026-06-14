@@ -12,7 +12,6 @@ import {
   ExternalLink,
   Loader2,
   Send,
-  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -368,38 +367,30 @@ export function PaidPaymentStep({
   // Pre-submit: show summary + confirm button
   return (
     <div className="flex flex-col gap-5" aria-label="Resumo do pagamento">
-      <div className="rounded-lg border border-border bg-card p-4">
-        <div className="flex items-start gap-3">
-          {paidMentorship.image_url ? (
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-black">
-              <Image
-                src={paidMentorship.image_url}
-                alt={paidMentorship.image_alt || paidMentorship.title}
-                fill
-                sizes="56px"
-                className="object-contain"
-              />
-            </div>
-          ) : (
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400">
-              <Star className="h-6 w-6" aria-hidden="true" />
-            </div>
-          )}
-          <div className="flex flex-col gap-1 min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-foreground">
-              {paidMentorship.title}
-            </h3>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {paidMentorship.description}
-            </p>
-            <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-300 mt-1">
-              <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
-              {formatCurrency(
-                paidMentorship.amount_cents,
-                paidMentorship.currency,
-              )}
-            </span>
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4">
+        {paidMentorship.image_url && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-black">
+            <Image
+              src={paidMentorship.image_url}
+              alt={paidMentorship.image_alt || paidMentorship.title}
+              fill
+              sizes="(max-width: 640px) 100vw, 480px"
+              className="object-cover"
+            />
           </div>
+        )}
+        <div className="flex flex-col gap-1">
+          <h3 className="text-base font-semibold text-foreground">
+            {paidMentorship.title}
+          </h3>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+            {paidMentorship.description}
+          </p>
+          <span className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-amber-300">
+            <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+            {formatCurrency(paidMentorship.amount_cents, paidMentorship.currency)}
+            /hora
+          </span>
         </div>
       </div>
 

@@ -405,7 +405,7 @@ export function PaidBookingForm() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
                     <span className="text-sm font-semibold text-primary">
-                      {formatCurrency(item.amount_cents, item.currency)}
+                      {formatCurrency(item.amount_cents, item.currency)}/hora
                     </span>
                   </div>
                   <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted-foreground">

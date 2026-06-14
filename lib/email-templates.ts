@@ -1,8 +1,8 @@
 import { escapeHtml } from "@/lib/escape-html"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
-const BRAND_BG = "#0d1117"
-const BRAND_PRIMARY = "#2dd4bf"
+const BRAND_BG = "#0A0E27"
+const BRAND_PRIMARY = "#2563EB"
 const BRAND_GREEN = "#ecfdf5"
 const BRAND_GREEN_TEXT = "#065f46"
 
@@ -91,11 +91,11 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
 
   const rows = [
     { label: "Nome", value: safeName },
-    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #0d9488; text-decoration: none;">${safeEmail}</a>` },
+    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #2563EB; text-decoration: none;">${safeEmail}</a>` },
     {
       label: "WhatsApp",
       value: params.whatsapp
-        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>`
+        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #2563EB; text-decoration: none;">${safeWhatsapp}</a>`
         : safeWhatsapp,
     },
     { label: "Tipo", value: typeBadge(params.bookingType) },
@@ -141,11 +141,11 @@ export function paidMentorshipRequestToMentorEmail(params: PaidMentorshipToMento
 
   const rows = [
     { label: "Nome", value: safeName },
-    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #0d9488; text-decoration: none;">${safeEmail}</a>` },
+    { label: "E-mail", value: `<a href="mailto:${safeEmail}" style="color: #2563EB; text-decoration: none;">${safeEmail}</a>` },
     {
       label: "WhatsApp",
       value: params.whatsapp
-        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #0d9488; text-decoration: none;">${safeWhatsapp}</a>`
+        ? `<a href="https://wa.me/${formatWhatsAppNumber(params.whatsapp)}" style="color: #2563EB; text-decoration: none;">${safeWhatsapp}</a>`
         : safeWhatsapp,
     },
     { label: "Mentoria", value: safeTitle },
@@ -216,7 +216,7 @@ function meetRow(url?: string | null) {
   const safeUrl = escapeHtml(url)
   return {
     label: "Google Meet",
-    value: `<a href="${safeUrl}" style="color: #0d9488; text-decoration: none;">Entrar na reuniao</a>`,
+    value: `<a href="${safeUrl}" style="color: #2563EB; text-decoration: none;">Entrar na reuniao</a>`,
   }
 }
 

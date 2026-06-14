@@ -288,7 +288,7 @@ export async function PUT(
               })
 
               await transporter.sendMail({
-                from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
+                from: `"MentoriasTech" <${smtpUser}>`,
                 to: menteeEmail,
                 subject: emailContent.subject,
                 html: emailContent.html,

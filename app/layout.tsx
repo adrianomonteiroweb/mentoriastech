@@ -11,19 +11,22 @@ const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'Adriano Monteiro | Software, RPA e Mentoria Tech',
+  title: 'MentoriasTech | Mentorias em Tecnologia',
   description:
-    'Mentoria em desenvolvimento de software, automações RPA e carreira em tecnologia.',
+    'Plataforma de mentorias em desenvolvimento de software, automações RPA e carreira em tecnologia.',
   manifest: '/manifest.json',
-  applicationName: 'Adriano Mentoria',
+  applicationName: 'MentoriasTech',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Adriano Mentoria',
+    title: 'MentoriasTech',
   },
   icons: {
-    icon: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
   },
   formatDetection: {
     telephone: false,
@@ -33,7 +36,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d1117' },
+    { media: '(prefers-color-scheme: dark)', color: '#0A0E27' },
   ],
   width: 'device-width',
   initialScale: 1,

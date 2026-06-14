@@ -113,9 +113,10 @@ export function TopicStep({
     );
   }
 
-  // Separate paid (shown first for anchoring bias) and free topics
-  const paidTopics = topics.filter((t) => t.category === "paid");
-  const freeTopics = topics.filter((t) => t.category === "free");
+  // Lista unificada: gratuitas primeiro (ordem recebida) com as pagas mescladas
+  // logo após, cada uma com sua tag (Grátis / valor por hora). Sem destacar a
+  // paga primeiro, para o mentorado gratuito não desistir ao ver uma paga liderando.
+  const firstFreeId = topics.find((t) => t.category === "free")?.id;
 
   function handleSelect(topic: TopicItem) {
     onSelect(topic.id, topic.name, topic.category);
@@ -145,51 +146,22 @@ export function TopicStep({
       </p>
 
       <div
-        className="flex flex-col gap-3"
+        className="flex flex-col gap-2"
         role="radiogroup"
         aria-label="Temas de mentoria disponíveis"
       >
-        {/* Paid topics first — anchoring bias: seeing the paid option first 
-            makes the free option feel like an excellent deal */}
-        {paidTopics.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {paidTopics.map((topic) => (
-              <TopicCard
-                key={topic.id}
-                topic={topic}
-                isSelected={selectedTopicId === topic.id}
-                onSelect={() => handleSelect(topic)}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Visual separator between paid and free */}
-        {paidTopics.length > 0 && freeTopics.length > 0 && (
-          <div className="flex items-center gap-3 py-1" aria-hidden="true">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              ou grátis
-            </span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-        )}
-
-        {/* Free topics */}
-        {freeTopics.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {freeTopics.map((topic, index) => (
-              <TopicCard
-                key={topic.id}
-                topic={topic}
-                isSelected={selectedTopicId === topic.id}
-                onSelect={() => handleSelect(topic)}
-                isPopular={index === 0}
-                availableSlots={availableFreeSlots}
-              />
-            ))}
-          </div>
-        )}
+        {topics.map((topic) => (
+          <TopicCard
+            key={topic.id}
+            topic={topic}
+            isSelected={selectedTopicId === topic.id}
+            onSelect={() => handleSelect(topic)}
+            isPopular={topic.id === firstFreeId}
+            availableSlots={
+              topic.category === "free" ? availableFreeSlots : undefined
+            }
+          />
+        ))}
       </div>
 
       {/* Scarcity cue — loss aversion */}
@@ -230,7 +202,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
   const isPaid = topic.category === "paid";
   const priceLabel =
     isPaid && topic.amountCents
-      ? formatPrice(topic.amountCents, topic.currency)
+      ? `${formatPrice(topic.amountCents, topic.currency)}/hora`
       : null;
 
   return (
@@ -299,7 +271,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
           {/* Value framing for paid — what's included */}
           {isPaid && (
             <span className="text-xs text-muted-foreground/80 italic">
-              Sessão aprofundada com foco personalizado
+              Sessão aprofundada com foco personalizado · valor por hora
             </span>
           )}
         </div>

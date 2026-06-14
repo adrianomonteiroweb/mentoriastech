@@ -1,12 +1,12 @@
 {
-  "name": "Adriano Monteiro - Mentoria",
-  "short_name": "Adriano Mentoria",
-  "description": "Plataforma de mentoria gratuita em programação e carreira em tech",
+  "name": "MentoriasTech",
+  "short_name": "MentoriasTech",
+  "description": "Plataforma de mentorias em desenvolvimento de software, RPA e carreira em tech",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f8fafc",
-  "theme_color": "#f8fafc",
+  "background_color": "#0A0E27",
+  "theme_color": "#0A0E27",
   "lang": "pt-BR",
   "scope": "/",
   "icons": [
@@ -14,7 +14,25 @@
       "src": "/icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [

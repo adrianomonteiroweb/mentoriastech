@@ -240,7 +240,7 @@ export default function ContentPage() {
                     title={item.title}
                     text={
                       item.description ||
-                      "Veja este conteúdo da biblioteca do Adriano Monteiro."
+                      "Veja este conteúdo da biblioteca da MentoriasTech."
                     }
                     label="Compartilhe com alguém"
                     labelVisibility="desktop"
@@ -269,7 +269,7 @@ export default function ContentPage() {
             <DialogTitle>Solicitar ou indicar conteúdo</DialogTitle>
             <DialogDescription>
               Peça um conteúdo que gostaria de ver ou indique um material útil
-              que encontrou. O Adriano revisa as sugestões.
+              que encontrou. A equipe revisa as sugestões.
             </DialogDescription>
           </DialogHeader>
           <ContentSuggestionForm onSuccess={() => {}} />

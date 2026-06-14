@@ -38,7 +38,7 @@ export async function sendEmail({
   subject,
   html,
   replyTo,
-  fromName = "Mentoria - Adriano Monteiro",
+  fromName = "MentoriasTech",
 }: SendEmailParams): Promise<boolean> {
   const transporter = getTransporter()
   if (!transporter) {

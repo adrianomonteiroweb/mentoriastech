@@ -194,7 +194,7 @@ export function PaidMentorshipForm({ mentorship, onSuccess }: PaidMentorshipForm
 
       <div className="grid gap-4 md:grid-cols-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="paid-amount">Valor em BRL</Label>
+          <Label htmlFor="paid-amount">Valor por hora (BRL)</Label>
           <Input
             id="paid-amount"
             type="number"

@@ -24,9 +24,9 @@ export function MentoringInfo() {
           Mentoria Gratuita de Programação
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Ofereço mentorias gratuitas para iniciantes na programação e para quem
-          deseja migrar de carreira para a área de tecnologia. Agende uma
-          conversa comigo!
+          A MentoriasTech oferece mentorias gratuitas para iniciantes na
+          programação e para quem deseja migrar de carreira para a área de
+          tecnologia. Agende uma conversa!
         </p>
       </div>
 

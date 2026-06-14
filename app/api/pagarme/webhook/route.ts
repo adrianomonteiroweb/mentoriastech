@@ -55,7 +55,7 @@ async function sendMentorPaymentConfirmedEmail(params: {
   })
 
   await transporter.sendMail({
-    from: `"Mentoria - Adriano Monteiro" <${smtpUser}>`,
+    from: `"MentoriasTech" <${smtpUser}>`,
     to: params.to,
     subject,
     html,

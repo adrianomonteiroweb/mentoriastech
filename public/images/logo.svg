@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 420" width="1280" height="420">
+  
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="1280" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#0A0E27"/>
+        <stop offset="1" stop-color="#0e1640"/>
+      </linearGradient>
+      <radialGradient id="glow" cx="640" cy="768" r="640" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#2563EB" stop-opacity="0.45"/>
+        <stop offset="1" stop-color="#2563EB" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1280" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#5AA2FF"/>
+        <stop offset="1" stop-color="#2563EB"/>
+      </linearGradient>
+    </defs>
+  
+  <text x="50%" y="252" text-anchor="middle"
+        font-family="Arial, Helvetica, sans-serif" font-weight="700"
+        font-size="168" letter-spacing="-3.36">
+    <tspan fill="#FFFFFF">Mentorias</tspan><tspan fill="url(#blue)">Tech</tspan>
+  </text>
+</svg>

@@ -17,8 +17,8 @@ export default function Page() {
 
         <ShareButton
           path="/"
-          title="Adriano Monteiro | Mentoria Tech"
-          text="Conheça a mentoria em desenvolvimento de software, RPA e carreira em tecnologia."
+          title="MentoriasTech | Mentorias em Tecnologia"
+          text="Conheça a MentoriasTech: mentorias em desenvolvimento de software, RPA e carreira em tecnologia."
           label="Compartilhe com alguém"
           tracking={{ type: "page", path: "/", label: "Página principal" }}
           className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
@@ -54,7 +54,8 @@ export default function Page() {
 
         <footer className="flex flex-col items-center gap-1 text-center">
           <p className="text-xs text-muted-foreground">
-            {"Adriano Monteiro"} &middot; {new Date().getFullYear()}
+            {"MentoriasTech · By Adriano Monteiro"} &middot;{" "}
+            {new Date().getFullYear()}
           </p>
           <a
             href="/login"

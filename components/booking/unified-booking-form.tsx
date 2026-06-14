@@ -140,8 +140,11 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
       currency: pm.currency,
       paidMentorshipId: pm.id,
       imageUrl: pm.image_url,
+      imageAlt: pm.image_alt,
     }));
-    return [...paidItems, ...freeItems];
+    // Gratuitas primeiro para o mentorado gratuito não desistir ao ver uma
+    // mentoria paga liderando a lista; as pagas seguem mescladas com a tag de preço.
+    return [...freeItems, ...paidItems];
   }, [topics, paidMentorships]);
 
   // Count available free slots for scarcity cue

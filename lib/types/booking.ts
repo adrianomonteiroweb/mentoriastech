@@ -207,6 +207,8 @@ export interface TopicItem {
   paidMentorshipId?: string;
   /** For paid items: image url */
   imageUrl?: string | null;
+  /** For paid items: image alt text */
+  imageAlt?: string | null;
 }
 
 // Steps config — dynamic based on mentoring type

@@ -151,7 +151,7 @@ export default function ContentDetailPage() {
               title={item.title}
               text={
                 item.description ||
-                "Veja este conteúdo da biblioteca do Adriano Monteiro."
+                "Veja este conteúdo da biblioteca da MentoriasTech."
               }
               label="Compartilhe com alguém"
               variant="ghost"
