@@ -9,7 +9,6 @@ const defaultProps = {
   whatsapp: "",
   notes: "",
   isAuthenticated: false,
-  mentoringType: "free" as const,
   onChangeName: vi.fn(),
   onChangeEmail: vi.fn(),
   onChangeWhatsapp: vi.fn(),
@@ -37,24 +36,6 @@ describe("ContactStep", () => {
     render(<ContactStep {...defaultProps} isAuthenticated={false} />)
 
     expect(screen.queryByText(/preenchidos automaticamente/)).not.toBeInTheDocument()
-  })
-
-  it("should show notes textarea for paid mentoring", () => {
-    render(<ContactStep {...defaultProps} mentoringType="paid" />)
-
-    expect(screen.getByPlaceholderText(/abordar na mentoria/)).toBeInTheDocument()
-  })
-
-  it("should show notes textarea for private mentoring", () => {
-    render(<ContactStep {...defaultProps} mentoringType="private" />)
-
-    expect(screen.getByPlaceholderText(/abordar na mentoria/)).toBeInTheDocument()
-  })
-
-  it("should hide notes textarea for free mentoring", () => {
-    render(<ContactStep {...defaultProps} mentoringType="free" />)
-
-    expect(screen.queryByPlaceholderText(/abordar na mentoria/)).not.toBeInTheDocument()
   })
 
   it("should call onChangeName when typing in name field", async () => {
@@ -116,20 +97,5 @@ describe("ContactStep", () => {
 
     await user.click(screen.getByText("Voltar"))
     expect(onBack).toHaveBeenCalledOnce()
-  })
-
-  it("should call onChangeNotes for paid mentoring", async () => {
-    const onChangeNotes = vi.fn()
-    const user = userEvent.setup()
-    render(
-      <ContactStep
-        {...defaultProps}
-        mentoringType="paid"
-        onChangeNotes={onChangeNotes}
-      />,
-    )
-
-    await user.type(screen.getByPlaceholderText(/abordar na mentoria/), "R")
-    expect(onChangeNotes).toHaveBeenCalled()
   })
 })
