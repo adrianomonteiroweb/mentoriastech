@@ -32,7 +32,14 @@
       "Bash(node -e \"console.log\\(Object.keys\\(require\\('drizzle-orm/neon-http/migrator'\\)\\)\\)\")",
       "Bash(node -e \"console.log\\(require.resolve\\('drizzle-orm/neon-http/migrator'\\)\\)\")",
       "Bash(npx tsx *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(git ls-tree *)",
+      "Bash(git rev-parse *)",
+      "Bash(git log *)",
+      "Bash(findstr /R \"\\\\[\")",
+      "Bash(findstr /I \"not-found global-error\")",
+      "Bash(findstr /N /I \"process.env DATABASE_URL drizzle postgres neon createClient throw new\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\);const all={...p.dependencies,...p.devDependencies};console.log\\('stripe dep:',all.stripe||'NONE'\\);console.log\\('pagarme dep:',all.pagarme||all['@pagarme/pagarme-nodejs-sdk']||'NONE \\(uses fetch\\)'\\)\")"
     ]
   }
 }
