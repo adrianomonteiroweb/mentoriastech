@@ -15,7 +15,6 @@ export interface UnifiedBookingState {
   name: string;
   email: string;
   whatsapp: string;
-  document: string; // CPF opcional (mentoria paga / Pagar.me)
   notes: string;
   isReturningMentee: boolean;
   originCategory: OriginCategoryValue;
@@ -45,7 +44,6 @@ export type BookingAction =
   | { type: "SET_CUSTOM_DATE"; customDate: string }
   | { type: "SET_CUSTOM_TIME"; customTime: string }
   | { type: "SET_CONTACT"; name: string; email: string; whatsapp: string }
-  | { type: "SET_DOCUMENT"; document: string }
   | { type: "SET_NOTES"; notes: string }
   | { type: "SET_RETURNING_MENTEE"; isReturningMentee: boolean }
   | {
@@ -93,7 +91,6 @@ export const initialBookingState: UnifiedBookingState = {
   name: "",
   email: "",
   whatsapp: "",
-  document: "",
   notes: "",
   isReturningMentee: false,
   originCategory: "",
@@ -145,8 +142,6 @@ export function bookingReducer(
         email: action.email,
         whatsapp: action.whatsapp,
       };
-    case "SET_DOCUMENT":
-      return { ...state, document: action.document };
     case "SET_NOTES":
       return { ...state, notes: action.notes };
     case "SET_RETURNING_MENTEE":

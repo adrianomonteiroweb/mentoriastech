@@ -172,7 +172,7 @@ GEMINI_MODEL                    # Opcional, default gemini-2.5-flash
 
 # Pagar.me (PIX — mentorias pagas)
 PAGARME_SECRET_KEY              # Secret key (sk_test_... ou sk_live_...)
-PAGARME_BASE_URL                # API URL — teste: https://sdx-api.pagar.me/core/v5 | prod: https://api.pagar.me/core/v5
+PAGARME_BASE_URL                # Host unico v5: https://api.pagar.me/core/v5 (ambiente definido pela chave sk_test_/sk_live_; sdx-api esta morto)
 PAGARME_WEBHOOK_USER            # Usuário Basic Auth do webhook (configurado no dashboard)
 PAGARME_WEBHOOK_PASSWORD        # Senha Basic Auth do webhook
 ```

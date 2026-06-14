@@ -182,7 +182,6 @@ export function PaidPaymentStep({
           name: state.name,
           email: state.email,
           whatsapp: state.whatsapp,
-          document: state.document || undefined,
           slotId: state.slotId || undefined,
           sessionDate: state.sessionDate || undefined,
           startTime: state.startTime || undefined,

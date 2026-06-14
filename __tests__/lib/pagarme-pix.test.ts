@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
 import {
   PagarmeError,
+  chargeFailureReason,
   chargePixDetails,
   chargeStatusToPaymentStatus,
+  createPixCharge,
   firstCharge,
   pagarmePixOrderErrorMessage,
+  type PagarmeClient,
   type PagarmeCharge,
   type PagarmeOrder,
 } from "@/lib/pagarme"
@@ -76,5 +79,82 @@ describe("Pagar.me Pix helpers", () => {
       new PagarmeError("Pagamento via Pix ainda nao foi configurado.", 503),
     )
     expect(message).toContain("ainda nao foi configurado")
+  })
+
+  it("builds a readable failure reason from a failed charge", () => {
+    const charge = {
+      id: "ch_1",
+      status: "failed",
+      last_transaction: {
+        status: "failed",
+        success: false,
+        acquirer_message: "Pix nao habilitado para o recebedor",
+        gateway_response: {
+          code: "400",
+          errors: [{ message: "recipient has no pix key" }],
+        },
+      },
+    } as PagarmeCharge
+
+    const reason = chargeFailureReason(charge)
+    expect(reason).toContain("Pix nao habilitado para o recebedor")
+    expect(reason).toContain("gateway 400")
+    expect(reason).toContain("recipient has no pix key")
+  })
+
+  it("falls back to 'sem detalhes' when no failure data is present", () => {
+    expect(chargeFailureReason(null)).toBe("sem detalhes")
+    expect(chargeFailureReason({ id: "ch_2", status: "failed" } as PagarmeCharge)).toBe(
+      "sem detalhes",
+    )
+  })
+
+  it("forwards customer document and phone into the order payload", async () => {
+    let body: any = null
+    const client: PagarmeClient = {
+      baseUrl: "https://api.pagar.me/core/v5",
+      request: async (_method, _path, b) => {
+        body = b
+        return { id: "or_1", status: "pending", charges: [] } as PagarmeOrder as never
+      },
+    }
+
+    await createPixCharge(client, {
+      amountCents: 6000,
+      description: "Mentoria",
+      customerName: "Maria",
+      customerEmail: "maria@example.com",
+      customerDocument: "390.533.447-05",
+      customerPhone: "(85) 99999-9999",
+      expiresIn: 3600,
+    })
+
+    expect(body.customer.document).toBe("39053344705")
+    expect(body.customer.document_type).toBe("cpf")
+    expect(body.customer.phones).toEqual({
+      mobile_phone: { country_code: "55", area_code: "85", number: "999999999" },
+    })
+  })
+
+  it("omits phones when the number is unusable", async () => {
+    let body: any = null
+    const client: PagarmeClient = {
+      baseUrl: "https://api.pagar.me/core/v5",
+      request: async (_method, _path, b) => {
+        body = b
+        return { id: "or_2", status: "pending", charges: [] } as PagarmeOrder as never
+      },
+    }
+
+    await createPixCharge(client, {
+      amountCents: 6000,
+      description: "Mentoria",
+      customerName: "Maria",
+      customerEmail: "maria@example.com",
+      customerPhone: "123",
+      expiresIn: 3600,
+    })
+
+    expect(body.customer.phones).toBeUndefined()
   })
 })

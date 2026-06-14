@@ -94,7 +94,6 @@ export function PaidBookingForm() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [whatsapp, setWhatsapp] = useState("")
-  const [document, setDocument] = useState("")
   const [notes, setNotes] = useState("")
   const [loading, setLoading] = useState(false)
   const [dataLoading, setDataLoading] = useState(true)
@@ -228,7 +227,6 @@ export function PaidBookingForm() {
           name,
           email,
           whatsapp,
-          document: document || undefined,
           slotId: selectedSlot.slotId,
           sessionDate: selectedSlot.date,
           startTime: selectedSlot.startTime,
@@ -469,21 +467,9 @@ export function PaidBookingForm() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="paid-whatsapp">WhatsApp</Label>
-          <Input id="paid-whatsapp" value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} required />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="paid-document">CPF (opcional)</Label>
-          <Input
-            id="paid-document"
-            inputMode="numeric"
-            placeholder="Somente numeros"
-            value={document}
-            onChange={(event) => setDocument(event.target.value.replace(/\D/g, "").slice(0, 14))}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="paid-whatsapp">WhatsApp</Label>
+        <Input id="paid-whatsapp" value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} required />
       </div>
 
       <div className="flex flex-col gap-1.5">

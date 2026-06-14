@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, desc, eq, gt, isNotNull } from "drizzle-orm"
 import nodemailer from "nodemailer"
 import { z } from "zod"
 import {
@@ -15,6 +15,7 @@ import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { paidMentorshipRequestToMentorEmail } from "@/lib/email-templates"
 import {
   PagarmeError,
+  chargeFailureReason,
   chargePixDetails,
   chargeStatusToPaymentStatus,
   createPixOrder,
@@ -38,7 +39,6 @@ const createSchema = z.object({
   name: z.string().trim().min(2, "Nome e obrigatorio"),
   email: z.string().trim().email("Email invalido"),
   whatsapp: z.string().trim().min(1, "WhatsApp e obrigatorio"),
-  document: z.string().trim().max(20).optional().default(""),
   slotId: z.string().uuid().optional(),
   sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida"),
   startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Horario invalido"),
@@ -255,11 +255,65 @@ export async function POST(request: Request) {
       }
     }
 
+    const mentee = await ensureMenteeProfile({
+      email: normalizedEmail,
+      fullName: data.name,
+      whatsapp: data.whatsapp,
+    })
+
+    // Idempotencia: se este mentee ja tem um booking pendente para a mesma
+    // mentoria/data/horario com um Pix valido (nao expirado), reaproveita-o em vez
+    // de criar uma nova cobranca na Pagar.me. Evita cobrancas duplicadas em reenvios.
+    const [reusable] = await db
+      .select({ booking: bookings, payment: payments })
+      .from(payments)
+      .innerJoin(bookings, eq(payments.bookingId, bookings.id))
+      .where(
+        and(
+          eq(bookings.menteeId, mentee.id),
+          eq(bookings.paidMentorshipId, mentorship.id),
+          eq(bookings.sessionDate, data.sessionDate),
+          eq(bookings.startTime, normalizedTime),
+          eq(bookings.status, "payment_pending"),
+          eq(payments.status, "pending"),
+          isNotNull(payments.pixQrCodeData),
+          gt(payments.pixExpiresAt, new Date()),
+        ),
+      )
+      .orderBy(desc(payments.createdAt))
+      .limit(1)
+
+    if (reusable) {
+      return NextResponse.json({
+        success: true,
+        reused: true,
+        booking: {
+          id: reusable.booking.id,
+          status: "payment_pending",
+          session_date: reusable.booking.sessionDate,
+          start_time: reusable.booking.startTime,
+          date_label: formatDateBR(data.sessionDate),
+        },
+        payment: {
+          ...toPayment(reusable.payment),
+          pix: {
+            qr_code_data: reusable.payment.pixQrCodeData,
+            qr_code_image_url_png: reusable.payment.pixQrCodeImageUrlPng,
+            qr_code_image_url_svg: reusable.payment.pixQrCodeImageUrlSvg,
+            hosted_instructions_url: reusable.payment.pixHostedInstructionsUrl,
+            expires_at: reusable.payment.pixExpiresAt?.toISOString() ?? null,
+          },
+        },
+        paid_mentorship: toPublicPaidMentorship(mentorship),
+      })
+    }
+
     if (
       await hasBookingConflict({
         sessionDate: data.sessionDate,
         startTime: normalizedTime,
         mentorId: mentorship.mentorId,
+        excludeMenteeId: mentee.id,
       })
     ) {
       return NextResponse.json(
@@ -267,12 +321,6 @@ export async function POST(request: Request) {
         { status: 409 },
       )
     }
-
-    const mentee = await ensureMenteeProfile({
-      email: normalizedEmail,
-      fullName: data.name,
-      whatsapp: data.whatsapp,
-    })
 
     const [booking] = await db
       .insert(bookings)
@@ -302,7 +350,8 @@ export async function POST(request: Request) {
         description: `Mentoria paga: ${mentorship.title}`,
         customerName: data.name,
         customerEmail: normalizedEmail,
-        customerDocument: data.document || null,
+        customerDocument: null,
+        customerPhone: data.whatsapp || null,
         expiresIn: mentorship.pixExpiresAfterSeconds,
         metadata: {
           booking_id: booking.id,
@@ -331,19 +380,36 @@ export async function POST(request: Request) {
     const pix = chargePixDetails(charge)
     const paymentStatus = chargeStatusToPaymentStatus(charge?.status ?? "pending")
 
-    if (!pix.data && paymentStatus === "pending") {
+    // Charge utilizavel = confirmada, ou pendente COM QR Code. Qualquer outro caso
+    // (failed/canceled, ou pending sem QR) e falha: cancela o booking e retorna erro
+    // ANTES de inserir um pagamento quebrado em payments.
+    const isUsable =
+      paymentStatus === "confirmed" || (paymentStatus === "pending" && Boolean(pix.data))
+
+    if (!isUsable) {
+      const reason = chargeFailureReason(charge)
+      const isDocumentIssue = /document|cpf|documento/i.test(reason)
       await db
         .update(bookings)
         .set({
           status: "cancelled",
-          adminNotes: `Pix Pagar.me sem QR Code (order ${order.id}).`,
+          adminNotes: `Pix Pagar.me nao utilizavel (order ${order.id}, charge ${charge?.id ?? "n/a"}, status ${charge?.status ?? "?"}): ${reason}`,
           updatedAt: new Date(),
         })
         .where(eq(bookings.id, booking.id))
 
-      console.error("[booking/paid] Pagar.me order without QR code:", order.id)
+      console.error("[booking/paid] Pagar.me charge nao utilizavel:", {
+        orderId: order.id,
+        chargeId: charge?.id ?? null,
+        status: charge?.status ?? null,
+        reason,
+      })
       return NextResponse.json(
-        { error: "Nao foi possivel gerar o Pix. Tente novamente em instantes." },
+        {
+          error: isDocumentIssue
+            ? pagarmePixOrderErrorMessage(new PagarmeError(reason, 422, 422, "document"))
+            : "Nao foi possivel gerar o Pix. Verifique a configuracao Pix da conta Pagar.me e tente novamente.",
+        },
         { status: 502 },
       )
     }
@@ -360,7 +426,7 @@ export async function POST(request: Request) {
         pagarmeOrderId: order.id,
         pagarmeChargeId: charge?.id ?? null,
         pagarmeStatus: charge?.status ?? null,
-        pixTxid: charge?.id ?? order.id,
+        pixTxid: pix.data ?? charge?.id ?? order.id,
         pixQrCodeData: pix.data,
         pixQrCodeImageUrlPng: pix.imageUrlPng,
         pixQrCodeImageUrlSvg: pix.imageUrlSvg,

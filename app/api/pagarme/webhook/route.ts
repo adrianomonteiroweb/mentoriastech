@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server"
-import { timingSafeEqual } from "node:crypto"
 import { and, eq, ne } from "drizzle-orm"
 import nodemailer from "nodemailer"
 import { bookings, db, paidMentorships, payments } from "@/lib/db"
 import { paidMentorshipPaidToMentorEmail } from "@/lib/email-templates"
 import {
-  chargeStatusToPaymentStatus,
-  firstCharge,
+  extractChargeFromEvent,
+  verifyWebhookBasicAuth,
   type PagarmeCharge,
-  type PagarmeOrder,
+  type PagarmeWebhookEvent,
 } from "@/lib/pagarme"
 
 export const runtime = "nodejs"
@@ -62,46 +61,6 @@ async function sendMentorPaymentConfirmedEmail(params: {
     html,
     replyTo: params.email,
   })
-}
-
-function safeEqual(a: string, b: string) {
-  const bufA = Buffer.from(a)
-  const bufB = Buffer.from(b)
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
-}
-
-// Pagar.me v5 autentica o webhook via HTTP Basic configurado no endpoint.
-function isAuthorized(request: Request): boolean | null {
-  const user = process.env.PAGARME_WEBHOOK_USER
-  const pass = process.env.PAGARME_WEBHOOK_PASSWORD
-  if (!user || !pass) return null // env nao configurada
-
-  const header = request.headers.get("authorization") || ""
-  if (!header.startsWith("Basic ")) return false
-
-  const expected = `Basic ${Buffer.from(`${user}:${pass}`).toString("base64")}`
-  return safeEqual(header, expected)
-}
-
-interface PagarmeWebhookEvent {
-  id?: string
-  type?: string
-  data?: PagarmeCharge | PagarmeOrder | Record<string, unknown>
-}
-
-function extractCharge(event: PagarmeWebhookEvent): PagarmeCharge | null {
-  const data = event.data
-  if (!data) return null
-
-  // Eventos charge.* trazem o charge diretamente; order.* trazem o pedido com charges[].
-  if ("charges" in data && Array.isArray((data as PagarmeOrder).charges)) {
-    return firstCharge(data as PagarmeOrder)
-  }
-  if ("id" in data) {
-    return data as PagarmeCharge
-  }
-  return null
 }
 
 async function confirmPayment(charge: PagarmeCharge) {
@@ -161,7 +120,10 @@ async function failPayment(charge: PagarmeCharge, status: "failed" | "refunded")
 }
 
 export async function POST(request: Request) {
-  const authorized = isAuthorized(request)
+  const authorized = verifyWebhookBasicAuth(request.headers.get("authorization"), {
+    user: process.env.PAGARME_WEBHOOK_USER,
+    pass: process.env.PAGARME_WEBHOOK_PASSWORD,
+  })
   if (authorized === null) {
     return NextResponse.json(
       { error: "Webhook da Pagar.me nao configurado (PAGARME_WEBHOOK_USER/PASSWORD)" },
@@ -181,7 +143,7 @@ export async function POST(request: Request) {
 
   try {
     const type = event.type || ""
-    const charge = extractCharge(event)
+    const charge = extractChargeFromEvent(event)
 
     if (charge?.id) {
       if (type === "charge.paid" || type === "order.paid") {

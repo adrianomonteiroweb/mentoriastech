@@ -16,14 +16,22 @@ export async function GET(request: Request) {
     const mentorId = getMentorId(profile)
 
     const url = new URL(request.url)
-    const filterMentorId = profile.role === "admin"
-      ? url.searchParams.get("mentorId") || mentorId
-      : mentorId
+    const requestedMentorId = url.searchParams.get("mentorId")
+
+    // Admin gerencia TODAS as mentorias pagas (independente de mentorId, que pode ser
+    // nulo quando o email do mentor nao corresponde a um perfil). Pode opcionalmente
+    // filtrar por mentorId via query param. Mentor ve apenas as proprias.
+    const whereClause =
+      profile.role === "admin"
+        ? requestedMentorId
+          ? eq(paidMentorships.mentorId, requestedMentorId)
+          : undefined
+        : eq(paidMentorships.mentorId, mentorId)
 
     const rows = await db
       .select()
       .from(paidMentorships)
-      .where(eq(paidMentorships.mentorId, filterMentorId))
+      .where(whereClause)
       .orderBy(asc(paidMentorships.sortOrder), asc(paidMentorships.createdAt))
 
     return NextResponse.json({ data: rows.map(toPaidMentorship) })

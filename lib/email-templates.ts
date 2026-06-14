@@ -162,10 +162,10 @@ export function paidMentorshipRequestToMentorEmail(params: PaidMentorshipToMento
     subject: `Solicitacao de mentoria paga - ${safeTitle} - ${safeName}`,
     html: baseLayout(
       "Nova solicitacao de mentoria paga",
-      "Aguardando confirmacao do Pix pela Stripe",
+      "Aguardando confirmacao do Pix pela Pagar.me",
       infoTable(rows) +
         actionBox(
-          "<strong>Status:</strong> o horario foi reservado como pagamento pendente. A mentoria so deve ser considerada confirmada quando a Stripe confirmar o Pix.",
+          "<strong>Status:</strong> o horario foi reservado como pagamento pendente. A mentoria so deve ser considerada confirmada quando a Pagar.me confirmar o Pix.",
         ),
     ),
   }

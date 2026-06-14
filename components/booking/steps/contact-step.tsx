@@ -1,6 +1,6 @@
 "use client"
 
-import { CreditCard, Mail, Megaphone, Phone, RefreshCcw, User } from "lucide-react"
+import { Mail, Megaphone, Phone, RefreshCcw, User } from "lucide-react"
 import { ORIGIN_OPTIONS, type OriginCategoryValue } from "@/lib/types/booking"
 import { StepNavigation } from "../step-navigation"
 
@@ -9,8 +9,6 @@ interface ContactStepProps {
   email: string
   whatsapp: string
   notes: string
-  document?: string
-  mentoringType?: string
   isReturningMentee?: boolean
   originCategory?: OriginCategoryValue
   originDescription?: string
@@ -19,7 +17,6 @@ interface ContactStepProps {
   onChangeEmail: (v: string) => void
   onChangeWhatsapp: (v: string) => void
   onChangeNotes: (v: string) => void
-  onChangeDocument?: (v: string) => void
   onChangeReturningMentee?: (v: boolean) => void
   onChangeOrigin?: (category: OriginCategoryValue, description: string) => void
   onNext: () => void
@@ -38,8 +35,6 @@ export function ContactStep({
   name,
   email,
   whatsapp,
-  document = "",
-  mentoringType,
   isReturningMentee = false,
   originCategory = "",
   originDescription = "",
@@ -47,13 +42,11 @@ export function ContactStep({
   onChangeName,
   onChangeEmail,
   onChangeWhatsapp,
-  onChangeDocument = () => {},
   onChangeReturningMentee = () => {},
   onChangeOrigin = () => {},
   onNext,
   onBack,
 }: ContactStepProps) {
-  const isPaid = mentoringType === "paid"
   const canProceed =
     email.trim().length > 0 &&
     (isReturningMentee ||
@@ -197,30 +190,6 @@ export function ContactStep({
             onChange={(e) => onChangeWhatsapp(e.target.value)}
             className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
           />
-        </div>
-      )}
-
-      {isPaid && (
-        <div className="flex flex-col gap-1.5">
-          <label
-            htmlFor="booking-document"
-            className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground"
-          >
-            <CreditCard className="h-3 w-3" />
-            CPF (opcional)
-          </label>
-          <input
-            id="booking-document"
-            type="text"
-            inputMode="numeric"
-            placeholder="Somente numeros"
-            value={document}
-            onChange={(e) => onChangeDocument(e.target.value.replace(/\D/g, "").slice(0, 14))}
-            className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-          />
-          <p className="text-xs text-muted-foreground">
-            Pode ser exigido pelo banco para gerar o Pix.
-          </p>
         </div>
       )}
 

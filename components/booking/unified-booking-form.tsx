@@ -309,8 +309,6 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
               email={state.email}
               whatsapp={state.whatsapp}
               notes={state.notes}
-              document={state.document}
-              mentoringType={state.mentoringType}
               isReturningMentee={state.isReturningMentee}
               originCategory={state.originCategory}
               originDescription={state.originDescription}
@@ -340,9 +338,6 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
                 })
               }
               onChangeNotes={(v) => dispatch({ type: "SET_NOTES", notes: v })}
-              onChangeDocument={(v) =>
-                dispatch({ type: "SET_DOCUMENT", document: v })
-              }
               onChangeReturningMentee={(v) =>
                 dispatch({ type: "SET_RETURNING_MENTEE", isReturningMentee: v })
               }

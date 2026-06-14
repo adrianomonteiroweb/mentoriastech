@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne } from "drizzle-orm"
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm"
 import { bookings, db } from "@/lib/db"
 
 const BLOCKING_STATUSES = ["pending", "confirmed", "payment_pending", "paid", "scheduled"] as const
@@ -12,6 +12,7 @@ export async function hasBookingConflict(params: {
   startTime?: string | null
   mentorId?: string | null
   excludeBookingId?: string
+  excludeMenteeId?: string
 }) {
   if (!params.sessionDate || !params.startTime) return false
 
@@ -27,6 +28,16 @@ export async function hasBookingConflict(params: {
 
   if (params.excludeBookingId) {
     filters.push(ne(bookings.id, params.excludeBookingId))
+  }
+
+  // O proprio mentee nao conflita consigo mesmo (reagendamento/retry do mesmo Pix).
+  // Mantem bookings de convidados (menteeId nulo) na deteccao de conflito.
+  if (params.excludeMenteeId) {
+    const notSelf = or(
+      isNull(bookings.menteeId),
+      ne(bookings.menteeId, params.excludeMenteeId),
+    )
+    if (notSelf) filters.push(notSelf)
   }
 
   const [existing] = await db
