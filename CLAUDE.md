@@ -120,6 +120,7 @@ middleware.ts                 # Refresh token + proteção de rotas
 ## Convenções
 
 ### Código
+
 - **Server Components por padrão**. Usar `"use client"` apenas para componentes interativos
 - **API routes para mutations** (POST/PUT/DELETE). Server Components apenas para leitura
 - **Supabase client direto** (sem ORM). RLS cuida da autorização no nível do banco
@@ -127,18 +128,21 @@ middleware.ts                 # Refresh token + proteção de rotas
 - **Idioma pt-BR** em toda a UI (textos, mensagens de erro, labels)
 
 ### Estilo
+
 - Usar componentes shadcn/ui existentes em `components/ui/` antes de criar novos
 - Tailwind CSS para styling — não usar CSS modules ou styled-components
 - Dark theme padrão: background `#0d1117`, primary teal `#2dd4bf`
 - Mobile-first responsive design
 
 ### Segurança
+
 - Env vars nunca commitadas — usar `.env.local` (já no `.gitignore`)
 - `NEXT_PUBLIC_*` apenas para variáveis seguras para o browser (URL, anon key)
 - `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor (API routes)
 - Validar inputs em API routes antes de queries ao banco
 
 ### Database
+
 - Todas as tabelas devem ter RLS habilitado
 - UUIDs como primary keys (gerados pelo Postgres via `gen_random_uuid()`)
 - Timestamps com `timestamptz` e default `now()`
@@ -189,3 +193,8 @@ PAGARME_WEBHOOK_PASSWORD        # Senha Basic Auth do webhook
 2. **Schedule** — Agenda visível, bookings no banco (concluída)
 3. **Dashboard + Conteúdos + Vagas + Calendar** — Painel admin/mentee/HR, biblioteca, vagas, Google Calendar, uploads (concluída)
 4. **Polish** — Emails, SEO, performance (planejado)
+
+## Desenvolvimento
+
+1. Realize o build após implementações para verificar possíveis pendências de ajustes.
+2. Não teste a implementação, isso é uma tarefa minha manual.
