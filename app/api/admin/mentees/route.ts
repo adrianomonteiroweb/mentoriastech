@@ -40,6 +40,13 @@ export async function POST(request: Request) {
       updateExisting: true,
     })
 
+    if (profile.role !== "mentee") {
+      return NextResponse.json(
+        { error: `Este email já está cadastrado com o perfil "${profile.role}". Utilize um email diferente.` },
+        { status: 409 },
+      )
+    }
+
     const [existingLink] = await db
       .select({ id: bookings.id })
       .from(bookings)
