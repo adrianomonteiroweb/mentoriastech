@@ -6,7 +6,7 @@ export default function MentorMenteesPage() {
     <>
       <DashboardHeader title="Mentorados" description="Visualizar seus mentorados" />
       <div className="p-4 md:p-6">
-        <MenteesTable canManage />
+        <MenteesTable canManage showSelectionProcesses={false} />
       </div>
     </>
   )

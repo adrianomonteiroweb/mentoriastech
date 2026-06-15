@@ -69,7 +69,11 @@ export async function DELETE(
       ? eq(mentoringSlots.id, id)
       : and(eq(mentoringSlots.id, id), eq(mentoringSlots.mentorId, mentorId))
 
-    await db.delete(mentoringSlots).where(ownershipFilter)
+    const deleted = await db.delete(mentoringSlots).where(ownershipFilter).returning({ id: mentoringSlots.id })
+
+    if (deleted.length === 0) {
+      return NextResponse.json({ error: "Horario nao encontrado" }, { status: 404 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

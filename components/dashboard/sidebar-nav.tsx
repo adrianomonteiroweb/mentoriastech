@@ -72,11 +72,10 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Visao Geral", href: "/mentor", icon: BarChart3 },
     { label: "Agenda", href: "/mentor/schedule", icon: CalendarDays },
     { label: "Horarios", href: "/mentor/slots", icon: Clock },
-    { label: "Temas", href: "/mentor/topics", icon: Tags },
+    { label: "Temas de Mentoria Gratuita", href: "/mentor/topics", icon: Tags },
     { label: "Mentorias pagas", href: "/mentor/paid-mentorships", icon: CreditCard },
     { label: "Agendamentos", href: "/mentor/bookings", icon: BookOpen },
     { label: "Mentorados", href: "/mentor/mentees", icon: Users },
-    { label: "Oportunidades", href: "/mentor/opportunities", icon: Target },
   ],
   hr: [
     { label: "Visao Geral", href: "/hr", icon: Home },

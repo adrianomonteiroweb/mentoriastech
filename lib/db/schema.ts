@@ -119,7 +119,7 @@ export const bookings = pgTable("bookings", {
   guestName: text("guest_name"),
   guestEmail: text("guest_email"),
   guestWhatsapp: text("guest_whatsapp"),
-  slotId: uuid("slot_id").references(() => mentoringSlots.id),
+  slotId: uuid("slot_id").references(() => mentoringSlots.id, { onDelete: "set null" }),
   topicId: uuid("topic_id").references(() => mentoringTopics.id),
   paidMentorshipId: uuid("paid_mentorship_id").references(() => paidMentorships.id, { onDelete: "set null" }),
   sessionDate: date("session_date"),

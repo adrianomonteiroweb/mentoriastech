@@ -7,7 +7,7 @@ export default function MentorDashboardPage() {
     <>
       <DashboardHeader title="Visao Geral" description="Painel do mentor" />
       <div className="p-4 md:p-6 flex flex-col gap-6">
-        <StatsCards />
+        <StatsCards mentorView />
         <TopicRanking />
       </div>
     </>

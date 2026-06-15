@@ -76,8 +76,17 @@ export function SlotsTable() {
 
   async function deleteSlot(id: string) {
     if (!confirm("Remover este horário?")) return
-    await fetch(`/api/admin/slots/${id}`, { method: "DELETE" })
-    loadSlots()
+    try {
+      const res = await fetch(`/api/admin/slots/${id}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || "Erro ao remover horário")
+        return
+      }
+      loadSlots()
+    } catch {
+      alert("Erro ao remover horário")
+    }
   }
 
   function resetForm() {

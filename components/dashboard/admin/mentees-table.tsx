@@ -139,9 +139,10 @@ function OriginBadge({ mentee }: { mentee: Profile }) {
 
 interface MenteesTableProps {
   canManage?: boolean
+  showSelectionProcesses?: boolean
 }
 
-export function MenteesTable({ canManage = false }: MenteesTableProps) {
+export function MenteesTable({ canManage = false, showSelectionProcesses = true }: MenteesTableProps) {
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -634,7 +635,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <OriginBadge mentee={m} />
-                <SelectionProcessesBadge mentee={m} />
+                {showSelectionProcesses && <SelectionProcessesBadge mentee={m} />}
                 {m.career_status && (
                   <Badge variant="outline" className="text-[10px]">
                     {CAREER_STATUS_LABEL[m.career_status]}
@@ -699,7 +700,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                             {m.booking_count} mentoria{m.booking_count === 1 ? "" : "s"}
                           </Badge>
                         )}
-                        <SelectionProcessesBadge mentee={m} />
+                        {showSelectionProcesses && <SelectionProcessesBadge mentee={m} />}
                       </div>
                     </div>
                   </TableCell>
@@ -849,7 +850,7 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                       <p className="whitespace-pre-line text-muted-foreground">{selectedMentee.bio}</p>
                     </div>
                   )}
-                  {(selectedMentee.selection_processes?.length ?? 0) > 0 && (
+                  {showSelectionProcesses && (selectedMentee.selection_processes?.length ?? 0) > 0 && (
                     <div className="grid gap-1">
                       <span className="text-xs text-muted-foreground">Processos seletivos</span>
                       <div className="flex flex-col gap-1.5">
@@ -918,10 +919,12 @@ export function MenteesTable({ canManage = false }: MenteesTableProps) {
                         <CalendarPlus className="h-4 w-4" />
                         Agendar
                       </Button>
-                      <Button variant="ghost" className="justify-start" onClick={() => openSelectionProcess(selectedMentee)}>
-                        <Award className="h-4 w-4" />
-                        Processo seletivo
-                      </Button>
+                      {showSelectionProcesses && (
+                        <Button variant="ghost" className="justify-start" onClick={() => openSelectionProcess(selectedMentee)}>
+                          <Award className="h-4 w-4" />
+                          Processo seletivo
+                        </Button>
+                      )}
                       <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedMentee)}>
                         <Pencil className="h-4 w-4" />
                         Editar

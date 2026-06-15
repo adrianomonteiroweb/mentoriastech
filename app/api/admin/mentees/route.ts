@@ -24,7 +24,8 @@ function isInValues<T extends readonly string[]>(value: string | null, values: T
 
 export async function POST(request: Request) {
   try {
-    await requireMentorAccess()
+    const actorProfile = await requireMentorAccess()
+    const mentorId = getMentorId(actorProfile)
     const body = await request.json()
 
     const parsed = createMenteeSchema.safeParse(body)
@@ -38,6 +39,21 @@ export async function POST(request: Request) {
       whatsapp: parsed.data.whatsapp || null,
       updateExisting: true,
     })
+
+    const [existingLink] = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(and(eq(bookings.menteeId, profile.id), eq(bookings.mentorId, mentorId)))
+      .limit(1)
+
+    if (!existingLink) {
+      await db.insert(bookings).values({
+        mentorId,
+        menteeId: profile.id,
+        bookingType: "free",
+        status: "pending",
+      })
+    }
 
     const data = toProfile(profile)
     return NextResponse.json(
