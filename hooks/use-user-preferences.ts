@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 
-const USER_PREFERENCES_KEY = "adriano:user-preferences"
-const USER_PREFERENCES_EVENT = "adriano:user-preferences-change"
+const USER_PREFERENCES_KEY = "mentoriastech:user-preferences"
+const USER_PREFERENCES_EVENT = "mentoriastech:user-preferences-change"
+const LEGACY_PREFERENCES_KEY = "adriano:user-preferences"
 
 export interface UserPreferences {
   showJobFilters: boolean
@@ -21,7 +22,16 @@ function readUserPreferences(): UserPreferences {
   }
 
   try {
-    const rawValue = window.localStorage.getItem(USER_PREFERENCES_KEY)
+    let rawValue = window.localStorage.getItem(USER_PREFERENCES_KEY)
+
+    if (!rawValue) {
+      const legacy = window.localStorage.getItem(LEGACY_PREFERENCES_KEY)
+      if (legacy) {
+        window.localStorage.setItem(USER_PREFERENCES_KEY, legacy)
+        window.localStorage.removeItem(LEGACY_PREFERENCES_KEY)
+        rawValue = legacy
+      }
+    }
 
     if (!rawValue) {
       return DEFAULT_USER_PREFERENCES

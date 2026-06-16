@@ -115,10 +115,10 @@ export function SidebarNav({ role, userName }: SidebarNavProps) {
       <SidebarHeader className="border-b border-border px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">
-            AM
+            &lt;/&gt;
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold">Mentoria</span>
+            <span className="text-sm font-semibold">MentoriasTech</span>
             <span className="text-xs text-muted-foreground capitalize">{role}</span>
           </div>
         </Link>

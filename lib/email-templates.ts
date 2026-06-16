@@ -2,9 +2,9 @@ import { escapeHtml } from "@/lib/escape-html"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
 const BRAND_BG = "#0d1117"
-const BRAND_PRIMARY = "#2dd4bf"
-const BRAND_GREEN = "#ecfdf5"
-const BRAND_GREEN_TEXT = "#065f46"
+const BRAND_PRIMARY = "#3B82F6"
+const BRAND_GREEN = "#eff6ff"
+const BRAND_GREEN_TEXT = "#1e40af"
 
 function baseLayout(title: string, subtitle: string, content: string) {
   return `

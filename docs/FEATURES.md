@@ -2,7 +2,7 @@
 
 ## Visao Geral
 
-Plataforma de mentoria de programacao criada por Adriano Monteiro. Permite agendamento de mentorias gratuitas e pagas, acesso a conteudos educacionais, quadro de vagas e perfil do mentorado.
+Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuitas e pagas, acesso a conteudos educacionais, quadro de vagas e perfil do mentorado.
 
 ---
 
@@ -127,7 +127,7 @@ Plataforma de mentoria de programacao criada por Adriano Monteiro. Permite agend
 
 | Role | Descricao | Permissoes |
 |------|-----------|------------|
-| **admin** | Adriano (mentor) | Acesso total: gerenciar schedule, bookings, conteudos, vagas, mentorados, configuracoes |
+| **admin** | Administrador | Acesso total: gerenciar schedule, bookings, conteudos, vagas, mentorados, configuracoes |
 | **mentee** | Mentorado | Agendar mentorias, ver conteudos, postar vagas (com aprovacao), completar perfil |
 | **hr** | RH / Gestor | Postar vagas sem aprovacao, pesquisar mentorados, ver historico de mentorias |
 

@@ -11,15 +11,15 @@ const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'Adriano Monteiro | Software, RPA e Mentoria Tech',
+  title: 'MentoriasTech | Mentorias em Tecnologia',
   description:
-    'Mentoria em desenvolvimento de software, automações RPA e carreira em tecnologia.',
+    'Plataforma de mentorias em desenvolvimento de software e carreira em tecnologia. Conecte-se. Cresça. Transforme.',
   manifest: '/manifest.json',
-  applicationName: 'Adriano Mentoria',
+  applicationName: 'MentoriasTech',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Adriano Mentoria',
+    title: 'MentoriasTech',
   },
   icons: {
     icon: '/icons/icon.svg',
@@ -55,7 +55,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
-          storageKey="adriano-theme"
+          storageKey="mentoriastech-theme"
         >
           <ThemeColorMeta />
           {children}

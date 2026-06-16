@@ -1,4 +1,4 @@
-# Plataforma de Mentoria — Adriano Monteiro
+# Plataforma MentoriasTech
 
 ## Stack
 
@@ -129,7 +129,7 @@ middleware.ts                 # Refresh token + proteção de rotas
 ### Estilo
 - Usar componentes shadcn/ui existentes em `components/ui/` antes de criar novos
 - Tailwind CSS para styling — não usar CSS modules ou styled-components
-- Dark theme padrão: background `#0d1117`, primary teal `#2dd4bf`
+- Dark theme padrão: background `#0d1117`, primary blue `#3B82F6`
 - Mobile-first responsive design
 
 ### Segurança
@@ -173,7 +173,7 @@ STRIPE_WEBHOOK_SECRET           # Secret do endpoint /api/stripe/webhook
 
 ## Roles de Usuário
 
-- **admin**: Acesso total (Adriano). Role setado manualmente no banco
+- **admin**: Acesso total. Role setado manualmente no banco
 - **mentee**: Usuário padrão. Pode agendar mentorias, ver conteúdos, postar vagas (com aprovação)
 - **hr**: Pode postar vagas sem aprovação, pesquisar mentorados. Atribuído pelo admin
 

@@ -60,7 +60,7 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
         <CheckCircle2 className="h-12 w-12 text-green-500" />
         <p className="text-sm font-medium">Indicacao enviada!</p>
         <p className="text-sm text-muted-foreground">
-          Ela aparecera no quadro de vagas apos a aprovacao do Adriano.
+          Ela aparecerá no quadro de vagas após a aprovação da equipe.
         </p>
       </div>
     )

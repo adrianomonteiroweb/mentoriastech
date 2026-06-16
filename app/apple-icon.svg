@@ -5,14 +5,14 @@
       <stop offset="1" stop-color="#161b22"/>
     </linearGradient>
     <linearGradient id="fg" x1="0" y1="0" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#5eead4"/>
-      <stop offset="1" stop-color="#2dd4bf"/>
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#3b82f6"/>
     </linearGradient>
   </defs>
   <rect width="180" height="180" fill="url(#bg)"/>
   <g fill="none" stroke="url(#fg)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M 50 56 L 33 90 L 50 124"/>
-    <path d="M 130 56 L 147 90 L 130 124"/>
-    <path d="M 78 124 L 90 56 L 102 124 M 82 102 L 98 102"/>
+    <path d="M 53 56 L 33 90 L 53 124"/>
+    <path d="M 98 56 L 82 124"/>
+    <path d="M 127 56 L 147 90 L 127 124"/>
   </g>
 </svg>

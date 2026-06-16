@@ -46,7 +46,7 @@ function MobileKanban({ groups }: { groups: Record<OpportunityStatus, ApiOpportu
       <AccordionItem value="vagas">
         <AccordionTrigger className="py-3 text-sm hover:no-underline">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-teal-500" />
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
             <span>Vagas para voce</span>
           </div>
         </AccordionTrigger>
@@ -95,10 +95,10 @@ function DesktopKanban({ groups }: { groups: Record<OpportunityStatus, ApiOpport
       <div className="flex gap-3 pb-4" style={{ minWidth: `${(STAGES.length + 1) * 260}px` }}>
         {/* Coluna Vagas sugeridas */}
         <div className="flex w-[250px] flex-shrink-0 flex-col gap-2">
-          <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-teal-500/10 border-teal-500/40 border">
+          <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-blue-500/10 border-blue-500/40 border">
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-teal-500" />
-              <span className="text-xs font-semibold text-teal-400">
+              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              <span className="text-xs font-semibold text-blue-400">
                 Vagas para voce
               </span>
             </div>

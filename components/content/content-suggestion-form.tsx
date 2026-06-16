@@ -69,7 +69,7 @@ export function ContentSuggestionForm({ onSuccess }: ContentSuggestionFormProps)
           {mode === "request" ? "Solicitacao enviada!" : "Indicacao enviada!"}
         </p>
         <p className="text-sm text-muted-foreground">
-          Obrigado! O Adriano vai revisar a sua sugestao.
+          Obrigado! A equipe vai revisar a sua sugestão.
         </p>
       </div>
     )

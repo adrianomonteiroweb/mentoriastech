@@ -1,5 +1,5 @@
 import { PlatformLinks } from "@/components/platform-links";
-import { ProfileHeader } from "@/components/profile-header";
+import { HeroSection } from "@/components/hero-section";
 import { ShareButton } from "@/components/share-button";
 import { SocialLinks } from "@/components/social-links";
 import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
@@ -9,7 +9,7 @@ export default function Page() {
   return (
     <main className="flex min-h-screen flex-col items-center bg-background px-4 py-8 md:py-14">
       <div className="flex w-full max-w-lg flex-col gap-7">
-        <ProfileHeader />
+        <HeroSection />
 
         <SocialLinks />
 
@@ -17,8 +17,8 @@ export default function Page() {
 
         <ShareButton
           path="/"
-          title="Adriano Monteiro | Mentoria Tech"
-          text="Conheça a mentoria em desenvolvimento de software, RPA e carreira em tecnologia."
+          title="MentoriasTech"
+          text="Plataforma de mentorias em tecnologia. Conecte-se. Cresça. Transforme."
           label="Compartilhe com alguém"
           tracking={{ type: "page", path: "/", label: "Página principal" }}
           className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
@@ -54,7 +54,7 @@ export default function Page() {
 
         <footer className="flex flex-col items-center gap-1 text-center">
           <p className="text-xs text-muted-foreground">
-            {"Adriano Monteiro"} &middot; {new Date().getFullYear()}
+            {"MentoriasTech"} &middot; {new Date().getFullYear()}
           </p>
           <a
             href="/login"

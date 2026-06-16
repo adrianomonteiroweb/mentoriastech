@@ -1,7 +1,7 @@
 {
-  "name": "Adriano Monteiro - Mentoria",
-  "short_name": "Adriano Mentoria",
-  "description": "Plataforma de mentoria gratuita em programação e carreira em tech",
+  "name": "MentoriasTech",
+  "short_name": "MentoriasTech",
+  "description": "Plataforma de mentorias em programação e carreira em tecnologia. Conecte-se. Cresça. Transforme.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

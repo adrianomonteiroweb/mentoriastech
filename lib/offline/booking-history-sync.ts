@@ -26,8 +26,10 @@ export interface BookingHistoryFlushResult {
   error?: string
 }
 
-const QUEUE_KEY = "adriano:booking-history-sync-queue"
-const DRAFT_PREFIX = "adriano:booking-history-draft:"
+const QUEUE_KEY = "mentoriastech:booking-history-sync-queue"
+const DRAFT_PREFIX = "mentoriastech:booking-history-draft:"
+const LEGACY_QUEUE_KEY = "adriano:booking-history-sync-queue"
+const LEGACY_DRAFT_PREFIX = "adriano:booking-history-draft:"
 
 function hasBrowserStorage() {
   return typeof window !== "undefined" && Boolean(window.localStorage)
@@ -49,7 +51,15 @@ function readQueue(): BookingHistoryQueueItem[] {
   if (!hasBrowserStorage()) return []
 
   try {
-    const raw = window.localStorage.getItem(QUEUE_KEY)
+    let raw = window.localStorage.getItem(QUEUE_KEY)
+    if (!raw) {
+      const legacy = window.localStorage.getItem(LEGACY_QUEUE_KEY)
+      if (legacy) {
+        window.localStorage.setItem(QUEUE_KEY, legacy)
+        window.localStorage.removeItem(LEGACY_QUEUE_KEY)
+        raw = legacy
+      }
+    }
     if (!raw) return []
     const value = JSON.parse(raw)
 
@@ -110,7 +120,15 @@ export function getQueuedBookingHistoryDraft(
   if (!hasBrowserStorage()) return null
 
   try {
-    const raw = window.localStorage.getItem(`${DRAFT_PREFIX}${bookingId}`)
+    let raw = window.localStorage.getItem(`${DRAFT_PREFIX}${bookingId}`)
+    if (!raw) {
+      const legacy = window.localStorage.getItem(`${LEGACY_DRAFT_PREFIX}${bookingId}`)
+      if (legacy) {
+        window.localStorage.setItem(`${DRAFT_PREFIX}${bookingId}`, legacy)
+        window.localStorage.removeItem(`${LEGACY_DRAFT_PREFIX}${bookingId}`)
+        raw = legacy
+      }
+    }
     if (!raw) return null
     const value = JSON.parse(raw)
 
