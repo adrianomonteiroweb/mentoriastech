@@ -1,22 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
+import { ChecklistPopover } from "@/components/shared/checklist-popover"
 import {
   CheckCircle2, ExternalLink, FileText, Linkedin, Loader2, Trash2,
 } from "lucide-react"
-import {
-  calculateSelectionProcessScore,
-  SELECTION_PROCESS_CHECKLIST_MAX_SCORE,
-} from "@/lib/selection-process-checklist"
 import type { Profile, SelectionProcessChecklistItem, SelectionProcessCandidateWithProfile } from "@/lib/types/database"
 
 interface SelectionProcessCandidatesProps {
@@ -96,7 +90,8 @@ export function SelectionProcessCandidates({ processId, candidates, onChange }: 
                   </TableCell>
                   <TableCell>
                     <ChecklistPopover
-                      candidate={candidate}
+                      candidateId={candidate.id}
+                      checklist={candidate.checklist}
                       saving={savingId === candidate.id}
                       onSave={(checklist) => updateCandidate(candidate.id, { checklist })}
                     />
@@ -175,63 +170,3 @@ export function SelectionProcessCandidates({ processId, candidates, onChange }: 
   )
 }
 
-function ChecklistPopover({
-  candidate,
-  saving,
-  onSave,
-}: {
-  candidate: SelectionProcessCandidateWithProfile
-  saving: boolean
-  onSave: (checklist: SelectionProcessChecklistItem[]) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [checklist, setChecklist] = useState(candidate.checklist)
-
-  useEffect(() => {
-    if (!open) setChecklist(candidate.checklist)
-  }, [candidate.checklist, open])
-
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      const changed = checklist.some((item, i) => item.checked !== candidate.checklist[i]?.checked)
-      if (changed) onSave(checklist)
-    }
-    setOpen(nextOpen)
-  }
-
-  return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-          {saving && <Loader2 className="h-3 w-3 animate-spin" />}
-          {calculateSelectionProcessScore(checklist)}/{SELECTION_PROCESS_CHECKLIST_MAX_SCORE} pontos
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80" align="start">
-        <div className="grid gap-2">
-          <p className="text-sm font-medium">Checklist de avaliação</p>
-          {checklist.map((item) => {
-            const checkboxId = `selection-checklist-${candidate.id}-${item.id}`
-            return (
-              <div key={item.id} className="flex items-start gap-2">
-                <Checkbox
-                  id={checkboxId}
-                  checked={item.checked}
-                  onCheckedChange={(checked) =>
-                    setChecklist((prev) =>
-                      prev.map((p) => (p.id === item.id ? { ...p, checked: checked === true } : p)),
-                    )
-                  }
-                  className="mt-0.5"
-                />
-                <Label htmlFor={checkboxId} className="text-xs font-normal leading-tight">
-                  {item.label}
-                </Label>
-              </div>
-            )
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-}

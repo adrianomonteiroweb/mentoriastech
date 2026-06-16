@@ -792,6 +792,26 @@ CREATE TRIGGER prevent_fixed_tip_delete
   BEFORE DELETE ON public.tips
   FOR EACH ROW EXECUTE FUNCTION public.prevent_fixed_tip_delete();
 
+-- -----------------------------------------------------------------------------
+-- SELECTION_PROCESS_SHARE_LINKS — links compartilhaveis para processos seletivos
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.selection_process_share_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  process_id UUID NOT NULL REFERENCES public.selection_processes(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  permission TEXT NOT NULL CHECK (permission IN ('view', 'edit')),
+  label TEXT,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.selection_process_share_links ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin can manage share links"
+  ON public.selection_process_share_links FOR ALL
+  USING (public.current_user_is_admin())
+  WITH CHECK (public.current_user_is_admin());
+
 -- =============================================================================
 -- SEED DATA — Dados iniciais
 -- =============================================================================

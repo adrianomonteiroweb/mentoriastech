@@ -12,6 +12,7 @@ import type {
   Profile as DbProfile,
   SelectionProcess as DbSelectionProcess,
   SelectionProcessCandidate as DbSelectionProcessCandidate,
+  SelectionProcessShareLink as DbSelectionProcessShareLink,
   Tip as DbTip,
 } from "@/lib/db/schema"
 import type {
@@ -28,6 +29,7 @@ import type {
   Profile,
   SelectionProcess,
   SelectionProcessCandidate,
+  SelectionProcessShareLink,
   Tip,
 } from "@/lib/types/database"
 import { normalizeSelectionProcessChecklist } from "@/lib/selection-process-checklist"
@@ -318,5 +320,17 @@ export function toSelectionProcessCandidate(row: DbSelectionProcessCandidate): S
     notes: row.notes,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toSelectionProcessShareLink(row: DbSelectionProcessShareLink): SelectionProcessShareLink {
+  return {
+    id: row.id,
+    process_id: row.processId,
+    token: row.token,
+    permission: row.permission,
+    label: row.label,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
   }
 }

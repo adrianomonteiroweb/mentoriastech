@@ -421,6 +421,21 @@ export interface SelectionProcessCandidateWithProfile extends SelectionProcessCa
 }
 
 // -----------------------------------------------------------------------------
+// Selection Process Share Links
+// -----------------------------------------------------------------------------
+export type ShareLinkPermission = "view" | "edit"
+
+export interface SelectionProcessShareLink {
+  id: string
+  process_id: string
+  token: string
+  permission: ShareLinkPermission
+  label: string | null
+  created_by: string | null
+  created_at: string
+}
+
+// -----------------------------------------------------------------------------
 // Admin Stats
 // -----------------------------------------------------------------------------
 export interface TopicRanking {

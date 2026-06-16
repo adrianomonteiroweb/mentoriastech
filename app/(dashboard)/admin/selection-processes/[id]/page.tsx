@@ -6,13 +6,14 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { SelectionProcessForm } from "@/components/dashboard/admin/selection-process-form"
 import { SelectionProcessCandidates } from "@/components/dashboard/admin/selection-process-candidates"
 import { AddSelectionCandidatesDialog } from "@/components/dashboard/admin/add-selection-candidates-dialog"
+import { ShareLinksManager } from "@/components/dashboard/admin/share-links-manager"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowLeft, Pencil, Plus } from "lucide-react"
+import { ArrowLeft, Link as LinkIcon, Pencil, Plus } from "lucide-react"
 import Link from "next/link"
 import type { SelectionProcess, SelectionProcessCandidateWithProfile } from "@/lib/types/database"
 
@@ -29,6 +30,7 @@ export default function AdminSelectionProcessDetailPage() {
   const [loading, setLoading] = useState(true)
   const [showEditForm, setShowEditForm] = useState(false)
   const [showAddCandidates, setShowAddCandidates] = useState(false)
+  const [showShareLinks, setShowShareLinks] = useState(false)
 
   const loadProcess = useCallback(() => {
     setLoading(true)
@@ -75,6 +77,10 @@ export default function AdminSelectionProcessDetailPage() {
         <Button size="sm" variant="outline" onClick={() => setShowAddCandidates(true)}>
           <Plus className="h-4 w-4 mr-1" />
           Adicionar mentorados
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setShowShareLinks(true)}>
+          <LinkIcon className="h-4 w-4 mr-1" />
+          Compartilhar
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setShowEditForm(true)}>
           <Pencil className="h-4 w-4 mr-1" />
@@ -124,6 +130,12 @@ export default function AdminSelectionProcessDetailPage() {
         excludeIds={process.candidates.map((c) => c.mentee_id)}
         onClose={() => setShowAddCandidates(false)}
         onSuccess={handleAddSuccess}
+      />
+
+      <ShareLinksManager
+        processId={process.id}
+        open={showShareLinks}
+        onOpenChange={setShowShareLinks}
       />
     </>
   )

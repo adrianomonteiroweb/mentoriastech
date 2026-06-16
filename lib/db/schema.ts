@@ -575,6 +575,19 @@ export const selectionProcessCandidates = pgTable("selection_process_candidates"
 ])
 
 // -----------------------------------------------------------------------------
+// SELECTION_PROCESS_SHARE_LINKS — links compartilhaveis para processos seletivos
+// -----------------------------------------------------------------------------
+export const selectionProcessShareLinks = pgTable("selection_process_share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  processId: uuid("process_id").notNull().references(() => selectionProcesses.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  permission: text("permission", { enum: ["view", "edit"] }).notNull(),
+  label: text("label"),
+  createdBy: uuid("created_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect
@@ -616,3 +629,5 @@ export type SelectionProcess = typeof selectionProcesses.$inferSelect
 export type NewSelectionProcess = typeof selectionProcesses.$inferInsert
 export type SelectionProcessCandidate = typeof selectionProcessCandidates.$inferSelect
 export type NewSelectionProcessCandidate = typeof selectionProcessCandidates.$inferInsert
+export type SelectionProcessShareLink = typeof selectionProcessShareLinks.$inferSelect
+export type NewSelectionProcessShareLink = typeof selectionProcessShareLinks.$inferInsert
