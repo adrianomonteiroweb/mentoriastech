@@ -15,6 +15,7 @@ CREATE TABLE public.profiles (
   linkedin_url TEXT,
   bio TEXT,
   resume_url TEXT,
+  resume_markdown TEXT,
   avatar_url TEXT,
   career_status TEXT,         -- 'seeking' | 'interning' | 'employed' | 'student' | 'other'
   seniority TEXT,             -- 'junior' | 'mid' | 'senior' | 'undefined'

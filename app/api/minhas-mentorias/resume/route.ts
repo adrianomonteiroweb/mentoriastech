@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { db, opportunityResumes, profiles } from "@/lib/db"
 import { logAuditEvent } from "@/lib/audit"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
+import { extractPdfText } from "@/lib/utils/pdf-to-markdown"
 import { uploadPrivateResume, UploadError } from "@/lib/utils/upload"
 import {
   ensureProfileForMenteeEmail,
@@ -89,6 +90,8 @@ export async function POST(request: Request) {
     const rawLabel = typeof labelValue === "string" ? labelValue.trim() : ""
     const fallbackLabel = file.name.replace(/\.pdf$/i, "").trim()
     const label = (rawLabel || fallbackLabel || "Curriculo").slice(0, 120)
+    const fileBuffer = await file.arrayBuffer()
+    const resumeMarkdown = await extractPdfText(fileBuffer)
     const result = await uploadPrivateResume(file, profile.id)
 
     await db
@@ -109,7 +112,7 @@ export async function POST(request: Request) {
 
     await db
       .update(profiles)
-      .set({ resumeUrl: result.pathname, updatedAt: new Date() })
+      .set({ resumeUrl: result.pathname, resumeMarkdown, updatedAt: new Date() })
       .where(eq(profiles.id, profile.id))
 
     await logAuditEvent({

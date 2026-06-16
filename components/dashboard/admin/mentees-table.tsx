@@ -31,6 +31,7 @@ import {
   Download,
   Eye,
   ExternalLink,
+  FileText,
   Loader2,
   MessageCircle,
   Pencil,
@@ -162,6 +163,7 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
   const [error, setError] = useState("")
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [uploadingResume, setUploadingResume] = useState(false)
+  const [extractingResume, setExtractingResume] = useState(false)
   const [currentResumeUrl, setCurrentResumeUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
@@ -331,6 +333,33 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
       setError(err instanceof Error ? err.message : "Erro ao enviar currículo")
     } finally {
       setUploadingResume(false)
+    }
+  }
+
+  async function handleExtractResume() {
+    if (!editingMentee) return
+
+    setExtractingResume(true)
+    setError("")
+
+    try {
+      const res = await fetch(`/api/admin/mentees/${editingMentee.id}/resume/extract`, {
+        method: "POST",
+      })
+
+      if (!res.ok) {
+        const json = await res.json()
+        throw new Error(json.error || "Erro ao extrair dados do curriculo")
+      }
+
+      setEditingMentee((prev) => (prev ? { ...prev, resume_markdown: "extracted" } : null))
+      setMentees((prev) =>
+        prev.map((m) => (m.id === editingMentee.id ? { ...m, resume_markdown: "extracted" } : m)),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao extrair dados do curriculo")
+    } finally {
+      setExtractingResume(false)
     }
   }
 
@@ -1003,15 +1032,34 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
             <div className="flex flex-col gap-2 rounded-md border p-3">
               <Label>Currículo (PDF)</Label>
               {currentResumeUrl ? (
-                <a
-                  href={currentResumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Ver / baixar currículo atual
-                </a>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={currentResumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-fit items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Ver / baixar currículo atual
+                  </a>
+                  {!editingMentee?.resume_markdown && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-auto py-0.5 px-1.5 text-xs text-muted-foreground hover:text-primary"
+                      disabled={extractingResume}
+                      onClick={handleExtractResume}
+                    >
+                      {extractingResume ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : (
+                        <FileText className="h-3 w-3 mr-1" />
+                      )}
+                      {extractingResume ? "Extraindo…" : "Extrair dados"}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <p className="text-xs text-muted-foreground">Nenhum currículo enviado</p>
               )}

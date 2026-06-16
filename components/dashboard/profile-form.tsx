@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Save, Upload, CheckCircle2 } from "lucide-react"
+import { FileText, Loader2, Save, Upload, CheckCircle2 } from "lucide-react"
 import type { Profile } from "@/lib/types/database"
 
 export function ProfileForm() {
@@ -13,6 +13,7 @@ export function ProfileForm() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [extracting, setExtracting] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
@@ -101,6 +102,28 @@ export function ProfileForm() {
     }
   }
 
+  async function handleExtractMarkdown() {
+    setExtracting(true)
+    setError("")
+
+    try {
+      const res = await fetch("/api/profile/resume/extract", { method: "POST" })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error)
+      }
+
+      setProfile((prev) => prev ? { ...prev, resume_markdown: "extracted" } : prev)
+      setMessage("Dados do curriculo extraidos com sucesso!")
+      setTimeout(() => setMessage(""), 3000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro na extracao")
+    } finally {
+      setExtracting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -140,10 +163,29 @@ export function ProfileForm() {
       <div className="flex flex-col gap-1.5">
         <Label>Curriculo (PDF)</Label>
         {profile?.resume_url && (
-          <a href={profile.resume_url} target="_blank" rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline mb-1">
-            Ver curriculo atual
-          </a>
+          <div className="flex items-center gap-3 mb-1">
+            <a href={profile.resume_url} target="_blank" rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline">
+              Ver curriculo atual
+            </a>
+            {!profile.resume_markdown && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto py-0.5 px-1.5 text-xs text-muted-foreground hover:text-primary"
+                disabled={extracting}
+                onClick={handleExtractMarkdown}
+              >
+                {extracting ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                ) : (
+                  <FileText className="h-3 w-3 mr-1" />
+                )}
+                {extracting ? "Extraindo..." : "Extrair dados do PDF"}
+              </Button>
+            )}
+          </div>
         )}
         <div className="flex items-center gap-2">
           <Input type="file" accept=".pdf" onChange={handleResumeUpload} disabled={uploading} />

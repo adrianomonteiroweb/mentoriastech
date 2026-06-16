@@ -54,6 +54,7 @@ export interface Profile {
   linkedin_url: string | null
   bio: string | null
   resume_url: string | null
+  resume_markdown: string | null
   portfolio_url: string | null
   avatar_url: string | null
   career_status: CareerStatus | null

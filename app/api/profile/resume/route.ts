@@ -11,6 +11,7 @@ import {
   streamPrivateResume,
   verifySignedResumeDownload,
 } from "@/lib/utils/resume-access"
+import { extractPdfText } from "@/lib/utils/pdf-to-markdown"
 import { deleteFile, uploadPrivateResume, UploadError } from "@/lib/utils/upload"
 
 export async function GET(request: Request) {
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
     if (isLegacyPublicResumeUrl(profile.resumeUrl)) {
       await db
         .update(profiles)
-        .set({ resumeUrl: null, updatedAt: new Date() })
+        .set({ resumeUrl: null, resumeMarkdown: null, updatedAt: new Date() })
         .where(eq(profiles.id, user.id))
       return NextResponse.json(
         { error: "Curriculo nao encontrado" },
@@ -99,11 +100,13 @@ export async function POST(request: Request) {
       .limit(1)
 
     const previousResume = profile?.resumeUrl || null
+    const fileBuffer = await file.arrayBuffer()
+    const resumeMarkdown = await extractPdfText(fileBuffer)
     const result = await uploadPrivateResume(file, user.id)
 
     await db
       .update(profiles)
-      .set({ resumeUrl: result.pathname, updatedAt: new Date() })
+      .set({ resumeUrl: result.pathname, resumeMarkdown, updatedAt: new Date() })
       .where(eq(profiles.id, user.id))
 
     if (
