@@ -12,7 +12,7 @@ export interface UserPreferences {
 }
 
 const DEFAULT_USER_PREFERENCES: UserPreferences = {
-  showJobFilters: true,
+  showJobFilters: false,
   showTips: true,
 }
 

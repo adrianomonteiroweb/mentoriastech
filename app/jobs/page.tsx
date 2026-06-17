@@ -397,33 +397,53 @@ export default function JobsPage() {
         </div>
 
         {hydrated && (
-          <div className="flex flex-wrap gap-2">
-            <Button
+          <div className="flex flex-col gap-2">
+            <button
               type="button"
-              size="sm"
-              variant="outline"
               onClick={toggleJobFilters}
-              className="min-h-10"
+              aria-expanded={preferences.showJobFilters}
+              className={cn(
+                "flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
+                preferences.showJobFilters
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-border bg-card hover:border-primary/30 hover:bg-primary/5",
+              )}
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              {preferences.showJobFilters
-                ? "Ocultar filtros"
-                : "Mostrar filtros"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                updatePreference("showTips", !preferences.showTips)
-              }
-              className="min-h-10"
-            >
-              <Lightbulb className="h-4 w-4" />
-              {preferences.showTips
-                ? "Ocultar dicas extras"
-                : "Mostrar dicas extras"}
-            </Button>
+              <SlidersHorizontal className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <div className="flex flex-1 flex-col gap-0.5">
+                <span className="text-sm font-semibold text-foreground">
+                  {preferences.showJobFilters ? "Ocultar filtros" : "Filtrar vagas"}
+                </span>
+                {!preferences.showJobFilters && (
+                  <span className="text-xs text-muted-foreground">
+                    Por nível, modelo, alcance e categoria
+                  </span>
+                )}
+              </div>
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                  preferences.showJobFilters && "rotate-180",
+                )}
+                aria-hidden="true"
+              />
+            </button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  updatePreference("showTips", !preferences.showTips)
+                }
+                className="min-h-10"
+              >
+                <Lightbulb className="h-4 w-4" />
+                {preferences.showTips
+                  ? "Ocultar dicas extras"
+                  : "Mostrar dicas extras"}
+              </Button>
+            </div>
           </div>
         )}
 
