@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { QRCodeSVG } from "qrcode.react"
 import { Check, Copy, Heart, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +16,6 @@ const QUICK_AMOUNTS = [
 
 interface DonateResult {
   qr_code_data: string | null
-  qr_code_image_url_png: string | null
   expires_at: string | null
 }
 
@@ -115,12 +115,13 @@ export function DonateWidget() {
             </h3>
           </div>
 
-          {result.qr_code_image_url_png ? (
+          {result.qr_code_data ? (
             <div className="flex items-center justify-center rounded-lg border bg-white p-3">
-              <img
-                src={result.qr_code_image_url_png}
-                alt="QR Code PIX para doacao"
-                className="h-48 w-48 object-contain"
+              <QRCodeSVG
+                value={result.qr_code_data}
+                size={192}
+                level="M"
+                aria-label="QR Code PIX para doacao"
               />
             </div>
           ) : (
