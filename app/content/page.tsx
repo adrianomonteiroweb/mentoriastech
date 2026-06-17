@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { ContentSuggestionForm } from "@/components/content/content-suggestion-form";
+import { DonateWidget } from "@/components/donate-widget";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
 import { Button } from "@/components/ui/button";
@@ -261,6 +262,8 @@ export default function ContentPage() {
             </p>
           )}
         </div>
+
+        <DonateWidget />
       </div>
 
       <Dialog open={suggestOpen} onOpenChange={setSuggestOpen}>

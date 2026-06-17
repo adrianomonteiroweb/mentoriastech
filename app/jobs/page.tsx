@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
+import { DonateWidget } from "@/components/donate-widget";
 import { JobShareForm } from "@/components/jobs/job-share-form";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
@@ -804,6 +805,8 @@ export default function JobsPage() {
             </p>
           )}
         </div>
+
+        <DonateWidget />
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
