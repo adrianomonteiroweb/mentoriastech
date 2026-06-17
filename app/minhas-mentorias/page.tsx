@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ArrowRight, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { DonateWidget } from "@/components/donate-widget"
 
 export default function MinhasMentoriasPage() {
   const [email, setEmail] = useState("")
@@ -97,6 +98,8 @@ export default function MinhasMentoriasPage() {
         >
           Voltar para o início
         </Link>
+
+        <DonateWidget />
       </div>
     </main>
   )
