@@ -53,6 +53,7 @@ export async function getMenteeBookingsByEmail(
           sql`${bookings.menteeStrengths} IS NOT NULL AND ${bookings.menteeStrengths} <> ''`,
           sql`${bookings.menteeGrowthAreas} IS NOT NULL AND ${bookings.menteeGrowthAreas} <> ''`,
           sql`${bookings.adminNotes} IS NOT NULL AND ${bookings.adminNotes} <> ''`,
+          sql`EXISTS (SELECT 1 FROM booking_attachments ba WHERE ba.booking_id = ${bookings.id})`,
         ),
       ),
     )

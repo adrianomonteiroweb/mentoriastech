@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -38,7 +38,9 @@ import {
 import type {
   BookingWithRelations,
   CareerStatus,
+  MentoringTopic,
   OriginCategory,
+  Profile,
   Seniority,
 } from "@/lib/types/database"
 
@@ -70,6 +72,9 @@ interface CompleteBookingDialogProps {
   open: boolean
   onClose: () => void
   onCompleted: () => void
+  mode?: "complete" | "create"
+  menteeProfile?: Profile | null
+  topics?: MentoringTopic[]
 }
 
 export function CompleteBookingDialog({
@@ -77,7 +82,12 @@ export function CompleteBookingDialog({
   open,
   onClose,
   onCompleted,
+  mode = "complete",
+  menteeProfile = null,
+  topics = [],
 }: CompleteBookingDialogProps) {
+  const isCreate = mode === "create"
+
   const [saving, setSaving] = useState(false)
   const [loadingChecklist, setLoadingChecklist] = useState(false)
   const [error, setError] = useState("")
@@ -94,30 +104,96 @@ export function CompleteBookingDialog({
   const [originDescription, setOriginDescription] = useState("")
   const [checklist, setChecklist] = useState<MentorshipChecklistSnapshotItem[]>([])
 
+  // create-mode: session metadata fields
+  const [sessionDate, setSessionDate] = useState("")
+  const [startTime, setStartTime] = useState("")
+  const [topicId, setTopicId] = useState("")
+
+  // create-mode: draft booking lifecycle
+  const [draftBooking, setDraftBooking] = useState<BookingWithRelations | null>(null)
+  const [draftError, setDraftError] = useState("")
+  const [attachmentCount, setAttachmentCount] = useState(0)
+  const savedRef = useRef(false)
+  const draftRequestedRef = useRef(false)
+
+  // Create a draft booking when the dialog opens in create mode so the
+  // Materiais tab (attachments need a persisted booking id) works immediately.
   useEffect(() => {
-    if (!booking || !open) return
+    if (!open || !isCreate || draftRequestedRef.current) return
+    if (!menteeProfile?.id) return
+    draftRequestedRef.current = true
+    setDraftError("")
+
+    const today = new Date().toISOString().split("T")[0]
+    fetch("/api/admin/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mentee_id: menteeProfile.id,
+        session_date: today,
+        status: "completed",
+      }),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}))
+          throw new Error(d.error || "Erro ao iniciar sessao")
+        }
+        return r.json()
+      })
+      .then((json) => {
+        setDraftBooking({ ...json.data, profiles: menteeProfile, mentoring_topics: null })
+      })
+      .catch((err) => {
+        setDraftError(err instanceof Error ? err.message : "Erro ao iniciar sessao")
+      })
+  }, [open, isCreate, menteeProfile])
+
+  // Reset create-mode state whenever the dialog closes.
+  useEffect(() => {
+    if (open) return
+    setDraftBooking(null)
+    setAttachmentCount(0)
+    setSessionDate("")
+    setStartTime("")
+    setTopicId("")
+    savedRef.current = false
+    draftRequestedRef.current = false
+  }, [open])
+
+  useEffect(() => {
+    if (!open || (!isCreate && !booking)) return
     let active = true
 
+    const profileSource = isCreate ? menteeProfile : booking?.profiles
+
     setError("")
-    setTopicsDiscussed(booking.topics_discussed || "")
-    setMenteeStrengths(booking.mentee_strengths || "")
-    setMenteeGrowthAreas(booking.mentee_growth_areas || "")
-    setAdminNotes(booking.admin_notes || "")
-    setCareerStatus((booking.profiles?.career_status as CareerStatus) || "")
-    setSeniority((booking.profiles?.seniority as Seniority) || "")
-    setCareerFocus(booking.profiles?.career_focus || "")
+    setTopicsDiscussed(booking?.topics_discussed || "")
+    setMenteeStrengths(booking?.mentee_strengths || "")
+    setMenteeGrowthAreas(booking?.mentee_growth_areas || "")
+    setAdminNotes(booking?.admin_notes || "")
+    setCareerStatus((profileSource?.career_status as CareerStatus) || "")
+    setSeniority((profileSource?.seniority as Seniority) || "")
+    setCareerFocus(profileSource?.career_focus || "")
     setOriginCategory(
-      ((booking.origin_category || booking.profiles?.origin_category) as OriginCategory) || "",
+      ((booking?.origin_category || profileSource?.origin_category) as OriginCategory) || "",
     )
-    setOriginDescription(booking.origin_description || booking.profiles?.origin_description || "")
-    setChecklist(normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist))
+    setOriginDescription(booking?.origin_description || profileSource?.origin_description || "")
+
+    if (isCreate) {
+      setSessionDate(new Date().toISOString().split("T")[0])
+      setStartTime("")
+      setTopicId("")
+    }
+
+    setChecklist(normalizeMentorshipChecklistSnapshot(booking?.mentorship_checklist))
     setLoadingChecklist(true)
 
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((json) => {
         if (!active) return
-        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist)
+        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking?.mentorship_checklist)
         if (savedChecklist.length) {
           setChecklist(savedChecklist)
           return
@@ -131,7 +207,7 @@ export function CompleteBookingDialog({
       })
       .catch(() => {
         if (!active) return
-        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking.mentorship_checklist)
+        const savedChecklist = normalizeMentorshipChecklistSnapshot(booking?.mentorship_checklist)
         setChecklist(
           savedChecklist.length
             ? savedChecklist
@@ -145,18 +221,35 @@ export function CompleteBookingDialog({
     return () => {
       active = false
     }
-  }, [booking, open])
+  }, [booking, open, isCreate, menteeProfile])
 
-  if (!booking) return null
+  if (!isCreate && !booking) return null
 
-  const hasMentee = !!booking.mentee_id
+  const activeBooking = booking ?? draftBooking
+  const hasMentee = isCreate ? !!menteeProfile : !!booking?.mentee_id
   const menteeName =
-    booking.profiles?.full_name || booking.guest_name || "Mentorado"
+    (isCreate ? menteeProfile?.full_name || menteeProfile?.email : booking?.profiles?.full_name || booking?.guest_name) ||
+    "Mentorado"
   const checkedChecklistItems = checklist.filter((item) => item.checked).length
+
+  function requestClose() {
+    if (isCreate && draftBooking && !savedRef.current && attachmentCount === 0) {
+      // Discard the empty draft created on open so it doesn't linger.
+      fetch(`/api/admin/bookings/${draftBooking.id}`, { method: "DELETE" }).catch(() => {})
+    }
+    onClose()
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!booking) return
+
+    const targetId = isCreate ? draftBooking?.id : booking?.id
+    if (!targetId) return
+
+    if (isCreate && !sessionDate) {
+      setError("Informe a data da sessao.")
+      return
+    }
 
     setSaving(true)
     setError("")
@@ -172,6 +265,12 @@ export function CompleteBookingDialog({
       origin_description: originDescription || null,
     }
 
+    if (isCreate) {
+      payload.session_date = sessionDate
+      if (startTime) payload.start_time = startTime
+      payload.topic_id = topicId || ""
+    }
+
     if (hasMentee) {
       payload.mentee_profile_update = {
         career_status: careerStatus || null,
@@ -183,7 +282,7 @@ export function CompleteBookingDialog({
     }
 
     try {
-      const res = await fetch(`/api/admin/bookings/${booking.id}`, {
+      const res = await fetch(`/api/admin/bookings/${targetId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -191,9 +290,10 @@ export function CompleteBookingDialog({
 
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error || "Erro ao concluir mentoria")
+        throw new Error(data.error || (isCreate ? "Erro ao salvar sessao" : "Erro ao concluir mentoria"))
       }
 
+      savedRef.current = true
       onCompleted()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
@@ -209,12 +309,14 @@ export function CompleteBookingDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(value) => !value && onClose()}>
+    <Dialog open={open} onOpenChange={(value) => !value && requestClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Concluir mentoria</DialogTitle>
+          <DialogTitle>{isCreate ? "Nova sessao de historico" : "Concluir mentoria"}</DialogTitle>
           <DialogDescription>
-            Registre como foi a sessão com {menteeName}.
+            {isCreate
+              ? `Registre uma sessao com ${menteeName}.`
+              : `Registre como foi a sessão com ${menteeName}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -235,6 +337,52 @@ export function CompleteBookingDialog({
             </TabsList>
 
             <TabsContent value="historico" className="mt-0 grid gap-6">
+          {isCreate && (
+            <section className="grid gap-4">
+              <h3 className="text-sm font-semibold text-foreground">Dados da sessão</h3>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="session-date">Data</Label>
+                  <Input
+                    id="session-date"
+                    type="date"
+                    value={sessionDate}
+                    onChange={(e) => setSessionDate(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="session-time">Horário</Label>
+                  <Input
+                    id="session-time"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>Tema</Label>
+                  <Select
+                    value={topicId || "none"}
+                    onValueChange={(value) => setTopicId(value === "none" ? "" : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem tema</SelectItem>
+                      {topics.map((topic) => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </section>
+          )}
+
           <section className="grid gap-4">
             <h3 className="text-sm font-semibold text-foreground">Sobre a sessão</h3>
 
@@ -435,19 +583,27 @@ export function CompleteBookingDialog({
             </TabsContent>
 
             <TabsContent value="materiais" className="mt-0">
-              <BookingAttachments bookingId={booking.id} />
+              {activeBooking ? (
+                <BookingAttachments bookingId={activeBooking.id} onCountChange={setAttachmentCount} />
+              ) : (
+                <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Preparando sessão...
+                </div>
+              )}
+              {draftError && <p className="mt-2 text-xs text-destructive">{draftError}</p>}
             </TabsContent>
           </Tabs>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
+            <Button type="button" variant="ghost" onClick={requestClose} disabled={saving}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || (isCreate && !draftBooking)}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Concluir mentoria
+              {isCreate ? "Salvar sessão" : "Concluir mentoria"}
             </Button>
           </div>
         </form>

@@ -41,7 +41,7 @@ function withSecurityHeaders(response: NextResponse) {
   response.headers.set("X-Frame-Options", "DENY")
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payment=()",
+    "camera=(), microphone=(self), geolocation=(), payment=()",
   )
 
   if (process.env.NODE_ENV === "production") {

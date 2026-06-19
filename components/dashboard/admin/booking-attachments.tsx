@@ -23,6 +23,7 @@ type ActiveMode = null | "file" | "note" | "audio"
 
 interface Props {
   bookingId: string
+  onCountChange?: (count: number) => void
 }
 
 function formatBytes(bytes: number | null) {
@@ -46,11 +47,18 @@ function typeIcon(type: string, mimeType: string | null) {
   return <Paperclip className="h-4 w-4 text-blue-500" />
 }
 
-export function BookingAttachments({ bookingId }: Props) {
+export function BookingAttachments({ bookingId, onCountChange }: Props) {
   const [attachments, setAttachments] = useState<BookingAttachment[]>([])
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<ActiveMode>(null)
   const [error, setError] = useState("")
+
+  const onCountChangeRef = useRef(onCountChange)
+  onCountChangeRef.current = onCountChange
+
+  useEffect(() => {
+    onCountChangeRef.current?.(attachments.length)
+  }, [attachments])
 
   const fetchAttachments = useCallback(() => {
     setLoading(true)
@@ -279,8 +287,11 @@ function NoteEditor({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSave() {
+    if (!title.trim() || !content.trim()) {
+      setError("Preencha titulo e conteudo da nota.")
+      return
+    }
     setSaving(true)
     setError("")
 
@@ -303,7 +314,7 @@ function NoteEditor({
   }
 
   return (
-    <form onSubmit={handleSave} className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 grid gap-2">
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 grid gap-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium">Nova nota</p>
         <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onCancel}>
@@ -336,12 +347,12 @@ function NoteEditor({
         <Button type="button" size="sm" variant="ghost" onClick={onCancel} className="text-xs h-7">
           Cancelar
         </Button>
-        <Button type="submit" size="sm" disabled={saving} className="text-xs h-7">
+        <Button type="button" size="sm" onClick={handleSave} disabled={saving} className="text-xs h-7">
           {saving && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
           Salvar nota
         </Button>
       </div>
-    </form>
+    </div>
   )
 }
 

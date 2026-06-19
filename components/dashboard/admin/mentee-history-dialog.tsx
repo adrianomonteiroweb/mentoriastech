@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CheckCircle2, Cloud, CloudOff, Loader2, Paperclip, Pencil, Plus, WifiOff, X } from "lucide-react"
 import { BookingAttachments } from "@/components/dashboard/admin/booking-attachments"
+import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
 import {
   countQueuedBookingHistoryChanges,
   flushBookingHistoryQueue,
@@ -105,7 +106,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
   const [topics, setTopics] = useState<MentoringTopic[]>([])
   const [loading, setLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [form, setForm] = useState<SessionForm>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -136,7 +137,6 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
     const draft = getQueuedBookingHistoryDraft(b.id)
     const nextForm = draft?.payload || buildSessionForm(b)
 
-    setCreating(false)
     setEditingId(b.id)
     setError("")
     setForm(nextForm)
@@ -151,17 +151,6 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
     )
   }
 
-  function startCreate() {
-    setEditingId(null)
-    setCreating(true)
-    setError("")
-    setAutosave(idleAutosave)
-    setForm({
-      ...emptyForm,
-      session_date: new Date().toISOString().split("T")[0],
-    })
-  }
-
   function cancelForm() {
     if (autosaveTimerRef.current) {
       clearTimeout(autosaveTimerRef.current)
@@ -169,7 +158,6 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
     }
 
     setEditingId(null)
-    setCreating(false)
     setError("")
     setAutosave(idleAutosave)
   }
@@ -264,7 +252,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
   }, [open])
 
   useEffect(() => {
-    if (!editingId || creating) return
+    if (!editingId) return
 
     const payload = toHistoryPayload(form)
     const serializedPayload = serializeHistoryPayload(payload)
@@ -290,7 +278,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
         autosaveTimerRef.current = null
       }
     }
-  }, [creating, editingId, form])
+  }, [editingId, form])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -300,17 +288,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
     setError("")
 
     try {
-      if (creating) {
-        const res = await fetch("/api/admin/bookings", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...form, mentee_id: mentee.id, status: "completed" }),
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || "Erro ao criar sessao")
-        }
-      } else if (editingId) {
+      if (editingId) {
         const result = await persistHistoryChange(editingId, toHistoryPayload(form))
 
         if ("error" in result && result.error) {
@@ -319,9 +297,6 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
       }
 
       cancelForm()
-      if (creating) {
-        loadBookings()
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {
@@ -338,20 +313,20 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
           <DialogTitle>Historico de mentorias — {mentee.full_name || mentee.email}</DialogTitle>
         </DialogHeader>
 
-        {!creating && !editingId && (
-          <Button size="sm" variant="outline" className="w-fit text-xs" onClick={startCreate}>
+        {!editingId && (
+          <Button size="sm" variant="outline" className="w-fit text-xs" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-3 w-3 mr-1" /> Nova sessao
           </Button>
         )}
 
-        {(creating || editingId) && (
+        {editingId && (
           <SessionFormFields
             form={form}
             topics={topics}
             saving={saving}
             error={error}
             autosave={autosave}
-            isNew={creating}
+            isNew={false}
             onUpdate={updateForm}
             onSave={handleSave}
             onCancel={cancelForm}
@@ -362,7 +337,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
           <div className="flex justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : bookings.length === 0 && !creating ? (
+        ) : bookings.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">
             Nenhuma mentoria concluida encontrada.
           </p>
@@ -391,7 +366,7 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
                       </Badge>
                     )}
                   </div>
-                  {editingId !== b.id && !creating && (
+                  {editingId !== b.id && (
                     <Button size="sm" variant="ghost" className="h-6 text-[10px] px-2" onClick={() => startEdit(b)}>
                       <Pencil className="h-3 w-3 mr-1" /> Editar
                     </Button>
@@ -439,6 +414,19 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
             ))}
           </div>
         )}
+
+        <CompleteBookingDialog
+          mode="create"
+          booking={null}
+          menteeProfile={mentee}
+          topics={topics}
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCompleted={() => {
+            setShowCreateModal(false)
+            loadBookings()
+          }}
+        />
       </DialogContent>
     </Dialog>
   )
