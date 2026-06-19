@@ -76,6 +76,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Mentorias pagas", href: "/mentor/paid-mentorships", icon: CreditCard },
     { label: "Agendamentos", href: "/mentor/bookings", icon: BookOpen },
     { label: "Mentorados", href: "/mentor/mentees", icon: Users },
+    { label: "Configuracoes", href: "/mentor/settings", icon: Settings },
   ],
   hr: [
     { label: "Visao Geral", href: "/hr", icon: Home },

@@ -42,7 +42,12 @@
       "Bash(node -e \"const p=require\\('./package.json'\\);const all={...p.dependencies,...p.devDependencies};console.log\\('stripe dep:',all.stripe||'NONE'\\);console.log\\('pagarme dep:',all.pagarme||all['@pagarme/pagarme-nodejs-sdk']||'NONE \\(uses fetch\\)'\\)\")",
       "Bash(npx drizzle-kit *)",
       "Bash(node -e ' *)",
-      "Bash(node scripts/check-db.mjs)"
+      "Bash(node scripts/check-db.mjs)",
+      "Bash(xargs ls -1)",
+      "Bash(xargs grep -l \"resetPassword\\\\|passwordReset\\\\|forgotPassword\")",
+      "Bash(xargs grep -l \"password.*update\\\\|update.*password\\\\|change.*password\")",
+      "Bash(xargs grep -l \"grantMentorRole\")",
+      "Bash(xargs grep -l \"UserRole\\\\|role.*assignment\\\\|grantRole\")"
     ]
   }
 }
