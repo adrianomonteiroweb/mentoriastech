@@ -47,7 +47,13 @@
       "Bash(xargs grep -l \"resetPassword\\\\|passwordReset\\\\|forgotPassword\")",
       "Bash(xargs grep -l \"password.*update\\\\|update.*password\\\\|change.*password\")",
       "Bash(xargs grep -l \"grantMentorRole\")",
-      "Bash(xargs grep -l \"UserRole\\\\|role.*assignment\\\\|grantRole\")"
+      "Bash(xargs grep -l \"UserRole\\\\|role.*assignment\\\\|grantRole\")",
+      "Bash(xargs grep -l \"compartilhado\\\\|shared.*mentee\\\\|shared.*profile\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|sql\\)$\")",
+      "Bash(xargs grep -l \"resume\\\\|curriculo\")",
+      "Bash(ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\plans\\\\\" 2>/dev/null; echo \"---\"; ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\\" 2>/dev/null)",
+      "Read(//c/Users/Gabriele Bernardo/.claude/**)",
+      "Read(//c/Users/Gabriele Bernardo/.claude/plans/**)"
     ]
   }
 }

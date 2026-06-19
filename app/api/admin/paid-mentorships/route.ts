@@ -17,13 +17,13 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url)
     const filterMentorId = profile.role === "admin"
-      ? url.searchParams.get("mentorId") || mentorId
+      ? url.searchParams.get("mentorId") || null
       : mentorId
 
     const rows = await db
       .select()
       .from(paidMentorships)
-      .where(eq(paidMentorships.mentorId, filterMentorId))
+      .where(filterMentorId ? eq(paidMentorships.mentorId, filterMentorId) : undefined)
       .orderBy(asc(paidMentorships.sortOrder), asc(paidMentorships.createdAt))
 
     return NextResponse.json({ data: rows.map(toPaidMentorship) })

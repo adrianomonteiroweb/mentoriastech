@@ -29,6 +29,7 @@ import {
 } from "@/lib/mentor-contact"
 import { ProfileAssets } from "@/components/minhas-mentorias/profile-assets"
 import { BookingAttachmentsView } from "@/components/minhas-mentorias/booking-attachments-view"
+import { BookingTasksView } from "@/components/minhas-mentorias/booking-tasks-view"
 
 interface Props {
   email: string
@@ -141,6 +142,7 @@ function BookingCard({ booking }: { booking: MenteeBookingItem }) {
             <Section title="Anotações gerais" content={booking.notes} />
             <Section title="Anotações do mentor" content={booking.adminNotes} />
 
+            <BookingTasksView bookingId={booking.id} />
             <BookingAttachmentsView bookingId={booking.id} />
 
             <div className="flex flex-col gap-2 border-t border-border pt-3">

@@ -36,6 +36,34 @@ export type TipPlacement = "content" | "jobs" | "both"
 export type JobCategory = string
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 export type BookingAttachmentType = "file" | "note" | "audio"
+export type BookingTaskItemType = "comment" | "file" | "audio"
+
+export interface BookingTaskApi {
+  id: string
+  booking_id: string
+  mentee_id: string
+  title: string
+  completed: boolean
+  sort_order: number
+  created_at: string
+  updated_at: string
+  items: BookingTaskItemApi[]
+}
+
+export interface BookingTaskItemApi {
+  id: string
+  task_id: string
+  type: BookingTaskItemType
+  title: string | null
+  content: string | null
+  file_url: string | null
+  file_name: string | null
+  file_size_bytes: number | null
+  mime_type: string | null
+  duration_seconds: number | null
+  uploaded_by: string | null
+  created_at: string
+}
 
 export interface MentorshipChecklistSnapshotItem {
   id: string

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { PaidMentorshipForm } from "@/components/dashboard/admin/paid-mentorship-form"
 import { Trash2, Eye, EyeOff, Pencil } from "lucide-react"
+import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 import type { PaidMentorship } from "@/lib/types/database"
 
 interface PaidMentorshipsTableProps {
@@ -36,11 +37,12 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<PaidMentorship | null>(null)
+  const { mentorId, buildUrl } = useMentorFilter()
 
   function loadMentorships() {
     setLoading(true)
     setError(null)
-    fetch("/api/admin/paid-mentorships")
+    fetch(buildUrl("/api/admin/paid-mentorships"))
       .then(async (r) => {
         const json = await r.json().catch(() => null)
         if (!r.ok) throw new Error(json?.error || "Erro ao carregar mentorias pagas")
@@ -51,7 +53,7 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { loadMentorships() }, [refreshKey])
+  useEffect(() => { loadMentorships() }, [refreshKey, mentorId])
 
   async function toggleActive(id: string, isActive: boolean) {
     await fetch(`/api/admin/paid-mentorships/${id}`, {

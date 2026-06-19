@@ -356,6 +356,28 @@ function NoteEditor({
   )
 }
 
+const AUDIO_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+]
+
+function getSupportedMimeType(): string | undefined {
+  if (typeof MediaRecorder === "undefined") return undefined
+  for (const mime of AUDIO_MIME_CANDIDATES) {
+    if (MediaRecorder.isTypeSupported(mime)) return mime
+  }
+  return undefined
+}
+
+function extensionForMime(mime: string | undefined): string {
+  if (!mime) return "webm"
+  if (mime.includes("mp4")) return "m4a"
+  if (mime.includes("ogg")) return "ogg"
+  return "webm"
+}
+
 function AudioRecorder({
   bookingId,
   onDone,
@@ -373,6 +395,7 @@ function AudioRecorder({
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
+  const detectedMimeRef = useRef<string | undefined>(undefined)
 
   function cleanup() {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -387,7 +410,10 @@ function AudioRecorder({
     setError("")
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" })
+      const mime = getSupportedMimeType()
+      detectedMimeRef.current = mime
+      const opts: MediaRecorderOptions = mime ? { mimeType: mime } : {}
+      const recorder = new MediaRecorder(stream, opts)
       mediaRecorderRef.current = recorder
       chunksRef.current = []
 
@@ -396,7 +422,8 @@ function AudioRecorder({
       }
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" })
+        const blobType = detectedMimeRef.current || "audio/webm"
+        const blob = new Blob(chunksRef.current, { type: blobType })
         const url = URL.createObjectURL(blob)
         setAudioUrl(url)
         setState("recorded")
@@ -409,8 +436,20 @@ function AudioRecorder({
       timerRef.current = setInterval(() => {
         setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
       }, 500)
-    } catch {
-      setError("Permissao de microfone negada. Habilite nas configuracoes do navegador.")
+    } catch (err) {
+      if (err instanceof DOMException) {
+        if (err.name === "NotAllowedError") {
+          setError("Permissao de microfone negada. Habilite nas configuracoes do navegador.")
+        } else if (err.name === "NotSupportedError") {
+          setError("Seu navegador nao suporta gravacao de audio. Tente outro navegador.")
+        } else if (err.name === "NotFoundError") {
+          setError("Nenhum microfone encontrado. Conecte um microfone e tente novamente.")
+        } else {
+          setError(`Erro ao iniciar gravacao: ${err.message}`)
+        }
+      } else {
+        setError("Erro ao iniciar gravacao de audio.")
+      }
     }
   }
 
@@ -427,14 +466,19 @@ function AudioRecorder({
   }
 
   async function upload() {
-    if (!chunksRef.current.length) return
+    if (!chunksRef.current.length) {
+      setError("Nenhum audio capturado. Tente gravar novamente.")
+      return
+    }
     setState("uploading")
     setError("")
 
-    const blob = new Blob(chunksRef.current, { type: "audio/webm" })
+    const mime = detectedMimeRef.current || "audio/webm"
+    const ext = extensionForMime(detectedMimeRef.current)
+    const blob = new Blob(chunksRef.current, { type: mime })
     const now = new Date()
     const title = `Gravacao ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-    const file = new File([blob], `${title}.webm`, { type: "audio/webm" })
+    const file = new File([blob], `${title}.${ext}`, { type: mime })
 
     const form = new FormData()
     form.append("file", file)

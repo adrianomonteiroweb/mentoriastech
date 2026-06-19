@@ -183,6 +183,42 @@ export const bookingAttachments = pgTable("booking_attachments", {
 })
 
 // -----------------------------------------------------------------------------
+// BOOKING_TASKS — tarefas/checklist de mentoria
+// -----------------------------------------------------------------------------
+export const bookingTasks = pgTable("booking_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  menteeId: uuid("mentee_id").notNull().references(() => profiles.id),
+  title: text("title").notNull(),
+  completed: boolean("completed").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type BookingTask = typeof bookingTasks.$inferSelect
+
+// -----------------------------------------------------------------------------
+// BOOKING_TASK_ITEMS — itens de tarefa (comentario, arquivo, audio)
+// -----------------------------------------------------------------------------
+export const bookingTaskItems = pgTable("booking_task_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  taskId: uuid("task_id").notNull().references(() => bookingTasks.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["comment", "file", "audio"] }).notNull(),
+  title: text("title"),
+  content: text("content"),
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  fileSizeBytes: integer("file_size_bytes"),
+  mimeType: text("mime_type"),
+  durationSeconds: integer("duration_seconds"),
+  uploadedBy: uuid("uploaded_by").references(() => profiles.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type BookingTaskItem = typeof bookingTaskItems.$inferSelect
+
+// -----------------------------------------------------------------------------
 // PAYMENTS — pagamentos
 // -----------------------------------------------------------------------------
 export const payments = pgTable("payments", {

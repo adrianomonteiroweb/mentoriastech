@@ -84,6 +84,20 @@ const WEBM_RULE: UploadTypeRule = {
     bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3,
 }
 
+const MP4_AUDIO_RULE: UploadTypeRule = {
+  mime: "audio/mp4",
+  extensions: [".m4a", ".mp4"],
+  matchesSignature: (bytes) =>
+    bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70,
+}
+
+const OGG_RULE: UploadTypeRule = {
+  mime: "audio/ogg",
+  extensions: [".ogg"],
+  matchesSignature: (bytes) =>
+    bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53,
+}
+
 const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   resume: {
     access: "public",
@@ -99,7 +113,7 @@ const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   },
   mentorship: {
     access: "public",
-    rules: [PDF_RULE, DOC_RULE, DOCX_RULE, WEBM_RULE],
+    rules: [PDF_RULE, DOC_RULE, DOCX_RULE, WEBM_RULE, MP4_AUDIO_RULE, OGG_RULE],
   },
 }
 

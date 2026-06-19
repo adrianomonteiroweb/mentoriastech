@@ -9,7 +9,6 @@ import {
   selectionProcessShareLinks,
 } from "@/lib/db"
 import { toProfile, toSelectionProcess, toSelectionProcessCandidate } from "@/lib/db/mappers"
-import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 
 export async function GET(
   _request: Request,
@@ -69,7 +68,9 @@ export async function GET(
           email: profile.email,
           linkedin_url: profile.linkedin_url,
           portfolio_url: profile.portfolio_url,
-          resume_url: safeProfileResumeHref(profile.id, profile.resume_url),
+          resume_url: profile.resume_url
+            ? `/api/shared/selection-processes/${token}/resume/${profile.id}`
+            : null,
         },
         booking_count: bookingCountMap.get(row.profile.id) ?? 0,
       }

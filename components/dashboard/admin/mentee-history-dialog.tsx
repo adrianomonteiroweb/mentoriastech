@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CheckCircle2, Cloud, CloudOff, Loader2, Paperclip, Pencil, Plus, WifiOff, X } from "lucide-react"
 import { BookingAttachments } from "@/components/dashboard/admin/booking-attachments"
+import { BookingTasksManager } from "@/components/dashboard/admin/booking-tasks-manager"
 import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
 import {
   countQueuedBookingHistoryChanges,
@@ -401,6 +402,13 @@ export function MenteeHistoryDialog({ mentee, open, onClose }: MenteeHistoryDial
                     {!b.topics_discussed && !b.mentee_strengths && !b.mentee_growth_areas && !b.admin_notes && !b.mentorship_checklist?.length && (
                       <p className="text-xs text-muted-foreground italic">Nenhuma anotacao registrada.</p>
                     )}
+                    <div className="mt-2 border-t border-border pt-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Tarefas
+                      </p>
+                      <BookingTasksManager bookingId={b.id} />
+                    </div>
                     <div className="mt-2 border-t border-border pt-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1">
                         <Paperclip className="h-3 w-3" />
