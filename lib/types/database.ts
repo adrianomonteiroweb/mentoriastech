@@ -35,6 +35,7 @@ export type LanguageLevel = "basic" | "intermediate" | "advanced" | "fluent"
 export type TipPlacement = "content" | "jobs" | "both"
 export type JobCategory = string
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
+export type BookingAttachmentType = "file" | "note" | "audio"
 
 export interface MentorshipChecklistSnapshotItem {
   id: string

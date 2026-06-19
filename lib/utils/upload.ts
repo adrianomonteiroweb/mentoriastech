@@ -3,7 +3,7 @@ import { del, get, list, put } from "@vercel/blob"
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
-type UploadCategory = "resume" | "content" | "ads"
+type UploadCategory = "resume" | "content" | "ads" | "mentorship"
 type UploadAccess = "public" | "private"
 
 interface UploadTypeRule {
@@ -63,6 +63,27 @@ const WEBP_RULE: UploadTypeRule = {
     bytes[11] === 0x50,
 }
 
+const DOC_RULE: UploadTypeRule = {
+  mime: "application/msword",
+  extensions: [".doc"],
+  matchesSignature: (bytes) =>
+    bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0,
+}
+
+const DOCX_RULE: UploadTypeRule = {
+  mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  extensions: [".docx"],
+  matchesSignature: (bytes) =>
+    bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04,
+}
+
+const WEBM_RULE: UploadTypeRule = {
+  mime: "audio/webm",
+  extensions: [".webm"],
+  matchesSignature: (bytes) =>
+    bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3,
+}
+
 const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   resume: {
     access: "public",
@@ -75,6 +96,10 @@ const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   ads: {
     access: "public",
     rules: [PNG_RULE, JPEG_RULE, WEBP_RULE],
+  },
+  mentorship: {
+    access: "public",
+    rules: [PDF_RULE, DOC_RULE, DOCX_RULE, WEBM_RULE],
   },
 }
 
@@ -162,6 +187,10 @@ export async function uploadFile(
 
 export async function uploadPrivateResume(file: File, userId: string) {
   return uploadFile(file, `private/resumes/${userId}`, "resume")
+}
+
+export async function uploadMentorshipFile(file: File, bookingId: string) {
+  return uploadFile(file, `mentorship/${bookingId}`, "mentorship")
 }
 
 export async function uploadPrivateLinkedinPdf(file: File, userId: string) {

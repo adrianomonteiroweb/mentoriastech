@@ -26,7 +26,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+import { Loader2, Paperclip } from "lucide-react"
+import { BookingAttachments } from "@/components/dashboard/admin/booking-attachments"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   createMentorshipChecklistSnapshot,
@@ -219,13 +220,17 @@ export function CompleteBookingDialog({
 
         <form onSubmit={handleSubmit} className="grid gap-6">
           <Tabs defaultValue="historico" className="grid gap-4">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="historico">Historico</TabsTrigger>
               <TabsTrigger value="checklist" className="gap-2">
                 Checklist
                 <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold">
                   {checkedChecklistItems}/{checklist.length}
                 </span>
+              </TabsTrigger>
+              <TabsTrigger value="materiais" className="gap-2">
+                <Paperclip className="h-3.5 w-3.5" />
+                Materiais
               </TabsTrigger>
             </TabsList>
 
@@ -427,6 +432,10 @@ export function CompleteBookingDialog({
                   })
                 )}
               </section>
+            </TabsContent>
+
+            <TabsContent value="materiais" className="mt-0">
+              <BookingAttachments bookingId={booking.id} />
             </TabsContent>
           </Tabs>
 

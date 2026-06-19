@@ -164,6 +164,25 @@ export const bookingHistorySyncQueue = pgTable("booking_history_sync_queue", {
 })
 
 // -----------------------------------------------------------------------------
+// BOOKING_ATTACHMENTS — anexos de mentoria (arquivos, notas, audio)
+// -----------------------------------------------------------------------------
+export const bookingAttachments = pgTable("booking_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  uploadedBy: uuid("uploaded_by").references(() => profiles.id, { onDelete: "set null" }),
+  type: text("type", { enum: ["file", "note", "audio"] }).notNull(),
+  title: text("title").notNull(),
+  content: text("content"),
+  fileUrl: text("file_url"),
+  fileName: text("file_name"),
+  fileSizeBytes: integer("file_size_bytes"),
+  mimeType: text("mime_type"),
+  durationSeconds: integer("duration_seconds"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // PAYMENTS — pagamentos
 // -----------------------------------------------------------------------------
 export const payments = pgTable("payments", {
@@ -631,3 +650,5 @@ export type SelectionProcessCandidate = typeof selectionProcessCandidates.$infer
 export type NewSelectionProcessCandidate = typeof selectionProcessCandidates.$inferInsert
 export type SelectionProcessShareLink = typeof selectionProcessShareLinks.$inferSelect
 export type NewSelectionProcessShareLink = typeof selectionProcessShareLinks.$inferInsert
+export type BookingAttachment = typeof bookingAttachments.$inferSelect
+export type NewBookingAttachment = typeof bookingAttachments.$inferInsert

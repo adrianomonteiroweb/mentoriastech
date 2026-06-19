@@ -190,6 +190,13 @@
       "when": 1781576791024,
       "tag": "0026_uneven_jack_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1781829635748,
+      "tag": "0027_loud_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }
