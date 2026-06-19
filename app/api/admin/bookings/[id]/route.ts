@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { eq, sql } from "drizzle-orm"
-import nodemailer from "nodemailer"
 import { z } from "zod"
 import { bookings, db, mentoringTopics, profiles } from "@/lib/db"
 import {
@@ -10,14 +9,8 @@ import {
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { toBooking } from "@/lib/db/mappers"
 import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
+import { sendBookingStatusEmail } from "@/lib/booking-notifications"
 import { requireMentorAccess } from "@/lib/utils/auth"
-import {
-  bookingCancelledEmail,
-  bookingCompletedEmail,
-  bookingConfirmedEmail,
-  bookingPaymentPendingEmail,
-  bookingScheduledEmail,
-} from "@/lib/email-templates"
 
 const menteeProfileUpdateSchema = z.object({
   career_status: z
@@ -151,32 +144,42 @@ export async function PUT(
     if (parsed.data.origin_category !== undefined) updateData.originCategory = parsed.data.origin_category || null
     if (parsed.data.origin_description !== undefined) updateData.originDescription = parsed.data.origin_description || null
 
+    let calendarWarning = false
+
     if (
       (parsed.data.status === "confirmed" || parsed.data.status === "scheduled") &&
       nextSessionDate &&
       nextStartTime &&
       !row.booking.googleEventId
     ) {
-      try {
-        const { createCalendarEvent } = await import("@/lib/google-calendar")
-        const menteeEmail = row.profile?.email || row.booking.guestEmail || undefined
-        const menteeName = row.profile?.fullName || row.booking.guestName || "Mentorado"
-        const topicName = row.topic?.name || "Mentoria"
+      if (!row.booking.mentorId) {
+        calendarWarning = true
+      } else {
+        try {
+          const { createCalendarEvent } = await import("@/lib/google-calendar")
+          const menteeEmail = row.profile?.email || row.booking.guestEmail || undefined
+          const menteeName = row.profile?.fullName || row.booking.guestName || "Mentorado"
+          const topicName = row.topic?.name || "Mentoria"
 
-        const event = await createCalendarEvent({
-          summary: `Mentoria: ${topicName}`,
-          description: `Mentoria com ${menteeName}\nTema: ${topicName}`,
-          date: nextSessionDate,
-          time: nextStartTime.substring(0, 5),
-          attendeeEmail: menteeEmail,
-        })
+          const event = await createCalendarEvent({
+            mentorId: row.booking.mentorId,
+            summary: `Mentoria: ${topicName}`,
+            description: `Mentoria com ${menteeName}\nTema: ${topicName}`,
+            date: nextSessionDate,
+            time: nextStartTime.substring(0, 5),
+            attendeeEmail: menteeEmail,
+          })
 
-        if (event) {
-          updateData.googleEventId = event.eventId
-          updateData.googleMeetUrl = event.meetLink
+          if (event) {
+            updateData.googleEventId = event.eventId
+            updateData.googleMeetUrl = event.meetLink
+          } else {
+            calendarWarning = true
+          }
+        } catch (calendarError) {
+          console.error("[bookings] Calendar error (non-blocking):", calendarError)
+          calendarWarning = true
         }
-      } catch (calendarError) {
-        console.error("[bookings] Calendar error (non-blocking):", calendarError)
       }
     }
 
@@ -236,72 +239,20 @@ export async function PUT(
     }
 
     if (parsed.data.status) {
-      try {
-        const menteeEmail = row.profile?.email || row.booking.guestEmail
-        const menteeName = row.profile?.fullName || row.booking.guestName || "Mentorado"
-        const topicName = row.topic?.name || "Mentoria"
-
-        if (menteeEmail) {
-          const smtpHost = process.env.SMTP_HOST
-          const smtpUser = process.env.SMTP_USER
-          const smtpPass = process.env.SMTP_PASS
-          const smtpPort = Number(process.env.SMTP_PORT || "587")
-
-          if (smtpHost && smtpUser && smtpPass) {
-            const statusParams = {
-              menteeName,
-              topicName,
-              sessionDate: data.sessionDate || undefined,
-              startTime: data.startTime || undefined,
-              bookingType: data.bookingType,
-              googleEventId: data.googleEventId,
-              googleMeetUrl: data.googleMeetUrl,
-            }
-
-            let emailContent: { subject: string; html: string } | null = null
-
-            switch (parsed.data.status) {
-              case "confirmed":
-                emailContent = bookingConfirmedEmail(statusParams)
-                break
-              case "payment_pending":
-                emailContent = bookingPaymentPendingEmail(statusParams)
-                break
-              case "scheduled":
-                emailContent = bookingScheduledEmail(statusParams)
-                break
-              case "completed":
-                emailContent = bookingCompletedEmail(statusParams)
-                break
-              case "cancelled":
-                emailContent = bookingCancelledEmail(statusParams)
-                break
-            }
-
-            if (emailContent) {
-              const transporter = nodemailer.createTransport({
-                host: smtpHost,
-                port: smtpPort,
-                secure: smtpPort === 465,
-                auth: { user: smtpUser, pass: smtpPass },
-                tls: { rejectUnauthorized: false },
-              })
-
-              await transporter.sendMail({
-                from: `"MentoriasTech" <${smtpUser}>`,
-                to: menteeEmail,
-                subject: emailContent.subject,
-                html: emailContent.html,
-              })
-            }
-          }
-        }
-      } catch (emailError) {
-        console.error("[bookings] Email notification error (non-blocking):", emailError)
-      }
+      await sendBookingStatusEmail({
+        status: parsed.data.status,
+        menteeEmail: row.profile?.email || row.booking.guestEmail,
+        menteeName: row.profile?.fullName || row.booking.guestName || "Mentorado",
+        topicName: row.topic?.name || "Mentoria",
+        sessionDate: data.sessionDate,
+        startTime: data.startTime,
+        bookingType: data.bookingType,
+        googleEventId: data.googleEventId,
+        googleMeetUrl: data.googleMeetUrl,
+      })
     }
 
-    return NextResponse.json({ data: toBooking(data) })
+    return NextResponse.json({ data: toBooking(data), calendar_warning: calendarWarning })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"
@@ -322,10 +273,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Agendamento nao encontrado" }, { status: 404 })
     }
 
-    if (row.booking.googleEventId) {
+    if (row.booking.googleEventId && row.booking.mentorId) {
       try {
         const { deleteCalendarEvent } = await import("@/lib/google-calendar")
-        await deleteCalendarEvent(row.booking.googleEventId)
+        await deleteCalendarEvent({
+          mentorId: row.booking.mentorId,
+          eventId: row.booking.googleEventId,
+        })
       } catch (calendarError) {
         console.error("[bookings] Calendar delete error (non-blocking):", calendarError)
       }

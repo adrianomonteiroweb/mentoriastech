@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireMentorAccess } from "@/lib/utils/auth"
+import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import { createCalendarEvent } from "@/lib/google-calendar"
 import { z } from "zod"
 
@@ -13,7 +13,7 @@ const createEventSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    await requireMentorAccess()
+    const profile = await requireMentorAccess()
     const body = await request.json()
 
     const parsed = createEventSchema.safeParse(body)
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const event = await createCalendarEvent(parsed.data)
+    const event = await createCalendarEvent({
+      mentorId: getMentorId(profile),
+      ...parsed.data,
+    })
 
     if (!event) {
       return NextResponse.json(

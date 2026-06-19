@@ -445,13 +445,18 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
         }),
       })
 
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json()
         throw new Error(data.error || "Erro ao criar agendamento")
       }
 
       setBookingMentee(null)
       loadMentees()
+      if (data.calendar_warning) {
+        alert(
+          "Agendamento criado, mas o evento não foi criado no Google Calendar. Conecte sua conta em Configurações.",
+        )
+      }
     } catch (err) {
       setBookingError(err instanceof Error ? err.message : "Erro ao criar")
     } finally {

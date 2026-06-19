@@ -164,9 +164,13 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     })
+    const data = await res.json().catch(() => ({}))
     if (!res.ok) {
-      const data = await res.json()
       alert(data.error || "Erro ao atualizar agendamento")
+    } else if (data.calendar_warning) {
+      alert(
+        "Agendamento atualizado, mas o evento não foi criado no Google Calendar. Conecte sua conta em Configurações.",
+      )
     }
     loadBookings()
   }
@@ -206,13 +210,18 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
         body: JSON.stringify(form),
       })
 
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json()
         throw new Error(data.error || "Erro ao salvar agendamento")
       }
 
       setEditingBooking(null)
       loadBookings()
+      if (data.calendar_warning) {
+        alert(
+          "Agendamento salvo, mas o evento não foi criado no Google Calendar. Conecte sua conta em Configurações.",
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {

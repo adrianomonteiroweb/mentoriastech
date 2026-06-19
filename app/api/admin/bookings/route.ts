@@ -13,6 +13,7 @@ import {
   toProfile,
 } from "@/lib/db/mappers"
 import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
+import { sendBookingStatusEmail } from "@/lib/booking-notifications"
 import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import { z } from "zod"
 import type { Booking, BookingStatus, BookingType } from "@/lib/types/database"
@@ -241,7 +242,88 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ data: toBooking(data) }, { status: 201 })
+    // Agendamento direto: cria o evento na agenda do mentor e avisa o mentorado.
+    // Restrito a status de agendamento (não dispara em registros "completed" do histórico).
+    let calendarEventCreated = false
+    let calendarWarning = false
+
+    if (
+      (data.status === "scheduled" || data.status === "confirmed") &&
+      data.sessionDate &&
+      data.startTime &&
+      !data.googleEventId
+    ) {
+      const [mentee] = await db
+        .select({ email: profiles.email, fullName: profiles.fullName })
+        .from(profiles)
+        .where(eq(profiles.id, parsed.data.mentee_id))
+        .limit(1)
+
+      let topicName = "Mentoria"
+      if (data.topicId) {
+        const [topic] = await db
+          .select({ name: mentoringTopics.name })
+          .from(mentoringTopics)
+          .where(eq(mentoringTopics.id, data.topicId))
+          .limit(1)
+        if (topic?.name) topicName = topic.name
+      }
+
+      const menteeEmail = mentee?.email || data.guestEmail || undefined
+      const menteeName = mentee?.fullName || data.guestName || "Mentorado"
+
+      try {
+        const { createCalendarEvent } = await import("@/lib/google-calendar")
+        const event = await createCalendarEvent({
+          mentorId,
+          summary: `Mentoria: ${topicName}`,
+          description: `Mentoria com ${menteeName}\nTema: ${topicName}`,
+          date: data.sessionDate,
+          time: data.startTime.substring(0, 5),
+          attendeeEmail: menteeEmail,
+        })
+
+        if (event) {
+          calendarEventCreated = true
+          data.googleEventId = event.eventId
+          data.googleMeetUrl = event.meetLink
+          await db
+            .update(bookings)
+            .set({
+              googleEventId: event.eventId,
+              googleMeetUrl: event.meetLink,
+              updatedAt: new Date(),
+            })
+            .where(eq(bookings.id, data.id))
+        } else {
+          calendarWarning = true
+        }
+      } catch (calendarError) {
+        console.error("[bookings] Calendar error (non-blocking):", calendarError)
+        calendarWarning = true
+      }
+
+      await sendBookingStatusEmail({
+        status: data.status,
+        menteeEmail,
+        menteeName,
+        topicName,
+        sessionDate: data.sessionDate,
+        startTime: data.startTime,
+        bookingType: data.bookingType,
+        googleEventId: data.googleEventId,
+        googleMeetUrl: data.googleMeetUrl,
+      })
+    }
+
+    return NextResponse.json(
+      {
+        data: toBooking(data),
+        calendar_event_created: calendarEventCreated,
+        calendar_warning: calendarWarning,
+      },
+      { status: 201 },
+    )
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

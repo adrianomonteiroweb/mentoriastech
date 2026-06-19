@@ -168,7 +168,10 @@ SMTP_PASS                       # Senha SMTP
 # Google Calendar (OAuth2)
 GOOGLE_CLIENT_ID                # Client ID do Google Cloud
 GOOGLE_CLIENT_SECRET            # Client Secret do Google Cloud
-GOOGLE_CALENDAR_ID              # Email do calendário
+GOOGLE_CALENDAR_ID              # Email do calendário (fallback legado do admin)
+GOOGLE_REDIRECT_URI             # Opcional, recomendado em produção. URI fixa do callback OAuth,
+                                # idêntica à cadastrada no Google Cloud Console (evita redirect_uri_mismatch
+                                # atrás de proxy/Vercel). Ex.: https://seu-dominio.com/api/admin/calendar/auth
 
 # Google Gemini (melhoria de currículo com IA)
 GEMINI_API_KEY                  # API key do Google AI Studio (obrigatória p/ a ferramenta)

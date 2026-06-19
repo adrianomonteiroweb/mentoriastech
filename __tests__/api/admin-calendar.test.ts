@@ -2,79 +2,74 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 // --- Hoisted mocks ---
 const {
-  mockRequireRole,
+  mockRequireMentorAccess,
+  mockGetMentorId,
   mockGetConsentUrl,
   mockExchangeCodeForTokens,
+  mockGetConnectedEmail,
   mockCreateCalendarEvent,
-  mockDbTransaction,
-  mockPrivateValues,
-  mockPublicValues,
+  mockIsMentorCalendarConnected,
+  mockInsertValues,
+  mockOnConflictDoUpdate,
+  mockDeleteWhere,
+  mockSelectLimit,
 } = vi.hoisted(() => ({
-  mockRequireRole: vi.fn().mockResolvedValue(undefined),
+  mockRequireMentorAccess: vi.fn().mockResolvedValue({ id: "mentor-1", role: "admin" }),
+  mockGetMentorId: vi.fn((profile: { id: string }) => profile.id),
   mockGetConsentUrl: vi.fn().mockReturnValue("https://accounts.google.com/consent?test=1"),
   mockExchangeCodeForTokens: vi.fn().mockResolvedValue({
     refresh_token: "mock-refresh-token",
     access_token: "mock-access-token",
   }),
+  mockGetConnectedEmail: vi.fn().mockResolvedValue("mentor@gmail.com"),
   mockCreateCalendarEvent: vi.fn().mockResolvedValue({
     eventId: "event-new-123",
     meetLink: "https://meet.google.com/test",
   }),
-  mockDbTransaction: vi.fn(),
-  mockPrivateValues: vi.fn(),
-  mockPublicValues: vi.fn(),
+  mockIsMentorCalendarConnected: vi.fn().mockResolvedValue(false),
+  mockInsertValues: vi.fn(),
+  mockOnConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
+  mockDeleteWhere: vi.fn().mockResolvedValue(undefined),
+  mockSelectLimit: vi.fn().mockResolvedValue([]),
 }))
 
 vi.mock("@/lib/utils/auth", () => ({
-  requireRole: mockRequireRole,
+  requireMentorAccess: mockRequireMentorAccess,
+  getMentorId: mockGetMentorId,
 }))
 
 vi.mock("@/lib/google-calendar", () => ({
   getConsentUrl: mockGetConsentUrl,
   exchangeCodeForTokens: mockExchangeCodeForTokens,
+  getConnectedEmail: mockGetConnectedEmail,
   createCalendarEvent: mockCreateCalendarEvent,
-}))
-
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(),
-    })),
-  })),
+  isMentorCalendarConnected: mockIsMentorCalendarConnected,
+  googleCalendarSettingKey: (mentorId: string) => `google_calendar:${mentorId}`,
+  getCalendarRedirectUri: (origin: string) => `${origin}/api/admin/calendar/auth`,
 }))
 
 vi.mock("@/lib/db", () => {
-  const sitePrivateSettings = { key: "site_private_settings.key", __name: "site_private_settings" }
-  const siteSettings = { key: "site_settings.key", __name: "site_settings" }
+  const sitePrivateSettings = { key: "site_private_settings.key" }
+  const siteSettings = { key: "site_settings.key" }
 
-  mockDbTransaction.mockImplementation(async (callback) => {
-    const tx = {
-      insert: vi.fn((table: { __name: string }) => ({
-        values: table.__name === "site_private_settings" ? mockPrivateValues : mockPublicValues,
+  mockInsertValues.mockReturnValue({ onConflictDoUpdate: mockOnConflictDoUpdate })
+
+  const db = {
+    insert: vi.fn(() => ({ values: mockInsertValues })),
+    delete: vi.fn(() => ({ where: mockDeleteWhere })),
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({ limit: mockSelectLimit })),
       })),
-    }
-
-    mockPrivateValues.mockReturnValue({
-      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-    })
-    mockPublicValues.mockReturnValue({
-      onConflictDoUpdate: vi.fn().mockResolvedValue(undefined),
-    })
-
-    return callback(tx)
-  })
-
-  return {
-    db: {
-      transaction: mockDbTransaction,
-    },
-    sitePrivateSettings,
-    siteSettings,
+    })),
   }
+
+  return { db, sitePrivateSettings, siteSettings }
 })
 
 // Import route handlers
-import { GET as AuthGET, POST as AuthPOST } from "@/app/api/admin/calendar/auth/route"
+import { GET as AuthGET, POST as AuthPOST, DELETE as AuthDELETE } from "@/app/api/admin/calendar/auth/route"
+import { GET as StatusGET } from "@/app/api/admin/calendar/status/route"
 import { POST as CalendarPOST } from "@/app/api/admin/calendar/route"
 
 function makeGetRequest(url = "http://localhost/api/admin/calendar/auth") {
@@ -89,12 +84,13 @@ function makePostRequest(url: string, body: Record<string, unknown>) {
   })
 }
 
-describe("GET /api/admin/calendar/auth", () => {
+describe("GET /api/admin/calendar/auth (consent)", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
   })
 
-  it("should return consent URL", async () => {
+  it("should return consent URL when no code is present", async () => {
     const res = await AuthGET(makeGetRequest())
     expect(res.status).toBe(200)
 
@@ -111,19 +107,72 @@ describe("GET /api/admin/calendar/auth", () => {
   })
 
   it("should return 401 if not authenticated", async () => {
-    mockRequireRole.mockRejectedValueOnce(Object.assign(new Error("Nao autenticado"), { status: 401 }))
+    mockRequireMentorAccess.mockRejectedValueOnce(
+      Object.assign(new Error("Nao autenticado"), { status: 401 }),
+    )
 
     const res = await AuthGET(makeGetRequest())
     expect(res.status).toBe(401)
   })
 })
 
+describe("GET /api/admin/calendar/auth (OAuth callback)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
+  })
+
+  it("should exchange code, store per-mentor token and redirect to admin settings", async () => {
+    const res = await AuthGET(
+      makeGetRequest("http://localhost/api/admin/calendar/auth?code=auth-code-123"),
+    )
+
+    expect(mockExchangeCodeForTokens).toHaveBeenCalledWith(
+      "auth-code-123",
+      "http://localhost/api/admin/calendar/auth",
+    )
+    expect(mockInsertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "google_calendar:mentor-1",
+        value: expect.objectContaining({
+          refresh_token: "mock-refresh-token",
+          calendar_email: "mentor@gmail.com",
+        }),
+      }),
+    )
+    expect(res.status).toBeGreaterThanOrEqual(300)
+    expect(res.status).toBeLessThan(400)
+    expect(res.headers.get("location")).toContain("/admin/settings?calendar=connected")
+  })
+
+  it("should redirect mentors to /mentor/settings", async () => {
+    mockRequireMentorAccess.mockResolvedValueOnce({ id: "mentor-2", role: "mentor" })
+
+    const res = await AuthGET(
+      makeGetRequest("http://localhost/api/admin/calendar/auth?code=abc"),
+    )
+
+    expect(res.headers.get("location")).toContain("/mentor/settings?calendar=connected")
+  })
+
+  it("should redirect with error when no refresh_token returned", async () => {
+    mockExchangeCodeForTokens.mockResolvedValueOnce({ access_token: "only" })
+
+    const res = await AuthGET(
+      makeGetRequest("http://localhost/api/admin/calendar/auth?code=abc"),
+    )
+
+    expect(res.headers.get("location")).toContain("calendar=norefresh")
+  })
+})
+
 describe("POST /api/admin/calendar/auth", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
   })
 
-  it("should exchange code for tokens and return success", async () => {
+  it("should exchange code, store per-mentor token and return success", async () => {
     const res = await AuthPOST(
       makePostRequest("http://localhost/api/admin/calendar/auth", { code: "auth-code-123" }),
     )
@@ -131,46 +180,11 @@ describe("POST /api/admin/calendar/auth", () => {
 
     const data = await res.json()
     expect(data.success).toBe(true)
-  })
 
-  it("should call exchangeCodeForTokens with code and redirectUri", async () => {
-    await AuthPOST(
-      makePostRequest("http://localhost:3000/api/admin/calendar/auth", { code: "auth-code-456" }),
-    )
-
-    expect(mockExchangeCodeForTokens).toHaveBeenCalledWith(
-      "auth-code-456",
-      "http://localhost:3000/api/admin/calendar/auth",
-    )
-  })
-
-  it("should save refresh_token privately and only metadata publicly", async () => {
-    await AuthPOST(
-      makePostRequest("http://localhost/api/admin/calendar/auth", { code: "auth-code-789" }),
-    )
-
-    expect(mockPrivateValues).toHaveBeenCalledWith(
+    expect(mockInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        key: "google_calendar",
-        value: expect.objectContaining({
-          refresh_token: "mock-refresh-token",
-        }),
-      }),
-    )
-    expect(mockPublicValues).toHaveBeenCalledWith(
-      expect.objectContaining({
-        key: "google_calendar",
-        value: expect.objectContaining({
-          is_connected: true,
-          connected_at: expect.any(String),
-        }),
-      }),
-    )
-    expect(mockPublicValues).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        value: expect.objectContaining({
-          refresh_token: expect.any(String),
-        }),
+        key: "google_calendar:mentor-1",
+        value: expect.objectContaining({ refresh_token: "mock-refresh-token" }),
       }),
     )
   })
@@ -200,8 +214,10 @@ describe("POST /api/admin/calendar/auth", () => {
     expect(data.error).toContain("refresh_token")
   })
 
-  it("should return 401 if not admin", async () => {
-    mockRequireRole.mockRejectedValueOnce(Object.assign(new Error("Nao autenticado"), { status: 401 }))
+  it("should return 401 if not authenticated", async () => {
+    mockRequireMentorAccess.mockRejectedValueOnce(
+      Object.assign(new Error("Nao autenticado"), { status: 401 }),
+    )
 
     const res = await AuthPOST(
       makePostRequest("http://localhost/api/admin/calendar/auth", { code: "code" }),
@@ -210,12 +226,65 @@ describe("POST /api/admin/calendar/auth", () => {
   })
 })
 
+describe("DELETE /api/admin/calendar/auth", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
+  })
+
+  it("should disconnect and return success", async () => {
+    const res = await AuthDELETE(
+      new Request("http://localhost/api/admin/calendar/auth", { method: "DELETE" }),
+    )
+    expect(res.status).toBe(200)
+
+    const data = await res.json()
+    expect(data.success).toBe(true)
+    expect(mockDeleteWhere).toHaveBeenCalled()
+  })
+})
+
+describe("GET /api/admin/calendar/status", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
+  })
+
+  it("should report connected with email when a per-mentor token exists", async () => {
+    mockSelectLimit.mockResolvedValueOnce([
+      {
+        value: {
+          refresh_token: "tok",
+          calendar_email: "mentor@gmail.com",
+          connected_at: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    ])
+
+    const res = await StatusGET(new Request("http://localhost/api/admin/calendar/status"))
+    expect(res.status).toBe(200)
+
+    const data = await res.json()
+    expect(data).toMatchObject({ connected: true, email: "mentor@gmail.com" })
+  })
+
+  it("should fall back to isMentorCalendarConnected when no per-mentor token", async () => {
+    mockSelectLimit.mockResolvedValueOnce([])
+    mockIsMentorCalendarConnected.mockResolvedValueOnce(false)
+
+    const res = await StatusGET(new Request("http://localhost/api/admin/calendar/status"))
+    const data = await res.json()
+    expect(data).toMatchObject({ connected: false, email: null })
+  })
+})
+
 describe("POST /api/admin/calendar", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
   })
 
-  it("should create calendar event and return eventId", async () => {
+  it("should create calendar event with mentorId and return eventId", async () => {
     const res = await CalendarPOST(
       makePostRequest("http://localhost/api/admin/calendar", {
         summary: "Mentoria: React",
@@ -228,6 +297,9 @@ describe("POST /api/admin/calendar", () => {
 
     const data = await res.json()
     expect(data.eventId).toBe("event-new-123")
+    expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ mentorId: "mentor-1" }),
+    )
   })
 
   it("should pass attendeeEmail to createCalendarEvent", async () => {
@@ -242,9 +314,7 @@ describe("POST /api/admin/calendar", () => {
     )
 
     expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        attendeeEmail: "mentee@test.com",
-      }),
+      expect.objectContaining({ attendeeEmail: "mentee@test.com" }),
     )
   })
 

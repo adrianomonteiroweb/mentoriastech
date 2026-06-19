@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { CheckCircle2, ExternalLink, Loader2, Plus, Save, Trash2 } from "lucide-react"
+import { Loader2, Plus, Save, Trash2 } from "lucide-react"
+import { GoogleCalendarSettings } from "@/components/dashboard/admin/google-calendar-settings"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   normalizeMentorshipChecklistConfig,
@@ -23,7 +24,6 @@ import {
 } from "@/lib/linkedin-ai-prompt"
 
 export default function AdminSettingsPage() {
-  const [calendarConnected, setCalendarConnected] = useState(false)
   const [checklist, setChecklist] = useState<MentorshipChecklistConfigItem[]>([])
   const [loading, setLoading] = useState(true)
   const [savingChecklist, setSavingChecklist] = useState(false)
@@ -40,9 +40,6 @@ export default function AdminSettingsPage() {
       .then((r) => r.json())
       .then((json) => {
         const settings = json.data || {}
-        if (settings.google_calendar) {
-          setCalendarConnected(!!settings.google_calendar.is_connected)
-        }
         const checklistSetting = settings[MENTORSHIP_CHECKLIST_SETTING_KEY]
         setChecklist(
           Array.isArray(checklistSetting)
@@ -111,14 +108,6 @@ export default function AdminSettingsPage() {
       )
     } finally {
       setSavingLinkedinPrompt(false)
-    }
-  }
-
-  async function connectCalendar() {
-    const res = await fetch("/api/admin/calendar/auth")
-    const { url } = await res.json()
-    if (url) {
-      window.open(url, "_blank")
     }
   }
 
@@ -191,26 +180,7 @@ export default function AdminSettingsPage() {
     <>
       <DashboardHeader title="Configuracoes" description="Ajustes gerais da plataforma" />
       <div className="flex flex-col gap-6 p-4 md:p-6 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Google Calendar</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {calendarConnected ? (
-              <p className="flex items-center gap-2 text-sm text-green-500">
-                <CheckCircle2 className="h-4 w-4" /> Conectado
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Conecte sua conta Google para criar eventos automaticamente ao agendar mentorias.
-              </p>
-            )}
-            <Button variant="outline" onClick={connectCalendar}>
-              <ExternalLink className="h-4 w-4 mr-1" />
-              {calendarConnected ? "Reconectar" : "Conectar Google Calendar"}
-            </Button>
-          </CardContent>
-        </Card>
+        <GoogleCalendarSettings />
 
         <Card>
           <CardHeader>

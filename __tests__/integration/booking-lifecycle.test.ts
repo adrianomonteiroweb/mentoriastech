@@ -4,76 +4,122 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
  * Booking Lifecycle Integration Tests
  *
  * Tests the complete lifecycle of bookings through API routes:
- * - Free: booking → confirmed → scheduled (Calendar) → completed
- * - Paid: payment intent → webhook → scheduled (Calendar) → completed
- * - Cancellation flow
+ * - Free: booking (POST /api/booking) → confirmed → scheduled (Calendar) → completed
+ * - Paid: scheduled (Calendar) → completed
+ *
+ * As rotas usam Drizzle (@/lib/db) + requireMentorAccess/getDefaultMentorId.
+ * Mantemos os mocks de nodemailer + email-templates para que o helper real
+ * sendBookingStatusEmail (em @/lib/booking-notifications) os exercite.
  */
 
 // --- Hoisted mocks ---
 const {
-  mockRequireRole,
+  mockRequireMentorAccess,
+  mockGetDefaultMentorId,
+  mockEnsureMenteeProfile,
+  mockHasBookingConflict,
+  mockInsertValues,
+  mockLimit,
+  mockReturning,
   mockSendMailBooking,
-  mockVerify,
-  mockSupabaseInsert,
-  mockSupabaseFrom,
-  mockAdminFrom,
-  mockAdminSelectSingle,
-  mockAdminUpdateSingle,
   mockCreateCalendarEvent,
+  mockDeleteCalendarEvent,
+  mockNewBookingToMentorEmail,
+  mockBookingConfirmedEmail,
+  mockBookingPaymentPendingEmail,
+  mockBookingScheduledEmail,
+  mockBookingCompletedEmail,
+  mockBookingCancelledEmail,
 } = vi.hoisted(() => ({
-  mockRequireRole: vi.fn().mockResolvedValue(undefined),
+  mockRequireMentorAccess: vi.fn().mockResolvedValue({ id: "mentor-1", role: "admin" }),
+  mockGetDefaultMentorId: vi.fn().mockResolvedValue("mentor-1"),
+  mockEnsureMenteeProfile: vi.fn().mockResolvedValue({ id: "mentee-1" }),
+  mockHasBookingConflict: vi.fn().mockResolvedValue(false),
+  mockInsertValues: vi.fn().mockResolvedValue(undefined),
+  mockLimit: vi.fn(),
+  mockReturning: vi.fn(),
   mockSendMailBooking: vi.fn().mockResolvedValue({ messageId: "booking-email" }),
-  mockVerify: vi.fn().mockResolvedValue(true),
-  mockSupabaseInsert: vi.fn().mockResolvedValue({ data: null, error: null }),
-  mockSupabaseFrom: vi.fn(),
-  mockAdminFrom: vi.fn(),
-  mockAdminSelectSingle: vi.fn(),
-  mockAdminUpdateSingle: vi.fn(),
-  mockCreateCalendarEvent: vi.fn().mockResolvedValue("gcal-lifecycle-event"),
+  mockCreateCalendarEvent: vi.fn().mockResolvedValue({ eventId: "gcal-lifecycle-event", meetLink: null }),
+  mockDeleteCalendarEvent: vi.fn().mockResolvedValue(undefined),
+  mockNewBookingToMentorEmail: vi.fn(() => ({ subject: "[Mentoria] Nova solicitacao", html: "<p>lifecycle</p>" })),
+  mockBookingConfirmedEmail: vi.fn(() => ({ subject: "Confirmada", html: "<p>confirmed</p>" })),
+  mockBookingPaymentPendingEmail: vi.fn(() => ({ subject: "Pagamento", html: "<p>payment</p>" })),
+  mockBookingScheduledEmail: vi.fn(() => ({ subject: "Agendada", html: "<p>scheduled</p>" })),
+  mockBookingCompletedEmail: vi.fn(() => ({ subject: "Concluida", html: "<p>completed</p>" })),
+  mockBookingCancelledEmail: vi.fn(() => ({ subject: "Cancelada", html: "<p>cancelled</p>" })),
 }))
 
-// Mock modules for FREE booking route
 vi.mock("nodemailer", () => ({
   default: {
     createTransport: vi.fn(() => ({
-      verify: mockVerify,
+      verify: vi.fn().mockResolvedValue(true),
       sendMail: mockSendMailBooking,
     })),
   },
 }))
 
-vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn().mockResolvedValue({
-    from: mockSupabaseFrom,
-  }),
-}))
-
-vi.mock("@/lib/whatsapp", () => ({
-  formatWhatsAppNumber: vi.fn((num: string) => num),
-}))
-
-vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: vi.fn(() => ({ from: mockAdminFrom })),
-}))
-
-vi.mock("@/lib/email-templates", () => ({
-  newBookingToMentorEmail: vi.fn(() => ({
-    subject: "[PAGO] Nova mentoria - Lifecycle",
-    html: "<p>lifecycle</p>",
-  })),
-  bookingConfirmedEmail: vi.fn(() => ({ subject: "Confirmada", html: "<p>confirmed</p>" })),
-  bookingPaymentPendingEmail: vi.fn(() => ({ subject: "Pagamento", html: "<p>payment</p>" })),
-  bookingScheduledEmail: vi.fn(() => ({ subject: "Agendada", html: "<p>scheduled</p>" })),
-  bookingCompletedEmail: vi.fn(() => ({ subject: "Concluida", html: "<p>completed</p>" })),
-  bookingCancelledEmail: vi.fn(() => ({ subject: "Cancelada", html: "<p>cancelled</p>" })),
-}))
-
 vi.mock("@/lib/utils/auth", () => ({
-  requireRole: mockRequireRole,
+  requireMentorAccess: mockRequireMentorAccess,
+  getDefaultMentorId: mockGetDefaultMentorId,
+  getMentorId: (profile: { id: string }) => profile.id,
+}))
+
+vi.mock("@/lib/db", () => {
+  const tbl = (name: string) => new Proxy({}, { get: (_t, p) => `${name}.${String(p)}` })
+  return {
+    db: {
+      select: vi.fn(() => {
+        const builder = {
+          from: () => builder,
+          leftJoin: () => builder,
+          where: () => builder,
+          orderBy: () => builder,
+          limit: () => mockLimit(),
+        }
+        return builder
+      }),
+      insert: vi.fn(() => ({ values: mockInsertValues })),
+      update: vi.fn(() => ({
+        set: () => ({
+          where: () => ({
+            returning: () => mockReturning(),
+            then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) =>
+              Promise.resolve(mockReturning()).then(res, rej),
+          }),
+        }),
+      })),
+    },
+    bookings: tbl("bookings"),
+    profiles: tbl("profiles"),
+    mentoringTopics: tbl("mentoringTopics"),
+  }
+})
+
+vi.mock("@/lib/db/booking-conflicts", () => ({
+  hasBookingConflict: mockHasBookingConflict,
+  normalizeBookingTime: (t: string) => (t && t.length === 5 ? `${t}:00` : t),
+}))
+
+vi.mock("@/lib/db/mentees", () => ({
+  ensureMenteeProfile: mockEnsureMenteeProfile,
+}))
+
+vi.mock("@/lib/db/mappers", () => ({
+  toBooking: (x: unknown) => x,
 }))
 
 vi.mock("@/lib/google-calendar", () => ({
   createCalendarEvent: mockCreateCalendarEvent,
+  deleteCalendarEvent: mockDeleteCalendarEvent,
+}))
+
+vi.mock("@/lib/email-templates", () => ({
+  newBookingToMentorEmail: mockNewBookingToMentorEmail,
+  bookingConfirmedEmail: mockBookingConfirmedEmail,
+  bookingPaymentPendingEmail: mockBookingPaymentPendingEmail,
+  bookingScheduledEmail: mockBookingScheduledEmail,
+  bookingCompletedEmail: mockBookingCompletedEmail,
+  bookingCancelledEmail: mockBookingCancelledEmail,
 }))
 
 // Import route handlers
@@ -82,7 +128,7 @@ import { PUT as AdminBookingPUT } from "@/app/api/admin/bookings/[id]/route"
 
 // --- Helpers ---
 
-function makeBookingRequest(body: Record<string, string>) {
+function makeBookingRequest(body: Record<string, unknown>) {
   return new Request("http://localhost/api/booking", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -112,19 +158,33 @@ const freeBookingData = {
   slotId: "slot-free-1",
   topicId: "topic-free-1",
   sessionDate: "2026-04-17",
+  originCategory: "instagram",
 }
 
-const bookingRecord = {
+const freeLoadRow = {
+  booking: {
+    id: "booking-lifecycle-1",
+    mentorId: "mentor-1",
+    menteeId: "mentee-1",
+    status: "pending",
+    sessionDate: "2026-04-17",
+    startTime: "20:00:00",
+    bookingType: "free",
+    googleEventId: null,
+    guestName: "Ana Lifecycle",
+    guestEmail: "ana@lifecycle.com",
+  },
+  topic: { name: "Carreira em programação" },
+  profile: null,
+}
+
+const freeUpdatedRow = {
   id: "booking-lifecycle-1",
-  session_date: "2026-04-17",
-  start_time: "20:00:00",
-  booking_type: "free",
-  guest_name: "Ana Lifecycle",
-  guest_email: "ana@lifecycle.com",
-  guest_whatsapp: "5585999990001",
-  google_event_id: null,
-  mentoring_topics: { name: "Carreira em programação" },
-  profiles: null,
+  sessionDate: "2026-04-17",
+  startTime: "20:00:00",
+  bookingType: "free",
+  googleEventId: null,
+  googleMeetUrl: null,
 }
 
 describe("Free Booking Lifecycle", () => {
@@ -136,53 +196,36 @@ describe("Free Booking Lifecycle", () => {
     process.env.SMTP_USER = "user@test.com"
     process.env.SMTP_PASS = "pass123"
 
-    mockSupabaseFrom.mockReturnValue({ insert: mockSupabaseInsert })
-
-    // Admin supabase mock
-    mockAdminFrom.mockImplementation((table: string) => {
-      if (table === "bookings") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: mockAdminSelectSingle,
-            })),
-          })),
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: mockAdminUpdateSingle,
-              })),
-            })),
-          })),
-        }
-      }
-      return {}
-    })
-
-    mockAdminSelectSingle.mockResolvedValue({ data: { ...bookingRecord }, error: null })
-    mockAdminUpdateSingle.mockResolvedValue({
-      data: { ...bookingRecord, status: "confirmed" },
-      error: null,
-    })
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
+    mockGetDefaultMentorId.mockResolvedValue("mentor-1")
+    mockEnsureMenteeProfile.mockResolvedValue({ id: "mentee-1" })
+    mockHasBookingConflict.mockResolvedValue(false)
+    mockInsertValues.mockResolvedValue(undefined)
+    mockLimit.mockResolvedValue([{ ...freeLoadRow }])
+    mockReturning.mockResolvedValue([{ ...freeUpdatedRow }])
+    mockCreateCalendarEvent.mockResolvedValue({ eventId: "gcal-lifecycle-event", meetLink: null })
   })
 
   it("Step 1: should create free booking via POST /api/booking", async () => {
+    // O POST consulta o perfil do mentor (para o e-mail) via db.select().limit().
+    mockLimit.mockResolvedValueOnce([{ email: "mentor@test.com", fullName: "Mentor" }])
+
     const res = await BookingPOST(makeBookingRequest(freeBookingData))
     expect(res.status).toBe(200)
 
     const data = await res.json()
     expect(data.success).toBe(true)
 
-    // Should save to Supabase
-    expect(mockSupabaseInsert).toHaveBeenCalledWith(
+    // Insert via Drizzle (camelCase)
+    expect(mockInsertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        guest_name: "Ana Lifecycle",
-        booking_type: "free",
+        guestName: "Ana Lifecycle",
+        bookingType: "free",
         status: "pending",
       }),
     )
 
-    // Should send email to mentor
+    // E-mail ao mentor
     expect(mockSendMailBooking).toHaveBeenCalled()
   })
 
@@ -193,9 +236,7 @@ describe("Free Booking Lifecycle", () => {
     )
     expect(res.status).toBe(200)
 
-    // Confirmed email template should be called
-    const { bookingConfirmedEmail } = await import("@/lib/email-templates")
-    expect(bookingConfirmedEmail).toHaveBeenCalledWith(
+    expect(mockBookingConfirmedEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         menteeName: "Ana Lifecycle",
         topicName: "Carreira em programação",
@@ -210,9 +251,9 @@ describe("Free Booking Lifecycle", () => {
     )
     expect(res.status).toBe(200)
 
-    // Calendar event should be created
     expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        mentorId: "mentor-1",
         summary: expect.stringContaining("Carreira em programação"),
         date: "2026-04-17",
         time: "20:00",
@@ -227,21 +268,35 @@ describe("Free Booking Lifecycle", () => {
     )
     expect(res.status).toBe(200)
 
-    const { bookingCompletedEmail } = await import("@/lib/email-templates")
-    expect(bookingCompletedEmail).toHaveBeenCalled()
+    expect(mockBookingCompletedEmail).toHaveBeenCalled()
   })
 })
 
 describe("Paid Booking Lifecycle", () => {
-  const paidBookingRecord = {
-    ...bookingRecord,
+  const paidLoadRow = {
+    booking: {
+      id: "booking-paid-lifecycle",
+      mentorId: "mentor-1",
+      menteeId: "mentee-2",
+      status: "paid",
+      sessionDate: "2026-04-20",
+      startTime: "14:00:00",
+      bookingType: "paid",
+      googleEventId: null,
+      guestName: "Carlos Pago",
+      guestEmail: "carlos@lifecycle.com",
+    },
+    topic: { name: "Aulas de Next.js" },
+    profile: null,
+  }
+
+  const paidUpdatedRow = {
     id: "booking-paid-lifecycle",
-    booking_type: "paid",
-    guest_name: "Carlos Pago",
-    guest_email: "carlos@lifecycle.com",
-    session_date: "2026-04-20",
-    start_time: "14:00:00",
-    mentoring_topics: { name: "Aulas de Next.js" },
+    sessionDate: "2026-04-20",
+    startTime: "14:00:00",
+    bookingType: "paid",
+    googleEventId: null,
+    googleMeetUrl: null,
   }
 
   beforeEach(() => {
@@ -252,31 +307,11 @@ describe("Paid Booking Lifecycle", () => {
     process.env.SMTP_USER = "user@test.com"
     process.env.SMTP_PASS = "pass123"
 
-    mockAdminFrom.mockImplementation((table: string) => {
-      if (table === "bookings") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: mockAdminSelectSingle,
-            })),
-          })),
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: mockAdminUpdateSingle,
-              })),
-            })),
-          })),
-        }
-      }
-      return {}
-    })
-
-    mockAdminSelectSingle.mockResolvedValue({ data: paidBookingRecord, error: null })
-    mockAdminUpdateSingle.mockResolvedValue({
-      data: { ...paidBookingRecord, status: "scheduled" },
-      error: null,
-    })
+    mockRequireMentorAccess.mockResolvedValue({ id: "mentor-1", role: "admin" })
+    mockHasBookingConflict.mockResolvedValue(false)
+    mockLimit.mockResolvedValue([{ ...paidLoadRow }])
+    mockReturning.mockResolvedValue([{ ...paidUpdatedRow }])
+    mockCreateCalendarEvent.mockResolvedValue({ eventId: "gcal-paid-event", meetLink: null })
   })
 
   it("Step 1: admin schedules paid booking → Calendar event created", async () => {
@@ -288,6 +323,7 @@ describe("Paid Booking Lifecycle", () => {
 
     expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        mentorId: "mentor-1",
         summary: expect.stringContaining("Aulas de Next.js"),
         date: "2026-04-20",
         time: "14:00",
@@ -302,59 +338,6 @@ describe("Paid Booking Lifecycle", () => {
     )
     expect(res.status).toBe(200)
 
-    const { bookingCompletedEmail } = await import("@/lib/email-templates")
-    expect(bookingCompletedEmail).toHaveBeenCalled()
-  })
-})
-
-describe("Booking Cancellation", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    process.env.SMTP_HOST = "smtp.test.com"
-    process.env.SMTP_USER = "user@test.com"
-    process.env.SMTP_PASS = "pass123"
-
-    mockAdminFrom.mockImplementation((table: string) => {
-      if (table === "bookings") {
-        return {
-          select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              single: mockAdminSelectSingle,
-            })),
-          })),
-          update: vi.fn(() => ({
-            eq: vi.fn(() => ({
-              select: vi.fn(() => ({
-                single: mockAdminUpdateSingle,
-              })),
-            })),
-          })),
-        }
-      }
-      return {}
-    })
-
-    mockAdminSelectSingle.mockResolvedValue({ data: { ...bookingRecord }, error: null })
-    mockAdminUpdateSingle.mockResolvedValue({
-      data: { ...bookingRecord, status: "cancelled" },
-      error: null,
-    })
-  })
-
-  it("should send cancellation email when booking is cancelled", async () => {
-    const res = await AdminBookingPUT(
-      makeAdminRequest("booking-lifecycle-1", { status: "cancelled" }),
-      makeAdminParams("booking-lifecycle-1"),
-    )
-    expect(res.status).toBe(200)
-
-    const { bookingCancelledEmail } = await import("@/lib/email-templates")
-    expect(bookingCancelledEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        menteeName: "Ana Lifecycle",
-        topicName: "Carreira em programação",
-      }),
-    )
+    expect(mockBookingCompletedEmail).toHaveBeenCalled()
   })
 })

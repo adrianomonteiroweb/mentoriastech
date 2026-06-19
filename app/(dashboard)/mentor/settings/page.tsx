@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Save } from "lucide-react"
+import { GoogleCalendarSettings } from "@/components/dashboard/admin/google-calendar-settings"
 
 export default function MentorSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("")
@@ -64,6 +65,8 @@ export default function MentorSettingsPage() {
     <>
       <DashboardHeader title="Configuracoes" description="Ajustes da sua conta" />
       <div className="flex flex-col gap-6 p-4 md:p-6 max-w-2xl">
+        <GoogleCalendarSettings />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Alterar senha</CardTitle>
