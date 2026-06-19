@@ -249,7 +249,7 @@ function FileUploader({
   return (
     <div className="rounded-md border border-primary/30 bg-primary/5 p-3 grid gap-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium">Enviar arquivo (PDF, DOC, DOCX — max 5MB)</p>
+        <p className="text-xs font-medium">Enviar arquivo (PDF, DOC, imagens, TXT — max 5MB)</p>
         <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onCancel}>
           <X className="h-3.5 w-3.5" />
         </Button>
@@ -257,7 +257,7 @@ function FileUploader({
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,.doc,.docx"
+        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt"
         onChange={handleFile}
         disabled={uploading}
         className="text-xs file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary-foreground hover:file:opacity-90"
@@ -371,6 +371,11 @@ function getSupportedMimeType(): string | undefined {
   return undefined
 }
 
+function stripMimeParams(mime: string): string {
+  const idx = mime.indexOf(";")
+  return idx >= 0 ? mime.slice(0, idx).trim() : mime
+}
+
 function extensionForMime(mime: string | undefined): string {
   if (!mime) return "webm"
   if (mime.includes("mp4")) return "m4a"
@@ -422,7 +427,7 @@ function AudioRecorder({
       }
 
       recorder.onstop = () => {
-        const blobType = detectedMimeRef.current || "audio/webm"
+        const blobType = stripMimeParams(detectedMimeRef.current || "audio/webm")
         const blob = new Blob(chunksRef.current, { type: blobType })
         const url = URL.createObjectURL(blob)
         setAudioUrl(url)
@@ -473,7 +478,7 @@ function AudioRecorder({
     setState("uploading")
     setError("")
 
-    const mime = detectedMimeRef.current || "audio/webm"
+    const mime = stripMimeParams(detectedMimeRef.current || "audio/webm")
     const ext = extensionForMime(detectedMimeRef.current)
     const blob = new Blob(chunksRef.current, { type: mime })
     const now = new Date()

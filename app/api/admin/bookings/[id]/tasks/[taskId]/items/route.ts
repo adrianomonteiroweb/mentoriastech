@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { requireMentorAccess, AuthError } from "@/lib/utils/auth"
 import { getTaskById, createTaskItem } from "@/lib/db/booking-tasks"
-import { uploadMentorshipFile, UploadError } from "@/lib/utils/upload"
+import { uploadMentorshipFile, UploadError, baseMime } from "@/lib/utils/upload"
 
 interface RouteContext {
   params: Promise<{ id: string; taskId: string }>
@@ -70,7 +70,7 @@ export async function POST(request: Request, context: RouteContext) {
       fileUrl: result.url,
       fileName: file.name,
       fileSizeBytes: file.size,
-      mimeType: file.type,
+      mimeType: baseMime(file.type),
       durationSeconds: durationStr ? parseInt(durationStr, 10) || null : null,
       uploadedBy: user.id,
     })

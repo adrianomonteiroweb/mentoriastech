@@ -72,6 +72,11 @@ function getSupportedMimeType(): string | undefined {
   return undefined
 }
 
+function stripMimeParams(mime: string): string {
+  const idx = mime.indexOf(";")
+  return idx >= 0 ? mime.slice(0, idx).trim() : mime
+}
+
 function extensionForMime(mime: string | undefined): string {
   if (!mime) return "webm"
   if (mime.includes("mp4")) return "m4a"
@@ -472,6 +477,7 @@ function FileUploadForm({
         <input
           ref={fileRef}
           type="file"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt"
           onChange={handleFile}
           className="text-xs file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground"
         />
@@ -527,7 +533,7 @@ function TaskAudioRecorder({
       }
 
       recorder.onstop = () => {
-        const blobType = detectedMimeRef.current || "audio/webm"
+        const blobType = stripMimeParams(detectedMimeRef.current || "audio/webm")
         const blob = new Blob(chunksRef.current, { type: blobType })
         const url = URL.createObjectURL(blob)
         setAudioUrl(url)
@@ -570,7 +576,7 @@ function TaskAudioRecorder({
     setState("uploading")
     setError("")
 
-    const mime = detectedMimeRef.current || "audio/webm"
+    const mime = stripMimeParams(detectedMimeRef.current || "audio/webm")
     const ext = extensionForMime(detectedMimeRef.current)
     const blob = new Blob(chunksRef.current, { type: mime })
     const now = new Date()

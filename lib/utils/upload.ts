@@ -6,6 +6,11 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 type UploadCategory = "resume" | "content" | "ads" | "mentorship"
 type UploadAccess = "public" | "private"
 
+export function baseMime(mime: string): string {
+  const idx = mime.indexOf(";")
+  return idx >= 0 ? mime.slice(0, idx).trim() : mime
+}
+
 interface UploadTypeRule {
   mime: string
   extensions: string[]
@@ -98,6 +103,38 @@ const OGG_RULE: UploadTypeRule = {
     bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53,
 }
 
+const KNOWN_BINARY_PREFIXES: number[][] = [
+  [0x25, 0x50, 0x44, 0x46],
+  [0x89, 0x50, 0x4e, 0x47],
+  [0xff, 0xd8, 0xff],
+  [0x52, 0x49, 0x46, 0x46],
+  [0xd0, 0xcf, 0x11, 0xe0],
+  [0x50, 0x4b, 0x03, 0x04],
+  [0x1a, 0x45, 0xdf, 0xa3],
+  [0x4f, 0x67, 0x67, 0x53],
+  [0x7f, 0x45, 0x4c, 0x46],
+  [0x4d, 0x5a],
+]
+
+function isPlainText(bytes: Uint8Array): boolean {
+  for (const sig of KNOWN_BINARY_PREFIXES) {
+    if (sig.every((b, i) => bytes[i] === b)) return false
+  }
+  for (let i = 0; i < Math.min(bytes.length, 16); i++) {
+    const b = bytes[i]
+    if (b === 0x00) return false
+    if (b === 0x0a || b === 0x0d || b === 0x09) continue
+    if (b < 0x20) return false
+  }
+  return true
+}
+
+const TXT_RULE: UploadTypeRule = {
+  mime: "text/plain",
+  extensions: [".txt"],
+  matchesSignature: isPlainText,
+}
+
 const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   resume: {
     access: "public",
@@ -113,7 +150,12 @@ const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
   },
   mentorship: {
     access: "public",
-    rules: [PDF_RULE, DOC_RULE, DOCX_RULE, WEBM_RULE, MP4_AUDIO_RULE, OGG_RULE],
+    rules: [
+      PDF_RULE, DOC_RULE, DOCX_RULE,
+      PNG_RULE, JPEG_RULE, WEBP_RULE,
+      TXT_RULE,
+      WEBM_RULE, MP4_AUDIO_RULE, OGG_RULE,
+    ],
   },
 }
 
@@ -132,9 +174,10 @@ function getExtension(filename: string) {
 async function validateFile(file: File, category: UploadCategory) {
   const config = UPLOAD_CONFIG[category]
   const extension = getExtension(file.name)
+  const fileBaseMime = baseMime(file.type)
   const rule = config.rules.find(
     (candidate) =>
-      candidate.mime === file.type &&
+      candidate.mime === fileBaseMime &&
       candidate.extensions.includes(extension),
   )
 
