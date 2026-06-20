@@ -32,6 +32,26 @@ export async function POST(request: Request) {
     const email = normalizeEmail(parsed.data.email)
     const code = parsed.data.code
 
+    // Bypass de desenvolvimento: cria sessão diretamente sem validar código
+    if (process.env.NODE_ENV === "development" && code === "000000") {
+      const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000)
+      const [session] = await db
+        .insert(menteeAccessSessions)
+        .values({ email, expiresAt })
+        .returning()
+
+      const cookieStore = await cookies()
+      cookieStore.set(MENTEE_ACCESS_COOKIE, session.id, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        path: "/",
+        expires: expiresAt,
+      })
+
+      return NextResponse.json({ success: true })
+    }
+
     const [activeCode] = await db
       .select()
       .from(menteeAccessCodes)

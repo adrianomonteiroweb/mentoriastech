@@ -83,6 +83,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (error instanceof UploadError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
     }
+    console.error("[tasks/items] POST error:", error)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })
   }
 }

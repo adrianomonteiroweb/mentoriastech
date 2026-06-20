@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react"
 import type { BookingAttachment } from "@/lib/db/schema"
+import { fixInfiniteAudioDuration } from "@/lib/utils/audio"
 
 type ActiveMode = null | "file" | "note" | "audio"
 
@@ -171,7 +172,12 @@ export function BookingAttachments({ bookingId, onCountChange }: Props) {
                   </p>
                 )}
                 {a.type === "audio" && a.fileUrl && (
-                  <audio controls className="mt-1.5 w-full h-8" preload="metadata">
+                  <audio
+                    controls
+                    className="mt-1.5 w-full h-8"
+                    preload="metadata"
+                    onLoadedMetadata={(e) => fixInfiniteAudioDuration(e.currentTarget)}
+                  >
                     <source src={a.fileUrl} type={a.mimeType || "audio/webm"} />
                   </audio>
                 )}
@@ -546,7 +552,13 @@ function AudioRecorder({
 
       {state === "recorded" && audioUrl && (
         <div className="grid gap-2">
-          <audio controls className="w-full h-8" src={audioUrl} preload="metadata" />
+          <audio
+            controls
+            className="w-full h-8"
+            src={audioUrl}
+            preload="metadata"
+            onLoadedMetadata={(e) => fixInfiniteAudioDuration(e.currentTarget)}
+          />
           <p className="text-[10px] text-muted-foreground">Duracao: {timerDisplay}</p>
           <div className="flex gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={discard} className="text-xs h-7">

@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { AlertCircle, ArrowLeft, KeyRound, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -16,6 +16,21 @@ function VerifyForm() {
   const [resending, setResending] = useState(false)
   const [error, setError] = useState("")
   const [info, setInfo] = useState("")
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !email) return
+
+    fetch("/api/minhas-mentorias/verify-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code: "000000" }),
+    }).then((res) => {
+      if (res.ok) {
+        router.push("/minhas-mentorias/historico")
+        router.refresh()
+      }
+    })
+  }, [email, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

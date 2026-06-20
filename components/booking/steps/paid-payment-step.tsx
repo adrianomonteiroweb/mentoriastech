@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { QRCodeSVG } from "qrcode.react";
 import {
   CalendarDays,
   Check,
@@ -17,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { WhatsAppFallback } from "@/components/whatsapp-fallback";
 import { cn } from "@/lib/utils";
 import type { UnifiedBookingState } from "@/lib/types/booking";
 import type { PublicPaidMentorship } from "@/lib/types/database";
@@ -103,6 +105,7 @@ export function PaidPaymentStep({
   const pix = getPixData(result);
   const isPaid =
     result?.payment.status === "confirmed" || result?.booking.status === "paid";
+  const supportMessage = `Olá! Tive um problema ao gerar o PIX da mentoria "${paidMentorship.title}" no site MentoriasTech. Pode me ajudar?`;
 
   async function copyPix() {
     if (!pix?.qrCodeData) return;
@@ -261,9 +264,22 @@ export function PaidPaymentStep({
                   className="h-48 w-48 object-contain"
                 />
               </div>
+            ) : pix?.qrCodeData ? (
+              <div className="flex items-center justify-center rounded-lg border bg-white p-3 mx-auto">
+                <QRCodeSVG
+                  value={pix.qrCodeData}
+                  size={192}
+                  level="M"
+                  aria-label="QR Code PIX para pagamento da mentoria"
+                />
+              </div>
             ) : (
-              <div className="flex min-h-32 items-center justify-center rounded-lg border bg-secondary text-sm text-muted-foreground">
-                QR Code indisponível
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex min-h-24 w-full items-center justify-center rounded-lg border bg-secondary px-4 py-3 text-center text-sm text-muted-foreground">
+                  Não foi possível exibir o QR Code. Use o PIX copia e cola
+                  abaixo ou fale com a gente.
+                </div>
+                <WhatsAppFallback message={supportMessage} />
               </div>
             )}
 
@@ -358,9 +374,12 @@ export function PaidPaymentStep({
           </p>
         )}
         {error && (
-          <p className="text-sm font-medium text-destructive" role="alert">
-            {error}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-destructive" role="alert">
+              {error}
+            </p>
+            <WhatsAppFallback message={supportMessage} />
+          </div>
         )}
       </div>
     );
@@ -421,9 +440,12 @@ export function PaidPaymentStep({
       </div>
 
       {error && (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-destructive" role="alert">
+            {error}
+          </p>
+          <WhatsAppFallback message={supportMessage} />
+        </div>
       )}
 
       <div className="flex items-center gap-3 pt-2">

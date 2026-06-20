@@ -22,6 +22,7 @@ import {
   Trash2,
   X,
 } from "lucide-react"
+import { fixInfiniteAudioDuration } from "@/lib/utils/audio"
 
 interface TaskItem {
   id: string
@@ -267,7 +268,12 @@ function TaskItemsPanel({
                     Duracao: {formatDuration(item.durationSeconds)}
                   </span>
                 )}
-                <audio controls className="w-full h-7" preload="metadata">
+                <audio
+                  controls
+                  className="w-full h-7"
+                  preload="metadata"
+                  onLoadedMetadata={(e) => fixInfiniteAudioDuration(e.currentTarget)}
+                >
                   <source src={item.fileUrl} type={item.mimeType || "audio/webm"} />
                 </audio>
               </div>
@@ -639,7 +645,13 @@ function TaskAudioRecorder({
 
       {state === "recorded" && audioUrl && (
         <div className="grid gap-1.5">
-          <audio controls className="w-full h-7" src={audioUrl} preload="metadata" />
+          <audio
+            controls
+            className="w-full h-7"
+            src={audioUrl}
+            preload="metadata"
+            onLoadedMetadata={(e) => fixInfiniteAudioDuration(e.currentTarget)}
+          />
           <p className="text-[10px] text-muted-foreground">Duracao: {timerDisplay}</p>
           <div className="flex gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={discard} className="text-[10px] h-6">

@@ -6,6 +6,7 @@ import { Check, Copy, Heart, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { WhatsAppFallback } from "@/components/whatsapp-fallback"
 import { cn } from "@/lib/utils"
 
 const QUICK_AMOUNTS = [
@@ -14,8 +15,12 @@ const QUICK_AMOUNTS = [
   { label: "R$ 20", cents: 2000 },
 ]
 
+const DONATE_WHATSAPP_MESSAGE =
+  "Olá! Tive um problema ao gerar o PIX de doação no site MentoriasTech. Pode me ajudar?"
+
 interface DonateResult {
   qr_code_data: string | null
+  qr_code_image_url_png: string | null
   expires_at: string | null
 }
 
@@ -124,9 +129,20 @@ export function DonateWidget() {
                 aria-label="QR Code PIX para doacao"
               />
             </div>
+          ) : result.qr_code_image_url_png ? (
+            <div className="flex items-center justify-center rounded-lg border bg-white p-3">
+              <img
+                src={result.qr_code_image_url_png}
+                alt="QR Code PIX para doacao"
+                className="h-48 w-48 object-contain"
+              />
+            </div>
           ) : (
-            <div className="flex min-h-32 items-center justify-center rounded-lg border bg-secondary text-sm text-muted-foreground">
-              QR Code indisponivel
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex min-h-24 w-full items-center justify-center rounded-lg border bg-secondary px-4 py-3 text-center text-sm text-muted-foreground">
+                Não foi possível exibir o QR Code. Use o PIX copia e cola abaixo ou fale com a gente.
+              </div>
+              <WhatsAppFallback message={DONATE_WHATSAPP_MESSAGE} />
             </div>
           )}
 
@@ -214,9 +230,15 @@ export function DonateWidget() {
         />
 
         {error && (
-          <p className="text-sm font-medium text-destructive" role="alert">
-            {error}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-destructive" role="alert">
+              {error}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Problemas para gerar o PIX? Fale com a gente que ajudamos com a sua doação.
+            </p>
+            <WhatsAppFallback message={DONATE_WHATSAPP_MESSAGE} />
+          </div>
         )}
 
         <Button type="submit" disabled={loading} className={cn("min-h-12 text-base", loading && "opacity-70")}>

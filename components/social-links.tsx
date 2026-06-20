@@ -1,6 +1,7 @@
 "use client"
 
 import { Instagram, Linkedin, MessageCircle } from "lucide-react"
+import { SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp"
 
 const links = [
   {
@@ -11,7 +12,7 @@ const links = [
   },
   {
     label: "WhatsApp",
-    href: "https://wa.me/5585986663753",
+    href: `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}`,
     icon: MessageCircle,
     color: "hover:border-[#25D366]/70 hover:bg-[#25D366]/10 hover:text-[#4ade80]",
   },

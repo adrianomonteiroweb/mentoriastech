@@ -54,7 +54,9 @@
       "Bash(ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\plans\\\\\" 2>/dev/null; echo \"---\"; ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\\" 2>/dev/null)",
       "Read(//c/Users/Gabriele Bernardo/.claude/**)",
       "Read(//c/Users/Gabriele Bernardo/.claude/plans/**)",
-      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"; if \\(-not \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"\\)\\) { New-Item -ItemType Directory -Force \"$env:USERPROFILE\\\\.claude\\\\plans\" })"
+      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"; if \\(-not \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"\\)\\) { New-Item -ItemType Directory -Force \"$env:USERPROFILE\\\\.claude\\\\plans\" })",
+      "PowerShell(Start-Sleep -Seconds 5; $response = Invoke-WebRequest -Uri \"http://localhost:57374/minhas-mentorias\" -UseBasicParsing; $response.StatusCode)",
+      "PowerShell(Start-Sleep -Seconds 2; \\(Invoke-WebRequest -Uri \"http://localhost:3000/minhas-mentorias\" -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue\\).Headers)"
     ]
   }
 }

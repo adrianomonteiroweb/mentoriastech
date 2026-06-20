@@ -15,7 +15,12 @@ export default function MinhasMentoriasPage() {
   useEffect(() => {
     const emailParam = new URLSearchParams(window.location.search).get("email")
     if (emailParam) setEmail(emailParam)
-  }, [])
+
+    // Em desenvolvimento, pula a autenticação por email
+    if (process.env.NODE_ENV === "development") {
+      router.push(`/minhas-mentorias/verificar?email=adrianomonteirostudies@gmail.com`)
+    }
+  }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

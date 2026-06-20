@@ -6,26 +6,30 @@ const TOOLS = [
   {
     href: "/minhas-mentorias/curriculo",
     icon: Sparkles,
-    title: "Melhorar Currículo com IA",
-    description: "Otimize seu currículo com inteligência artificial",
+    title: "Melhorar Currículo",
+    description: "Otimize seu currículo com inteligência artificial e destaque-se nas seleções",
+    badge: "IA",
   },
   {
     href: "/minhas-mentorias/linkedin",
     icon: Linkedin,
-    title: "LinkedIn com IA",
-    description: "Melhore seu perfil profissional no LinkedIn",
+    title: "Melhorar LinkedIn",
+    description: "Fortaleça seu perfil profissional e atraia mais recrutadores",
+    badge: "IA",
   },
   {
     href: "/minhas-mentorias/oportunidades",
     icon: Briefcase,
     title: "Painel de Oportunidades",
-    description: "Gerencie suas candidaturas e processos seletivos",
+    description: "Gerencie suas candidaturas e acompanhe cada processo seletivo",
+    badge: undefined,
   },
   {
     href: "/minhas-mentorias/plano-de-estudos",
     icon: BookOpenCheck,
-    title: "Plano de Estudos com IA",
-    description: "Trilha de aprendizado personalizada",
+    title: "Plano de Estudos",
+    description: "Trilha de aprendizado personalizada para acelerar sua evolução",
+    badge: "IA",
   },
 ] as const
 
@@ -40,9 +44,16 @@ export function ToolsGrid() {
                 <tool.icon className="h-6 w-6" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-foreground">
-                  {tool.title}
-                </h3>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {tool.title}
+                  </h3>
+                  {tool.badge && (
+                    <span className="text-[10px] font-bold uppercase tracking-widest bg-primary/15 text-primary px-1.5 py-0.5 rounded-full">
+                      {tool.badge}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {tool.description}
                 </p>

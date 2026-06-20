@@ -11,14 +11,21 @@ const NAV_ITEMS = [
     label: "Início",
     icon: Home,
     matchPrefix: "/minhas-mentorias/historico",
+    extraPaths: [] as string[],
   },
   {
     href: "/minhas-mentorias/ferramentas",
     label: "Ferramentas",
     icon: Wrench,
     matchPrefix: "/minhas-mentorias/ferramentas",
+    extraPaths: [
+      "/minhas-mentorias/curriculo",
+      "/minhas-mentorias/linkedin",
+      "/minhas-mentorias/oportunidades",
+      "/minhas-mentorias/plano-de-estudos",
+    ],
   },
-] as const
+]
 
 interface BottomNavProps {
   onProfileClick: () => void
@@ -35,7 +42,9 @@ export function BottomNav({ onProfileClick }: BottomNavProps) {
     >
       <div className="flex h-16 items-stretch">
         {NAV_ITEMS.map((item) => {
-          const isActive = pathname.startsWith(item.matchPrefix)
+          const isActive =
+          pathname.startsWith(item.matchPrefix) ||
+          item.extraPaths.some((p) => pathname.startsWith(p))
           return (
             <Link
               key={item.href}
