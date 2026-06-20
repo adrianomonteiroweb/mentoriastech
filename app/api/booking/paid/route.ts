@@ -15,6 +15,7 @@ import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { paidMentorshipRequestToMentorEmail } from "@/lib/email-templates"
 import {
   PagarmeError,
+  chargeFailureDetail,
   chargePixDetails,
   chargeStatusToPaymentStatus,
   createPixOrder,
@@ -341,7 +342,14 @@ export async function POST(request: Request) {
         })
         .where(eq(bookings.id, booking.id))
 
-      console.error("[booking/paid] Pagar.me order without QR code:", order.id)
+      console.error("[booking/paid] Pagar.me order without QR code:", {
+        orderId: order.id,
+        orderStatus: order.status,
+        chargeId: charge?.id,
+        chargeStatus: charge?.status,
+        detail: chargeFailureDetail(charge),
+        lastTransaction: charge?.last_transaction,
+      })
       return NextResponse.json(
         { error: "Nao foi possivel gerar o Pix. Tente novamente em instantes." },
         { status: 502 },

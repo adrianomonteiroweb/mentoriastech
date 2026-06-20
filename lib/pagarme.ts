@@ -47,10 +47,21 @@ export type PagarmeChargeStatus =
   | "refunded"
   | "chargedback"
 
+export interface PagarmeGatewayResponse {
+  code?: string | null
+  errors?: Array<{ message?: string | null } | string> | null
+}
+
 export interface PagarmeLastTransaction {
   qr_code?: string | null
   qr_code_url?: string | null
   expires_at?: string | null
+  // Campos de diagnostico presentes quando a cobranca PIX falha
+  status?: string | null
+  success?: boolean | null
+  gateway_response?: PagarmeGatewayResponse | null
+  acquirer_message?: string | null
+  acquirer_return_code?: string | null
 }
 
 export interface PagarmeCharge {
@@ -192,6 +203,37 @@ export function chargePixDetails(charge: PagarmeCharge | null | undefined) {
     hostedInstructionsUrl: null as string | null,
     expiresAt: expiresAt && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null,
   }
+}
+
+// Monta uma string concisa explicando por que uma charge nao gerou QR Code,
+// para uso em log no servidor (Pagar.me responde 2xx mas a cobranca falhou).
+export function chargeFailureDetail(charge: PagarmeCharge | null | undefined): string {
+  if (!charge) return "pedido sem charge"
+
+  const parts: string[] = [`charge.status=${charge.status ?? "?"}`]
+  const tx = charge.last_transaction
+
+  if (!tx) {
+    parts.push("sem last_transaction")
+    return parts.join(" | ")
+  }
+
+  if (tx.status) parts.push(`tx.status=${tx.status}`)
+  if (tx.success === false) parts.push("tx.success=false")
+  if (tx.acquirer_message) parts.push(`acquirer=${tx.acquirer_message}`)
+
+  const gateway = tx.gateway_response
+  if (gateway) {
+    if (gateway.code) parts.push(`gateway.code=${gateway.code}`)
+    if (Array.isArray(gateway.errors) && gateway.errors.length) {
+      const messages = gateway.errors
+        .map((err) => (typeof err === "string" ? err : err?.message))
+        .filter((msg): msg is string => Boolean(msg))
+      if (messages.length) parts.push(`gateway.errors=${messages.join("; ")}`)
+    }
+  }
+
+  return parts.join(" | ")
 }
 
 export function chargeStatusToPaymentStatus(status: string): PaymentStatus {

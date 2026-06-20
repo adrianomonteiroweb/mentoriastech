@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import {
   PagarmeError,
+  chargeFailureDetail,
   chargePixDetails,
   createPixOrder,
   firstCharge,
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
     const pix = chargePixDetails(charge)
 
     if (!pix.data && !pix.imageUrlPng) {
+      console.error("[donate] Pagar.me order sem QR code:", {
+        orderId: order?.id,
+        orderStatus: order?.status,
+        chargeId: charge?.id,
+        chargeStatus: charge?.status,
+        detail: chargeFailureDetail(charge),
+        lastTransaction: charge?.last_transaction,
+      })
       return NextResponse.json(
         { error: "Nao foi possivel gerar o QR Code PIX. Tente novamente." },
         { status: 502 },
@@ -61,6 +70,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
+    console.error("[donate] Pagar.me error:", error)
     const status = error instanceof PagarmeError ? error.status : 500
     return NextResponse.json(
       { error: pagarmePixOrderErrorMessage(error) },
