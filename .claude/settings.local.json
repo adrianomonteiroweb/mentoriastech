@@ -53,7 +53,8 @@
       "Bash(xargs grep -l \"resume\\\\|curriculo\")",
       "Bash(ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\plans\\\\\" 2>/dev/null; echo \"---\"; ls \"C:\\\\Users\\\\Gabriele Bernardo\\\\.claude\\\\\" 2>/dev/null)",
       "Read(//c/Users/Gabriele Bernardo/.claude/**)",
-      "Read(//c/Users/Gabriele Bernardo/.claude/plans/**)"
+      "Read(//c/Users/Gabriele Bernardo/.claude/plans/**)",
+      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"; if \\(-not \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\plans\"\\)\\) { New-Item -ItemType Directory -Force \"$env:USERPROFILE\\\\.claude\\\\plans\" })"
     ]
   }
 }

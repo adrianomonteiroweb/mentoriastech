@@ -29,11 +29,11 @@ function formatDuration(seconds: number | null) {
   return `${m}:${s.toString().padStart(2, "0")}`
 }
 
-function typeIcon(type: string, mimeType: string | null) {
-  if (type === "note") return <StickyNote className="h-3.5 w-3.5 text-amber-500" />
-  if (type === "audio") return <Mic className="h-3.5 w-3.5 text-green-500" />
-  if (mimeType?.includes("pdf")) return <FileText className="h-3.5 w-3.5 text-red-500" />
-  return <Paperclip className="h-3.5 w-3.5 text-blue-500" />
+function TypeIcon({ type, mimeType }: { type: string; mimeType: string | null }) {
+  if (type === "note") return <StickyNote className="h-5 w-5 text-amber-500" aria-hidden="true" />
+  if (type === "audio") return <Mic className="h-5 w-5 text-green-500" aria-hidden="true" />
+  if (mimeType?.includes("pdf")) return <FileText className="h-5 w-5 text-red-500" aria-hidden="true" />
+  return <Paperclip className="h-5 w-5 text-blue-500" aria-hidden="true" />
 }
 
 export function BookingAttachmentsView({ bookingId }: { bookingId: string }) {
@@ -50,65 +50,77 @@ export function BookingAttachmentsView({ bookingId }: { bookingId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-        <Loader2 className="h-3 w-3 animate-spin" />
+      <div className="flex items-center gap-2 py-4 text-base text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         Carregando materiais...
       </div>
     )
   }
 
-  if (!attachments || attachments.length === 0) return null
+  if (!attachments || attachments.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <Paperclip className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" aria-hidden="true" />
+        <p className="text-base text-muted-foreground">
+          Nenhum documento anexado a esta sessão.
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-        <Paperclip className="h-3.5 w-3.5" />
+    <div className="flex flex-col gap-3" role="list" aria-label="Materiais e documentos">
+      <h4 className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+        <Paperclip className="h-4 w-4" aria-hidden="true" />
         Materiais ({attachments.length})
       </h4>
-      <div className="flex flex-col gap-2">
-        {attachments.map((a) => (
-          <div
-            key={a.id}
-            className="flex items-start gap-2.5 rounded-md border border-border bg-background/50 px-3 py-2"
-          >
-            <div className="mt-0.5">{typeIcon(a.type, a.mimeType)}</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
-              {a.fileSizeBytes && (
-                <span className="text-xs text-muted-foreground">{formatBytes(a.fileSizeBytes)}</span>
-              )}
-              {a.type === "note" && a.content && (
-                <p className="mt-1 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                  {a.content}
-                </p>
-              )}
-              {a.type === "audio" && a.fileUrl && (
-                <div className="mt-1.5 flex flex-col gap-1">
-                  {a.durationSeconds && (
-                    <span className="text-xs text-muted-foreground">
-                      Duracao: {formatDuration(a.durationSeconds)}
-                    </span>
-                  )}
-                  <audio controls className="w-full h-8" preload="metadata">
-                    <source src={a.fileUrl} type={a.mimeType || "audio/webm"} />
-                  </audio>
-                </div>
-              )}
-            </div>
-            {a.fileUrl && a.type !== "audio" && (
-              <a
-                href={a.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 shrink-0"
-              >
-                <Download className="h-3 w-3" />
-                Baixar
-              </a>
+      {attachments.map((a) => (
+        <div
+          key={a.id}
+          role="listitem"
+          className="flex items-start gap-3 rounded-lg border border-border bg-background/50 px-4 py-3"
+        >
+          <div className="mt-0.5 shrink-0">
+            <TypeIcon type={a.type} mimeType={a.mimeType} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-medium text-foreground truncate">{a.title}</p>
+            {a.fileSizeBytes && (
+              <span className="text-sm text-muted-foreground">{formatBytes(a.fileSizeBytes)}</span>
+            )}
+            {a.type === "note" && a.content && (
+              <p className="mt-1.5 text-base text-foreground whitespace-pre-wrap leading-relaxed">
+                {a.content}
+              </p>
+            )}
+            {a.type === "audio" && a.fileUrl && (
+              <div className="mt-2 flex flex-col gap-1">
+                {a.durationSeconds && (
+                  <span className="text-sm text-muted-foreground">
+                    Duração: {formatDuration(a.durationSeconds)}
+                  </span>
+                )}
+                <audio controls className="w-full h-10" preload="metadata">
+                  <source src={a.fileUrl} type={a.mimeType || "audio/webm"} />
+                  Seu navegador não suporta áudio.
+                </audio>
+              </div>
             )}
           </div>
-        ))}
-      </div>
+          {a.fileUrl && a.type !== "audio" && (
+            <a
+              href={a.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 min-h-[44px] text-sm font-medium text-primary hover:bg-primary/20 shrink-0 transition-colors"
+              aria-label={`Baixar ${a.title}`}
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Baixar
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   )
 }

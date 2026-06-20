@@ -14,7 +14,12 @@ export interface MenteeBookingItem {
   adminNotes: string | null
   notes: string | null
   guestName: string | null
+  googleMeetUrl: string | null
+  mentorshipChecklist: { id: string; label: string; checked: boolean }[] | null
   createdAt: Date
+  taskCount: number
+  taskCompletedCount: number
+  attachmentCount: number
 }
 
 export async function getMenteeBookingsByEmail(
@@ -36,7 +41,12 @@ export async function getMenteeBookingsByEmail(
       adminNotes: bookings.adminNotes,
       notes: bookings.notes,
       guestName: bookings.guestName,
+      googleMeetUrl: bookings.googleMeetUrl,
+      mentorshipChecklist: bookings.mentorshipChecklist,
       createdAt: bookings.createdAt,
+      taskCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id}), 0)`,
+      taskCompletedCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id} AND bt.completed = true), 0)`,
+      attachmentCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_attachments ba WHERE ba.booking_id = ${bookings.id}), 0)`,
     })
     .from(bookings)
     .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
@@ -55,6 +65,49 @@ export async function getMenteeBookingsByEmail(
           sql`${bookings.adminNotes} IS NOT NULL AND ${bookings.adminNotes} <> ''`,
           sql`EXISTS (SELECT 1 FROM booking_attachments ba WHERE ba.booking_id = ${bookings.id})`,
         ),
+      ),
+    )
+    .orderBy(desc(bookings.sessionDate), desc(bookings.createdAt))
+
+  return rows
+}
+
+export async function getAllMenteeBookingsByEmail(
+  email: string,
+): Promise<MenteeBookingItem[]> {
+  const normalized = email.trim().toLowerCase()
+
+  const rows = await db
+    .select({
+      id: bookings.id,
+      sessionDate: bookings.sessionDate,
+      startTime: bookings.startTime,
+      topicName: mentoringTopics.name,
+      status: bookings.status,
+      bookingType: bookings.bookingType,
+      topicsDiscussed: bookings.topicsDiscussed,
+      menteeStrengths: bookings.menteeStrengths,
+      menteeGrowthAreas: bookings.menteeGrowthAreas,
+      adminNotes: bookings.adminNotes,
+      notes: bookings.notes,
+      guestName: bookings.guestName,
+      googleMeetUrl: bookings.googleMeetUrl,
+      mentorshipChecklist: bookings.mentorshipChecklist,
+      createdAt: bookings.createdAt,
+      taskCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id}), 0)`,
+      taskCompletedCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id} AND bt.completed = true), 0)`,
+      attachmentCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_attachments ba WHERE ba.booking_id = ${bookings.id}), 0)`,
+    })
+    .from(bookings)
+    .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))
+    .leftJoin(profiles, eq(bookings.menteeId, profiles.id))
+    .where(
+      and(
+        or(
+          eq(bookings.guestEmail, normalized),
+          eq(profiles.email, normalized),
+        ),
+        sql`${bookings.status} != 'cancelled'`,
       ),
     )
     .orderBy(desc(bookings.sessionDate), desc(bookings.createdAt))
@@ -82,7 +135,12 @@ export async function getMenteeBookingByIdForEmail(
       adminNotes: bookings.adminNotes,
       notes: bookings.notes,
       guestName: bookings.guestName,
+      googleMeetUrl: bookings.googleMeetUrl,
+      mentorshipChecklist: bookings.mentorshipChecklist,
       createdAt: bookings.createdAt,
+      taskCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id}), 0)`,
+      taskCompletedCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_tasks bt WHERE bt.booking_id = ${bookings.id} AND bt.completed = true), 0)`,
+      attachmentCount: sql<number>`COALESCE((SELECT COUNT(*)::int FROM booking_attachments ba WHERE ba.booking_id = ${bookings.id}), 0)`,
     })
     .from(bookings)
     .leftJoin(mentoringTopics, eq(bookings.topicId, mentoringTopics.id))

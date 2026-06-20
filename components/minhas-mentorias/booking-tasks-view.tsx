@@ -12,6 +12,7 @@ import {
   Paperclip,
   Square,
 } from "lucide-react"
+import { TaskProgressBar } from "./task-progress-bar"
 
 interface TaskItem {
   id: string
@@ -80,122 +81,133 @@ export function BookingTasksView({ bookingId }: { bookingId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-        <Loader2 className="h-3 w-3 animate-spin" />
+      <div className="flex items-center gap-2 py-4 text-base text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         Carregando tarefas...
       </div>
     )
   }
 
-  if (!tasks || tasks.length === 0) return null
+  if (!tasks || tasks.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <CheckSquare className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" aria-hidden="true" />
+        <p className="text-base text-muted-foreground">
+          Nenhuma tarefa registrada para esta sessão.
+        </p>
+      </div>
+    )
+  }
 
   const completedCount = tasks.filter((t) => t.completed).length
 
   return (
-    <div className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-        <CheckSquare className="h-3.5 w-3.5" />
-        Tarefas ({completedCount}/{tasks.length})
-      </h4>
-      <div className="flex flex-col gap-2">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className="rounded-md border border-border bg-background/50"
-          >
-            <div className="flex items-center gap-2.5 px-3 py-2">
+    <div className="flex flex-col gap-3" role="list" aria-label="Tarefas da sessão">
+      <TaskProgressBar completed={completedCount} total={tasks.length} />
+
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          role="listitem"
+          className="rounded-lg border border-border bg-background/50"
+        >
+          <div className="flex items-center gap-3 px-4 min-h-[48px]">
+            <button
+              type="button"
+              onClick={() => toggleCompleted(task)}
+              disabled={togglingId === task.id}
+              className="shrink-0 p-2 -ml-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              aria-label={`Marcar tarefa como ${task.completed ? "pendente" : "concluída"}: ${task.title}`}
+            >
+              {togglingId === task.id ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+              ) : task.completed ? (
+                <CheckSquare className="h-5 w-5 text-emerald-500" aria-hidden="true" />
+              ) : (
+                <Square className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              )}
+            </button>
+            <span
+              className={`flex-1 text-base ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
+            >
+              {task.title}
+            </span>
+            {task.items.length > 0 && (
               <button
                 type="button"
-                onClick={() => toggleCompleted(task)}
-                disabled={togglingId === task.id}
-                className="shrink-0"
+                onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}
+                className="flex items-center gap-1.5 rounded-lg px-2 min-h-[44px] text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+                aria-expanded={expandedId === task.id}
+                aria-label={`${task.items.length} ${task.items.length === 1 ? "item" : "itens"} anexados`}
               >
-                {togglingId === task.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                ) : task.completed ? (
-                  <CheckSquare className="h-4 w-4 text-green-500" />
+                {task.items.length} {task.items.length === 1 ? "item" : "itens"}
+                {expandedId === task.id ? (
+                  <ChevronUp className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <Square className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
                 )}
               </button>
-              <span
-                className={`flex-1 text-sm ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}
-              >
-                {task.title}
-              </span>
-              {task.items.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                >
-                  {task.items.length} item{task.items.length !== 1 ? "s" : ""}
-                  {expandedId === task.id ? (
-                    <ChevronUp className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                </button>
-              )}
-            </div>
-
-            {expandedId === task.id && task.items.length > 0 && (
-              <div className="border-t border-border px-3 py-2 flex flex-col gap-2">
-                {task.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-2 rounded-md bg-secondary/30 px-2.5 py-1.5"
-                  >
-                    <div className="mt-0.5">
-                      {item.type === "comment" && <MessageSquare className="h-3.5 w-3.5 text-amber-500" />}
-                      {item.type === "audio" && <Mic className="h-3.5 w-3.5 text-green-500" />}
-                      {item.type === "file" && <Paperclip className="h-3.5 w-3.5 text-blue-500" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {item.title && (
-                        <p className="text-xs font-medium truncate">{item.title}</p>
-                      )}
-                      {item.type === "comment" && item.content && (
-                        <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">
-                          {item.content}
-                        </p>
-                      )}
-                      {item.type === "audio" && item.fileUrl && (
-                        <div className="flex flex-col gap-1 mt-1">
-                          {item.durationSeconds != null && (
-                            <span className="text-[10px] text-muted-foreground">
-                              Duracao: {formatDuration(item.durationSeconds)}
-                            </span>
-                          )}
-                          <audio controls className="w-full h-7" preload="metadata">
-                            <source src={item.fileUrl} type={item.mimeType || "audio/webm"} />
-                          </audio>
-                        </div>
-                      )}
-                      {item.type === "file" && item.fileSizeBytes && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatBytes(item.fileSizeBytes)}
-                        </span>
-                      )}
-                    </div>
-                    {item.fileUrl && item.type !== "audio" && (
-                      <a
-                        href={item.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-md border border-primary/40 bg-primary/10 px-2 py-1 text-[10px] text-primary hover:bg-primary/20 shrink-0"
-                      >
-                        <Download className="h-3 w-3" />
-                        Baixar
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
             )}
           </div>
-        ))}
-      </div>
+
+          {expandedId === task.id && task.items.length > 0 && (
+            <div className="border-t border-border px-4 py-3 flex flex-col gap-2">
+              {task.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 rounded-lg bg-secondary/30 px-3 py-2.5"
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {item.type === "comment" && <MessageSquare className="h-4 w-4 text-amber-500" aria-hidden="true" />}
+                    {item.type === "audio" && <Mic className="h-4 w-4 text-green-500" aria-hidden="true" />}
+                    {item.type === "file" && <Paperclip className="h-4 w-4 text-blue-500" aria-hidden="true" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {item.title && (
+                      <p className="text-sm font-medium truncate">{item.title}</p>
+                    )}
+                    {item.type === "comment" && item.content && (
+                      <p className="text-base text-foreground whitespace-pre-wrap leading-relaxed">
+                        {item.content}
+                      </p>
+                    )}
+                    {item.type === "audio" && item.fileUrl && (
+                      <div className="flex flex-col gap-1 mt-1">
+                        {item.durationSeconds != null && (
+                          <span className="text-sm text-muted-foreground">
+                            Duração: {formatDuration(item.durationSeconds)}
+                          </span>
+                        )}
+                        <audio controls className="w-full h-10" preload="metadata">
+                          <source src={item.fileUrl} type={item.mimeType || "audio/webm"} />
+                          Seu navegador não suporta áudio.
+                        </audio>
+                      </div>
+                    )}
+                    {item.type === "file" && item.fileSizeBytes && (
+                      <span className="text-sm text-muted-foreground">
+                        {formatBytes(item.fileSizeBytes)}
+                      </span>
+                    )}
+                  </div>
+                  {item.fileUrl && item.type !== "audio" && (
+                    <a
+                      href={item.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/10 px-2.5 min-h-[40px] text-sm text-primary hover:bg-primary/20 shrink-0 transition-colors"
+                      aria-label={`Baixar ${item.title || "arquivo"}`}
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                      Baixar
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
