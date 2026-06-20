@@ -81,6 +81,8 @@ export function toPaidMentorship(row: DbPaidMentorship): PaidMentorship {
     mentor_email: row.mentorEmail,
     sort_order: row.sortOrder,
     is_active: row.isActive,
+    view_count: row.viewCount,
+    click_count: row.clickCount,
     created_by: row.createdBy,
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
@@ -94,6 +96,8 @@ export function toPublicPaidMentorship(row: DbPaidMentorship) {
     created_by: _createdBy,
     created_at: _createdAt,
     updated_at: _updatedAt,
+    view_count: _viewCount,
+    click_count: _clickCount,
     ...publicMentorship
   } = mentorship
 

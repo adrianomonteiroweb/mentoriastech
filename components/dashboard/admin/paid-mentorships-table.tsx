@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PaidMentorshipForm } from "@/components/dashboard/admin/paid-mentorship-form"
-import { Trash2, Eye, EyeOff, Pencil } from "lucide-react"
+import { Trash2, Eye, EyeOff, Pencil, MousePointerClick, Percent } from "lucide-react"
 import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 import type { PaidMentorship } from "@/lib/types/database"
 
@@ -75,6 +75,19 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
     loadMentorships()
   }
 
+  function getConversion(item: PaidMentorship) {
+    if (item.view_count <= 0) return null
+    return (item.click_count / item.view_count) * 100
+  }
+
+  function getConversionClass(item: PaidMentorship) {
+    const conversion = getConversion(item)
+    if (conversion == null) return "text-muted-foreground"
+    if (conversion >= 5) return "text-green-500"
+    if (conversion >= 2) return "text-yellow-500"
+    return "text-muted-foreground"
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -91,6 +104,9 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
               <TableHead>Valor</TableHead>
               <TableHead className="hidden sm:table-cell">Mentor</TableHead>
               <TableHead className="hidden md:table-cell">Ordem</TableHead>
+              <TableHead className="hidden sm:table-cell">Visualizacoes</TableHead>
+              <TableHead className="hidden sm:table-cell">Cliques</TableHead>
+              <TableHead className="hidden lg:table-cell">Conversao</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Acoes</TableHead>
             </TableRow>
@@ -99,14 +115,14 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
                   ))}
                 </TableRow>
               ))
             ) : items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhuma mentoria paga cadastrada
                 </TableCell>
               </TableRow>
@@ -119,6 +135,26 @@ export function PaidMentorshipsTable({ refreshKey = 0 }: PaidMentorshipsTablePro
                     {item.mentor_email || "—"}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-xs text-muted-foreground">{item.sort_order}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <Eye className="h-3 w-3" />
+                      {item.view_count}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <MousePointerClick className="h-3 w-3" />
+                      {item.click_count}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium ${getConversionClass(item)}`}>
+                      <Percent className="h-3 w-3" />
+                      {item.view_count > 0
+                        ? ((item.click_count / item.view_count) * 100).toFixed(1) + "%"
+                        : "—"}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <button
                       onClick={() => toggleActive(item.id, item.is_active)}

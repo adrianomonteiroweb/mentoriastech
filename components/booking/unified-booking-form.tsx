@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useCallback, useState, useMemo } from "react";
+import { useEffect, useReducer, useCallback, useState, useMemo, useRef } from "react";
 import {
   bookingReducer,
   initialBookingState,
@@ -54,6 +54,21 @@ const FALLBACK_TOPICS: TopicItem[] = [
   { id: "f6", name: "Automações RPA", category: "free", description: null },
 ];
 
+// Tracking best-effort de mentorias pagas (visualização/clique).
+// Falhas nunca devem quebrar o fluxo de agendamento.
+async function trackPaidMentorshipEvent(id: string, event: "view" | "click") {
+  try {
+    await fetch(`/api/paid-mentorships/${id}/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event }),
+      keepalive: true,
+    });
+  } catch {
+    // ignora
+  }
+}
+
 interface UnifiedBookingFormProps {
   defaultType?: string;
 }
@@ -69,6 +84,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
   >([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [scheduleLoadError, setScheduleLoadError] = useState(false);
+  const viewedPaid = useRef<Set<string>>(new Set());
 
   // Load schedule + topics + paid mentorships + auth
   useEffect(() => {
@@ -128,6 +144,16 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
       .catch(() => {});
   }, []);
 
+  // Registra uma visualização por mentoria paga exibida (uma vez por carregamento).
+  useEffect(() => {
+    for (const pm of paidMentorships) {
+      if (!viewedPaid.current.has(pm.id)) {
+        viewedPaid.current.add(pm.id);
+        void trackPaidMentorshipEvent(pm.id, "view");
+      }
+    }
+  }, [paidMentorships]);
+
   // Merge free topics + paid mentorships into a single unified list
   const allTopics: TopicItem[] = useMemo(() => {
     const freeItems = topics.filter((t) => t.category === "free");
@@ -172,6 +198,27 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
       goToStep(state.step - 1);
     }
   }, [state.step, goToStep]);
+
+  const handleSelectTopic = useCallback(
+    (id: string, name: string, category: string) => {
+      dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
+
+      if (category === "paid") {
+        if (id.startsWith("paid-")) {
+          void trackPaidMentorshipEvent(id.slice("paid-".length), "click");
+        }
+        if (state.mentoringType !== "paid") {
+          dispatch({ type: "SET_MENTORING_TYPE", mentoringType: "paid" });
+          // Re-set topic since SET_MENTORING_TYPE clears it
+          dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
+        }
+      } else if (category === "free" && state.mentoringType !== "free") {
+        dispatch({ type: "SET_MENTORING_TYPE", mentoringType: "free" });
+        dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
+      }
+    },
+    [state.mentoringType],
+  );
 
   async function handleSubmit() {
     dispatch({ type: "SET_STATUS", status: "loading" });
@@ -255,26 +302,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
               selectedTopicId={state.topicId}
               loading={dataLoading}
               availableFreeSlots={availableFreeSlots}
-              onSelect={(id, name, category) => {
-                dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-                if (category === "paid" && state.mentoringType !== "paid") {
-                  dispatch({
-                    type: "SET_MENTORING_TYPE",
-                    mentoringType: "paid",
-                  });
-                  // Re-set topic since SET_MENTORING_TYPE clears it
-                  dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-                } else if (
-                  category === "free" &&
-                  state.mentoringType !== "free"
-                ) {
-                  dispatch({
-                    type: "SET_MENTORING_TYPE",
-                    mentoringType: "free",
-                  });
-                  dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-                }
-              }}
+              onSelect={handleSelectTopic}
               onNext={goNext}
               onBack={() => {}}
             />
@@ -379,19 +407,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
             selectedTopicId={state.topicId}
             loading={dataLoading}
             availableFreeSlots={availableFreeSlots}
-            onSelect={(id, name, category) => {
-              dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-              if (category === "paid" && state.mentoringType !== "paid") {
-                dispatch({ type: "SET_MENTORING_TYPE", mentoringType: "paid" });
-                dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-              } else if (
-                category === "free" &&
-                state.mentoringType !== "free"
-              ) {
-                dispatch({ type: "SET_MENTORING_TYPE", mentoringType: "free" });
-                dispatch({ type: "SET_TOPIC", topicId: id, topicName: name });
-              }
-            }}
+            onSelect={handleSelectTopic}
             onNext={goNext}
             onBack={() => {}}
           />

@@ -160,6 +160,8 @@ export interface PaidMentorship {
   mentor_email: string
   sort_order: number
   is_active: boolean
+  view_count: number
+  click_count: number
   created_by: string | null
   created_at: string
   updated_at: string
@@ -167,7 +169,7 @@ export interface PaidMentorship {
 
 export type PublicPaidMentorship = Omit<
   PaidMentorship,
-  "mentor_email" | "created_by" | "created_at" | "updated_at"
+  "mentor_email" | "created_by" | "created_at" | "updated_at" | "view_count" | "click_count"
 >
 
 // -----------------------------------------------------------------------------
