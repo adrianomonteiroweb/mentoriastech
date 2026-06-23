@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Bot, Code2, GraduationCap } from "lucide-react"
+import { ArrowRight, Bot, Clock, Code2, GraduationCap } from "lucide-react"
 
 const highlights = [
   { label: "Software", icon: Code2 },
@@ -75,13 +75,19 @@ export function HeroSection() {
         ))}
       </div>
 
-      <Link
-        href="#booking"
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition-all duration-200 hover:bg-primary/90 focus-visible:bg-primary/90"
-      >
-        Solicitar mentoria
-        <ArrowRight className="h-4 w-4" />
-      </Link>
+      <div className="flex w-full flex-col items-center gap-2">
+        <Link
+          href="#booking"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition-all duration-200 hover:bg-primary/90 focus-visible:bg-primary/90"
+        >
+          Solicitar mentoria
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-300/90">
+          <Clock className="h-3 w-3" aria-hidden="true" />
+          Poucas vagas gratuitas por mês
+        </p>
+      </div>
     </header>
   )
 }

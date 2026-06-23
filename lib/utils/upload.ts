@@ -103,6 +103,21 @@ const OGG_RULE: UploadTypeRule = {
     bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53,
 }
 
+const WAV_RULE: UploadTypeRule = {
+  mime: "audio/wav",
+  extensions: [".wav"],
+  // "RIFF" .... "WAVE" (distingue de WEBP, que tem "WEBP" no offset 8)
+  matchesSignature: (bytes) =>
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x41 &&
+    bytes[10] === 0x56 &&
+    bytes[11] === 0x45,
+}
+
 const KNOWN_BINARY_PREFIXES: number[][] = [
   [0x25, 0x50, 0x44, 0x46],
   [0x89, 0x50, 0x4e, 0x47],
@@ -154,7 +169,7 @@ const UPLOAD_CONFIG: Record<UploadCategory, UploadCategoryConfig> = {
       PDF_RULE, DOC_RULE, DOCX_RULE,
       PNG_RULE, JPEG_RULE, WEBP_RULE,
       TXT_RULE,
-      WEBM_RULE, MP4_AUDIO_RULE, OGG_RULE,
+      WEBM_RULE, MP4_AUDIO_RULE, OGG_RULE, WAV_RULE,
     ],
   },
 }

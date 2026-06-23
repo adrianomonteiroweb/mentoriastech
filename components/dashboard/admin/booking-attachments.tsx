@@ -18,7 +18,8 @@ import {
   X,
 } from "lucide-react"
 import type { BookingAttachment } from "@/lib/db/schema"
-import { fixInfiniteAudioDuration } from "@/lib/utils/audio"
+import { fixInfiniteAudioDuration, blobToWav } from "@/lib/utils/audio"
+import fixWebmDuration from "fix-webm-duration"
 
 type ActiveMode = null | "file" | "note" | "audio"
 
@@ -384,6 +385,7 @@ function stripMimeParams(mime: string): string {
 
 function extensionForMime(mime: string | undefined): string {
   if (!mime) return "webm"
+  if (mime.includes("wav")) return "wav"
   if (mime.includes("mp4")) return "m4a"
   if (mime.includes("ogg")) return "ogg"
   return "webm"
@@ -407,6 +409,8 @@ function AudioRecorder({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef(0)
   const detectedMimeRef = useRef<string | undefined>(undefined)
+  const fixedBlobRef = useRef<Blob | null>(null)
+  const durationRef = useRef(0)
 
   function cleanup() {
     if (timerRef.current) clearInterval(timerRef.current)
@@ -432,10 +436,33 @@ function AudioRecorder({
         if (e.data.size > 0) chunksRef.current.push(e.data)
       }
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const blobType = stripMimeParams(detectedMimeRef.current || "audio/webm")
-        const blob = new Blob(chunksRef.current, { type: blobType })
-        const url = URL.createObjectURL(blob)
+        const rawBlob = new Blob(chunksRef.current, { type: blobType })
+        // Converte p/ WAV (sempre toca, tem duração e é seekável). Se a conversão
+        // falhar, mantém o WebM mas reescreve a duração no header (fallback).
+        let finalBlob: Blob = rawBlob
+        let durationSec = elapsed
+        try {
+          const wav = await blobToWav(rawBlob)
+          finalBlob = wav.blob
+          durationSec = Math.max(1, Math.round(wav.durationSeconds))
+        } catch {
+          if (blobType.includes("webm") && rawBlob.size > 0) {
+            try {
+              finalBlob = await fixWebmDuration(
+                rawBlob,
+                Math.max(0, Date.now() - startTimeRef.current),
+                { logger: false },
+              )
+            } catch {
+              finalBlob = rawBlob
+            }
+          }
+        }
+        fixedBlobRef.current = finalBlob
+        durationRef.current = durationSec
+        const url = URL.createObjectURL(finalBlob)
         setAudioUrl(url)
         setState("recorded")
         stream.getTracks().forEach((t) => t.stop())
@@ -477,16 +504,18 @@ function AudioRecorder({
   }
 
   async function upload() {
-    if (!chunksRef.current.length) {
+    const blob =
+      fixedBlobRef.current ??
+      new Blob(chunksRef.current, { type: stripMimeParams(detectedMimeRef.current || "audio/webm") })
+    if (!blob.size) {
       setError("Nenhum audio capturado. Tente gravar novamente.")
       return
     }
     setState("uploading")
     setError("")
 
-    const mime = stripMimeParams(detectedMimeRef.current || "audio/webm")
-    const ext = extensionForMime(detectedMimeRef.current)
-    const blob = new Blob(chunksRef.current, { type: mime })
+    const mime = stripMimeParams(blob.type || "audio/webm")
+    const ext = extensionForMime(mime)
     const now = new Date()
     const title = `Gravacao ${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     const file = new File([blob], `${title}.${ext}`, { type: mime })
@@ -495,7 +524,7 @@ function AudioRecorder({
     form.append("file", file)
     form.append("title", title)
     form.append("type", "audio")
-    form.append("duration_seconds", String(elapsed))
+    form.append("duration_seconds", String(durationRef.current || elapsed))
 
     try {
       const res = await fetch(`/api/admin/bookings/${bookingId}/attachments`, {

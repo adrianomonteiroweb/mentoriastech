@@ -154,7 +154,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
     }
   }, [paidMentorships]);
 
-  // Merge free topics + paid mentorships into a single unified list
+  // Merge free topics + paid mentorships into a single unified list (gratuitas primeiro)
   const allTopics: TopicItem[] = useMemo(() => {
     const freeItems = topics.filter((t) => t.category === "free");
     const paidItems: TopicItem[] = paidMentorships.map((pm) => ({
@@ -167,7 +167,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
       paidMentorshipId: pm.id,
       imageUrl: pm.image_url,
     }));
-    return [...paidItems, ...freeItems];
+    return [...freeItems, ...paidItems];
   }, [topics, paidMentorships]);
 
   // Count available free slots for scarcity cue

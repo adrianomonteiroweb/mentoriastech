@@ -60,6 +60,7 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "embla-carousel-react": "8.5.1",
+    "fix-webm-duration": "^1.0.6",
     "googleapis": "^171.4.0",
     "input-otp": "1.4.1",
     "jose": "^6.2.3",

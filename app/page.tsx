@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/hero-section";
 import { ShareButton } from "@/components/share-button";
 import { SocialLinks } from "@/components/social-links";
 import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
+import { FreeSlotsNotice } from "@/components/booking/free-slots-notice";
 import { CalendarDays } from "lucide-react";
 
 export default function Page() {
@@ -39,7 +40,7 @@ export default function Page() {
             id="booking"
             aria-label="Solicitar mentoria"
           >
-            <div className="mb-5 flex flex-col gap-1.5 text-center">
+            <div className="mb-4 flex flex-col gap-1.5 text-center">
               <h2 className="text-lg font-semibold text-foreground">
                 Solicite uma conversa de mentoria
               </h2>
@@ -47,6 +48,9 @@ export default function Page() {
                 Escolha um tema e horário. A partir daí, a conversa já começa
                 com contexto.
               </p>
+            </div>
+            <div className="mb-5">
+              <FreeSlotsNotice />
             </div>
             <MentorshipRequestTabs />
           </section>
