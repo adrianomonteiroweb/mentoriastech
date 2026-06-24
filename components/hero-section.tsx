@@ -83,7 +83,7 @@ export function HeroSection() {
           Solicitar mentoria
           <ArrowRight className="h-4 w-4" />
         </Link>
-        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-300/90">
+        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600/90 dark:text-amber-300/90">
           <Clock className="h-3 w-3" aria-hidden="true" />
           Poucas vagas gratuitas por mês
         </p>

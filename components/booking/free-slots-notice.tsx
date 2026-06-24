@@ -12,16 +12,16 @@ export function FreeSlotsNotice() {
       className="flex items-start gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3"
     >
       <Clock
-        className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300"
+        className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-300"
         aria-hidden="true"
       />
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm font-semibold text-amber-200">
+        <span className="text-sm font-semibold text-amber-700 dark:text-amber-200">
           Vagas gratuitas são limitadas
         </span>
-        <p className="text-xs leading-relaxed text-amber-100/80">
+        <p className="text-xs leading-relaxed text-amber-700/80 dark:text-amber-100/80">
           Reservamos cerca de{" "}
-          <strong className="font-semibold text-amber-100">
+          <strong className="font-semibold text-amber-900 dark:text-amber-100">
             20% da agenda de cada mês
           </strong>{" "}
           para mentorias gratuitas. Quando elas se esgotam, novas vagas só abrem

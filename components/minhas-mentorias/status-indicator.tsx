@@ -17,7 +17,7 @@ const STATUS_CONFIG: Record<
   pending: {
     label: "Pendente",
     icon: Hourglass,
-    className: "text-amber-500 bg-amber-500/10 border-amber-500/30",
+    className: "text-amber-700 dark:text-amber-500 bg-amber-500/10 border-amber-500/30",
   },
   confirmed: {
     label: "Confirmado",

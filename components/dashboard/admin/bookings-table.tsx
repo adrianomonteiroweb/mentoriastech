@@ -50,7 +50,7 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 }
 
 const STATUS_COLORS: Record<BookingStatus, string> = {
-  pending: "bg-yellow-500/10 text-yellow-500",
+  pending: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-500",
   confirmed: "bg-blue-500/10 text-blue-500",
   payment_pending: "bg-orange-500/10 text-orange-500",
   paid: "bg-green-500/10 text-green-500",

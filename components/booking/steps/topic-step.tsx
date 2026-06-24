@@ -218,7 +218,7 @@ export function TopicStep({
         availableFreeSlots > 0 &&
         availableFreeSlots <= 3 && (
           <p
-            className="flex items-center gap-1.5 text-xs font-medium text-amber-300"
+            className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300"
             aria-live="polite"
           >
             <Zap className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
@@ -280,7 +280,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
           {/* Price/free tag — uses color + text + border + icon for non-color-only differentiation */}
           {isPaid ? (
             <span
-              className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-bold uppercase text-amber-300"
+              className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-bold uppercase text-amber-700 dark:text-amber-300"
               aria-label={`Preço: ${priceLabel}`}
             >
               <Star className="h-3 w-3" aria-hidden="true" />
@@ -298,7 +298,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
           {/* Selo premium — framing de diferencial de mercado (ícone+texto, não-só-cor) */}
           {isPaid && (
             <span
-              className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200"
+              className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200"
               aria-label="Mentoria essencial para se diferenciar no mercado"
             >
               <Crown className="h-3 w-3" aria-hidden="true" />
@@ -324,7 +324,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
         {/* Value framing for paid — diferencial competitivo + benefícios */}
         {isPaid && (
           <div className="mt-0.5 flex flex-col gap-1.5">
-            <span className="text-xs font-medium leading-snug text-amber-200/90">
+            <span className="text-xs font-medium leading-snug text-amber-700/90 dark:text-amber-200/90">
               Mentoria aprofundada para você se destacar e sair na frente no
               mercado.
             </span>
@@ -436,12 +436,12 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
 
           <div className="flex flex-wrap items-center gap-2">
             {priceLabel && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-bold uppercase text-amber-300">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-xs font-bold uppercase text-amber-700 dark:text-amber-300">
                 <Star className="h-3 w-3" aria-hidden="true" />
                 {priceLabel}
               </span>
             )}
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200">
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
               <Crown className="h-3 w-3" aria-hidden="true" />
               Essencial
             </span>
@@ -454,7 +454,7 @@ function TopicCard({ topic, isSelected, onSelect, isPopular }: TopicCardProps) {
           )}
 
           <div className="flex flex-col gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-            <span className="text-sm font-medium leading-snug text-amber-200/90">
+            <span className="text-sm font-medium leading-snug text-amber-700/90 dark:text-amber-200/90">
               Mentoria aprofundada para você se destacar e sair na frente no
               mercado.
             </span>

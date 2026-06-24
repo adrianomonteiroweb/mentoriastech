@@ -53,7 +53,7 @@ export function DateTimeStep({
         {availableCount > 0 && availableCount <= 2 && (
           <Badge
             variant="secondary"
-            className="gap-1 text-amber-500 border-amber-500/30 bg-amber-500/10"
+            className="gap-1 text-amber-700 dark:text-amber-500 border-amber-500/30 bg-amber-500/10"
           >
             <AlertTriangle className="h-3 w-3" />
             Últimos horários!

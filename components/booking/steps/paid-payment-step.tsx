@@ -412,7 +412,7 @@ export function PaidPaymentStep({
             <p className="text-sm text-muted-foreground line-clamp-2">
               {paidMentorship.description}
             </p>
-            <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-300 mt-1">
+            <span className="inline-flex items-center gap-1 text-sm font-bold text-amber-700 dark:text-amber-300 mt-1">
               <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
               {formatCurrency(
                 paidMentorship.amount_cents,

@@ -23,13 +23,13 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 }
 
 const STATUS_COLORS: Record<BookingStatus, string> = {
-  pending: "border-yellow-500/30 bg-yellow-500/10 text-yellow-300",
-  confirmed: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  payment_pending: "border-orange-500/30 bg-orange-500/10 text-orange-300",
-  paid: "border-green-500/30 bg-green-500/10 text-green-300",
+  pending: "border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300",
+  confirmed: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  payment_pending: "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300",
+  paid: "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300",
   scheduled: "border-primary/30 bg-primary/10 text-primary",
-  completed: "border-emerald-600/30 bg-emerald-600/10 text-emerald-300",
-  cancelled: "border-red-500/30 bg-red-500/10 text-red-300",
+  completed: "border-emerald-600/30 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300",
+  cancelled: "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
 }
 
 const DAY_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
