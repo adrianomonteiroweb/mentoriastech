@@ -2,19 +2,21 @@
 
 ## Visao Geral
 
-Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuitas e pagas, acesso a conteudos educacionais, quadro de vagas e perfil do mentorado.
+Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuitas e pagas, acesso a conteudos educacionais, curadoria de vagas e perfil do mentorado.
 
 ---
 
 ## Funcionalidades Implementadas
 
 ### Landing Page (Linktree)
+
 - **Status**: Implementado
 - Pagina principal com perfil, links sociais e formulario de agendamento
 - Links para LinkedIn, WhatsApp e Instagram
 - Design responsivo com tema escuro
 
 ### Agendamento de Mentoria Gratuita
+
 - **Status**: Implementado
 - Formulario com nome, email, WhatsApp, tema e horario
 - Slots e topics carregados do banco de dados (com fallback hardcoded)
@@ -23,17 +25,20 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Tela de confirmacao apos envio
 
 ### Agenda Semanal Publica
+
 - **Status**: Implementado
 - Pagina `/schedule` mostrando agenda da semana com slots e bookings
 - Slots disponiveis com link para agendar
 - Slots ocupados mostram tema e primeiro nome do mentorado
 
 ### Formatacao do Numero WhatsApp
+
 - **Status**: Implementado
 - Numeros brasileiros com 10-11 digitos recebem automaticamente o codigo do pais 55
 - Aplicado no link do email de notificacao
 
 ### QR Code PIX para Doacoes
+
 - **Status**: Implementado
 - QR Code gerado automaticamente a partir da chave PIX (CPF)
 - Formato EMV padrao do Banco Central
@@ -41,6 +46,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Exibido nas paginas de conteudos e vagas
 
 ### Autenticacao
+
 - **Status**: Implementado
 - Login com email e senha (Supabase Auth)
 - Registro de novos mentorados
@@ -48,6 +54,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Criacao automatica de perfil ao registrar (trigger)
 
 ### Banco de Dados
+
 - **Status**: Implementado
 - Supabase (PostgreSQL) com Row Level Security
 - 9 tabelas: profiles, mentoring_slots, mentoring_topics, bookings, payments, content_categories, content_items, jobs, site_settings
@@ -55,6 +62,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Seeds com slots e topics iniciais
 
 ### Dashboard Admin
+
 - **Status**: Implementado
 - Visao geral com cards de estatisticas (bookings, mentees, vagas, conteudos)
 - Gerenciamento de slots e topics (CRUD)
@@ -68,6 +76,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
   curriculo, LinkedIn e portfolio de cada candidato
 
 ### Dashboard Mentee
+
 - **Status**: Implementado
 - Overview com proximos bookings
 - Edicao de perfil (nome, email, WhatsApp, LinkedIn, upload de curriculo)
@@ -75,19 +84,22 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Solicitacao de mentoria paga/privada com QR Code PIX
 
 ### Dashboard HR
+
 - **Status**: Implementado
 - Overview de vagas publicadas
 - Publicacao de vagas (auto-aprovadas) com link direto para LinkedIn/site (application_url)
 - Busca de mentorados
 
 ### Biblioteca de Conteudos
+
 - **Status**: Implementado
 - Pagina publica `/content` com filtro por categoria
 - Detalhe do conteudo: download PDF, embed YouTube, artigo renderizado
 - Upload de PDFs pelo admin (Vercel Blob, max 5MB)
 - Categorias gerenciaveis pelo admin
 
-### Quadro de Vagas
+### curadoria de Vagas
+
 - **Status**: Implementado
 - Pagina publica `/jobs` com vagas aprovadas
 - Botao "Candidatar-se" abre link direto (LinkedIn/site da empresa)
@@ -96,12 +108,14 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 - Cards com empresa, localizacao, tipo (remoto/hibrido/presencial), salario
 
 ### Upload de Arquivos
+
 - **Status**: Implementado
 - Vercel Blob para armazenamento
 - Validacao de tamanho (max 5MB) e tipo MIME
 - Upload de curriculos (PDF) e conteudos
 
 ### Google Calendar
+
 - **Status**: Implementado
 - Integracao via OAuth2 (googleapis)
 - Fluxo de consentimento na pagina de configuracoes do admin
@@ -115,6 +129,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 ### Fase 4: Polish
 
 #### Melhorias Gerais
+
 - **Status**: Planejado
 - Emails de confirmacao de booking, lembrete de pagamento, aprovacao de vagas
 - SEO e metadata dinamica para paginas de conteudo e vagas
@@ -125,17 +140,18 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 
 ## Roles de Usuario
 
-| Role | Descricao | Permissoes |
-|------|-----------|------------|
-| **admin** | Administrador | Acesso total: gerenciar schedule, bookings, conteudos, vagas, mentorados, configuracoes |
-| **mentee** | Mentorado | Agendar mentorias, ver conteudos, postar vagas (com aprovacao), completar perfil |
-| **hr** | RH / Gestor | Postar vagas sem aprovacao, pesquisar mentorados, ver historico de mentorias |
+| Role       | Descricao     | Permissoes                                                                              |
+| ---------- | ------------- | --------------------------------------------------------------------------------------- |
+| **admin**  | Administrador | Acesso total: gerenciar schedule, bookings, conteudos, vagas, mentorados, configuracoes |
+| **mentee** | Mentorado     | Agendar mentorias, ver conteudos, postar vagas (com aprovacao), completar perfil        |
+| **hr**     | RH / Gestor   | Postar vagas sem aprovacao, pesquisar mentorados, ver historico de mentorias            |
 
 ---
 
 ## Temas de Mentoria
 
 ### Gratuitos
+
 1. Programacao para outras profissoes
 2. Carreira em programacao
 3. Preparacao para entrevistas
@@ -144,6 +160,7 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 6. Automacoes RPA
 
 ### Pagos
+
 7. Acompanhamento de processo seletivo
 8. Projetos pessoais
 9. Aulas de RPA
@@ -153,26 +170,26 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 
 ## Horarios Disponiveis (Mentoria Gratuita)
 
-| Dia | Horario |
-|-----|---------|
-| Sexta-feira | 20:00 |
-| Sabado | 09:00 |
-| Sabado | 14:00 |
-| Domingo | 09:00 |
-| Domingo | 14:00 |
+| Dia         | Horario |
+| ----------- | ------- |
+| Sexta-feira | 20:00   |
+| Sabado      | 09:00   |
+| Sabado      | 14:00   |
+| Domingo     | 09:00   |
+| Domingo     | 14:00   |
 
 ---
 
 ## Integracoes
 
-| Servico | Uso | Status |
-|---------|-----|--------|
-| Supabase | Banco de dados + Auth | Implementado |
-| Vercel Blob | Armazenamento de arquivos (curriculos, PDFs) | Implementado |
-| Nodemailer (SMTP) | Envio de emails de notificacao | Implementado |
-| Google Calendar API | Agendamento automatico de mentorias pagas | Implementado |
-| PIX (Banco Central) | QR Code para doacoes e pagamentos manuais | Implementado |
-| Pagar.me (PIX) | Pagamento de mentorias pagas via PIX inline (Orders API + webhook) | Implementado |
+| Servico             | Uso                                                                | Status       |
+| ------------------- | ------------------------------------------------------------------ | ------------ |
+| Supabase            | Banco de dados + Auth                                              | Implementado |
+| Vercel Blob         | Armazenamento de arquivos (curriculos, PDFs)                       | Implementado |
+| Nodemailer (SMTP)   | Envio de emails de notificacao                                     | Implementado |
+| Google Calendar API | Agendamento automatico de mentorias pagas                          | Implementado |
+| PIX (Banco Central) | QR Code para doacoes e pagamentos manuais                          | Implementado |
+| Pagar.me (PIX)      | Pagamento de mentorias pagas via PIX inline (Orders API + webhook) | Implementado |
 
 ---
 
@@ -189,48 +206,48 @@ Plataforma de mentorias em tecnologia. Permite agendamento de mentorias gratuita
 
 ### Cobertura de Testes
 
-| Arquivo | Escopo | Testes |
-|---------|--------|--------|
-| **Componentes** | | |
-| `components/type-step.test.tsx` | Selecao de tipo de mentoria (free/paid/private) | 6 |
-| `components/topic-step.test.tsx` | Filtragem e selecao de temas | 9 |
-| `components/datetime-step.test.tsx` | Slots free/paid, disponibilidade, scarcity badge | 10 |
-| `components/contact-step.test.tsx` | Campos obrigatorios, banner autenticado, notes paid-only | 13 |
-| `components/review-step.test.tsx` | Revisao free (PIX doacao) e paid (R$50, pagamento) | 11 |
-| `components/payment-step.test.tsx` | Estados: creating, awaiting (QR/timer), succeeded, failed, expired | 13 |
-| `components/booking-success.test.tsx` | Mensagem free vs paid, reset | 6 |
-| `components/booking-stepper.test.tsx` | Barra de progresso, step indicators | 5 |
-| `components/step-navigation.test.tsx` | Botoes Voltar/Proximo, estados disabled | 8 |
-| **API Routes** | | |
-| `api/booking.test.ts` | POST /api/booking: validacao, Supabase insert, email SMTP | 13 |
-| `api/payment-create-intent.test.ts` | POST /api/payment/create-intent: validacao Zod, Stripe PaymentIntent | 9 |
-| `api/payment-webhook.test.ts` | POST /api/payment/webhook: assinatura, booking+payment insert, email [PAGO] | 11 |
-| `api/admin-bookings.test.ts` | PUT /api/admin/bookings/[id]: auth, status flow, Google Calendar, emails por status | 18 |
-| `api/admin-calendar.test.ts` | Calendar auth (OAuth consent/tokens), criar evento, validacao | 14 |
-| **Integracao** | | |
-| `integration/unified-booking-form.test.tsx` | Fluxo completo: free (5 steps) e paid (6 steps), fallback, erro | 8 |
-| `integration/booking-lifecycle.test.ts` | Ciclo de vida completo: free e paid (booking → confirm → schedule → complete) | 8 |
-| **Lib** | | |
-| `lib/booking-reducer.test.ts` | Reducer: todas as actions, step config, reset | 19 |
-| `lib/rrule-utils.test.ts` | RRule: construcao e expansao de datas recorrentes | 15 |
-| `lib/email-templates.test.ts` | Todos os templates: mentor, confirmed, payment, scheduled, completed, cancelled | 33 |
-| `lib/google-calendar.test.ts` | OAuth, createCalendarEvent (attendees, timezone, Meet), deleteCalendarEvent | 22 |
-| **Total** | | **251** |
+| Arquivo                                     | Escopo                                                                              | Testes  |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
+| **Componentes**                             |                                                                                     |         |
+| `components/type-step.test.tsx`             | Selecao de tipo de mentoria (free/paid/private)                                     | 6       |
+| `components/topic-step.test.tsx`            | Filtragem e selecao de temas                                                        | 9       |
+| `components/datetime-step.test.tsx`         | Slots free/paid, disponibilidade, scarcity badge                                    | 10      |
+| `components/contact-step.test.tsx`          | Campos obrigatorios, banner autenticado, notes paid-only                            | 13      |
+| `components/review-step.test.tsx`           | Revisao free (PIX doacao) e paid (R$50, pagamento)                                  | 11      |
+| `components/payment-step.test.tsx`          | Estados: creating, awaiting (QR/timer), succeeded, failed, expired                  | 13      |
+| `components/booking-success.test.tsx`       | Mensagem free vs paid, reset                                                        | 6       |
+| `components/booking-stepper.test.tsx`       | Barra de progresso, step indicators                                                 | 5       |
+| `components/step-navigation.test.tsx`       | Botoes Voltar/Proximo, estados disabled                                             | 8       |
+| **API Routes**                              |                                                                                     |         |
+| `api/booking.test.ts`                       | POST /api/booking: validacao, Supabase insert, email SMTP                           | 13      |
+| `api/payment-create-intent.test.ts`         | POST /api/payment/create-intent: validacao Zod, Stripe PaymentIntent                | 9       |
+| `api/payment-webhook.test.ts`               | POST /api/payment/webhook: assinatura, booking+payment insert, email [PAGO]         | 11      |
+| `api/admin-bookings.test.ts`                | PUT /api/admin/bookings/[id]: auth, status flow, Google Calendar, emails por status | 18      |
+| `api/admin-calendar.test.ts`                | Calendar auth (OAuth consent/tokens), criar evento, validacao                       | 14      |
+| **Integracao**                              |                                                                                     |         |
+| `integration/unified-booking-form.test.tsx` | Fluxo completo: free (5 steps) e paid (6 steps), fallback, erro                     | 8       |
+| `integration/booking-lifecycle.test.ts`     | Ciclo de vida completo: free e paid (booking → confirm → schedule → complete)       | 8       |
+| **Lib**                                     |                                                                                     |         |
+| `lib/booking-reducer.test.ts`               | Reducer: todas as actions, step config, reset                                       | 19      |
+| `lib/rrule-utils.test.ts`                   | RRule: construcao e expansao de datas recorrentes                                   | 15      |
+| `lib/email-templates.test.ts`               | Todos os templates: mentor, confirmed, payment, scheduled, completed, cancelled     | 33      |
+| `lib/google-calendar.test.ts`               | OAuth, createCalendarEvent (attendees, timezone, Meet), deleteCalendarEvent         | 22      |
+| **Total**                                   |                                                                                     | **251** |
 
 ### Estrategia de Mocking
 
-| Dependencia | Abordagem |
-|---|---|
-| Supabase (server/admin/client) | `vi.mock` com fake `from().insert()`, `auth.getUser()`, chains encadeados |
-| Stripe (`@/lib/stripe`) | `vi.hoisted` + `vi.mock` para `paymentIntents.create`, `webhooks.constructEvent` |
-| Stripe JS (`@stripe/stripe-js`) | Mock de `loadStripe` com `confirmPixPayment`, `retrievePaymentIntent` |
-| Nodemailer | Mock de `createTransport` → `{ verify, sendMail }` |
-| Email templates | Mock de todas as funcoes: `newBookingToMentorEmail`, `bookingConfirmedEmail`, etc. |
-| Google Calendar (`googleapis`) | Mock de `google.auth.OAuth2`, `google.calendar` → `events.insert/delete` |
-| Google Calendar (`@/lib/google-calendar`) | Mock de `createCalendarEvent`, `getConsentUrl`, `exchangeCodeForTokens` |
-| Auth (`@/lib/utils/auth`) | Mock de `requireRole` para simular admin/nao-autenticado/forbidden |
-| PixQrCode | Mock de componente para evitar dependencia de canvas |
-| fetch (global) | Mock por URL para schedule, topics, booking, payment APIs |
+| Dependencia                               | Abordagem                                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| Supabase (server/admin/client)            | `vi.mock` com fake `from().insert()`, `auth.getUser()`, chains encadeados          |
+| Stripe (`@/lib/stripe`)                   | `vi.hoisted` + `vi.mock` para `paymentIntents.create`, `webhooks.constructEvent`   |
+| Stripe JS (`@stripe/stripe-js`)           | Mock de `loadStripe` com `confirmPixPayment`, `retrievePaymentIntent`              |
+| Nodemailer                                | Mock de `createTransport` → `{ verify, sendMail }`                                 |
+| Email templates                           | Mock de todas as funcoes: `newBookingToMentorEmail`, `bookingConfirmedEmail`, etc. |
+| Google Calendar (`googleapis`)            | Mock de `google.auth.OAuth2`, `google.calendar` → `events.insert/delete`           |
+| Google Calendar (`@/lib/google-calendar`) | Mock de `createCalendarEvent`, `getConsentUrl`, `exchangeCodeForTokens`            |
+| Auth (`@/lib/utils/auth`)                 | Mock de `requireRole` para simular admin/nao-autenticado/forbidden                 |
+| PixQrCode                                 | Mock de componente para evitar dependencia de canvas                               |
+| fetch (global)                            | Mock por URL para schedule, topics, booking, payment APIs                          |
 
 ### Fluxo de Agendamento Gratuito (Testado)
 
@@ -273,9 +290,9 @@ Ciclo de vida (admin):
 
 ### Integracoes Externas Testadas
 
-| Integracao | O que e testado |
-|---|---|
-| **Google Calendar** | OAuth consent URL, troca de code por tokens, criacao de evento (timezone America/Fortaleza, Google Meet, attendees, reminders), delecao de evento, fallback sem refresh_token |
-| **Stripe (PIX)** | Criacao de PaymentIntent (R$50, currency brl, metodo pix, 30min expiracao), validacao de webhook signature, criacao de booking+payment no succeeded, tratamento de payment_failed |
+| Integracao            | O que e testado                                                                                                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Google Calendar**   | OAuth consent URL, troca de code por tokens, criacao de evento (timezone America/Fortaleza, Google Meet, attendees, reminders), delecao de evento, fallback sem refresh_token             |
+| **Stripe (PIX)**      | Criacao de PaymentIntent (R$50, currency brl, metodo pix, 30min expiracao), validacao de webhook signature, criacao de booking+payment no succeeded, tratamento de payment_failed         |
 | **SMTP (Nodemailer)** | Envio de email ao mentor (nova solicitacao), emails de status ao mentorado (confirmado, pagamento pendente com PIX, agendado, concluido, cancelado), fallback quando SMTP nao configurado |
-| **Supabase** | Insert de bookings (free/paid), insert de payments, update de status, upsert de site_settings, queries com joins (profiles, mentoring_topics) |
+| **Supabase**          | Insert de bookings (free/paid), insert de payments, update de status, upsert de site_settings, queries com joins (profiles, mentoring_topics)                                             |

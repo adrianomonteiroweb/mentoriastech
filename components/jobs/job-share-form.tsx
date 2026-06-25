@@ -1,31 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { CheckCircle2, Loader2, Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time"
+import { useState } from "react";
+import { CheckCircle2, Loader2, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time";
 
 interface JobShareFormProps {
-  onSuccess?: () => void
+  onSuccess?: () => void;
 }
 
 export function JobShareForm({ onSuccess }: JobShareFormProps) {
-  const [title, setTitle] = useState("")
-  const [applicationUrl, setApplicationUrl] = useState("")
-  const [company, setCompany] = useState("")
-  const [activeHours, setActiveHours] = useState("")
-  const [recommendationNote, setRecommendationNote] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState("")
+  const [title, setTitle] = useState("");
+  const [applicationUrl, setApplicationUrl] = useState("");
+  const [company, setCompany] = useState("");
+  const [activeHours, setActiveHours] = useState("");
+  const [recommendationNote, setRecommendationNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       const res = await fetch("/api/jobs/share", {
@@ -38,19 +38,19 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
           company: company || undefined,
           active_hours: Number(activeHours),
         }),
-      })
+      });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || "Erro ao enviar indicacao")
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Erro ao enviar indicacao");
       }
 
-      setSuccess(true)
-      onSuccess?.()
+      setSuccess(true);
+      onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar")
+      setError(err instanceof Error ? err.message : "Erro ao enviar");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -60,10 +60,10 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
         <CheckCircle2 className="h-12 w-12 text-green-500" />
         <p className="text-sm font-medium">Indicacao enviada!</p>
         <p className="text-sm text-muted-foreground">
-          Ela aparecerá no quadro de vagas após a aprovação da equipe.
+          Ela aparecerá na curadoria de vagas após a aprovação da equipe.
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -149,5 +149,5 @@ export function JobShareForm({ onSuccess }: JobShareFormProps) {
         {loading ? "Enviando..." : "Enviar indicacao"}
       </Button>
     </form>
-  )
+  );
 }

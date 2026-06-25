@@ -18,5 +18,9 @@ export function getJobActiveHours(
 }
 
 export function formatJobActiveHours(activeHours: number): string {
-  return `Ativa há ${activeHours} ${activeHours === 1 ? "hora" : "horas"}`
+  if (activeHours < 24) {
+    return `Ativa há ${activeHours} ${activeHours === 1 ? "hora" : "horas"}`
+  }
+  const days = Math.floor(activeHours / 24)
+  return `Ativa há ${days} ${days === 1 ? "dia" : "dias"}`
 }

@@ -546,7 +546,7 @@ CREATE TRIGGER content_items_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- -----------------------------------------------------------------------------
--- 8. JOBS — Quadro de vagas
+-- 8. JOBS — curadoria de vagas
 -- -----------------------------------------------------------------------------
 CREATE TABLE public.jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -30,7 +30,7 @@ app/
   content/
     page.tsx                  # Biblioteca de conteúdos pública + PIX
     [id]/page.tsx             # Detalhe do conteúdo (PDF/video/artigo)
-  jobs/page.tsx               # Quadro de vagas público + PIX
+  jobs/page.tsx               # curadoria de vagas público + PIX
   api/
     booking/route.ts          # POST booking (email + DB)
     auth/callback/route.ts    # Supabase auth callback

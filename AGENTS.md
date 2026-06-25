@@ -30,7 +30,7 @@ app/
   content/
     page.tsx                  # Biblioteca de conteúdos pública + PIX
     [id]/page.tsx             # Detalhe do conteúdo (PDF/video/artigo)
-  jobs/page.tsx               # Quadro de vagas público + PIX
+  jobs/page.tsx               # curadoria de vagas público + PIX
   api/
     booking/route.ts          # POST booking (email + DB)
     auth/callback/route.ts    # Supabase auth callback
@@ -120,6 +120,7 @@ middleware.ts                 # Refresh token + proteção de rotas
 ## Convenções
 
 ### Código
+
 - **Server Components por padrão**. Usar `"use client"` apenas para componentes interativos
 - **API routes para mutations** (POST/PUT/DELETE). Server Components apenas para leitura
 - **Supabase client direto** (sem ORM). RLS cuida da autorização no nível do banco
@@ -127,18 +128,21 @@ middleware.ts                 # Refresh token + proteção de rotas
 - **Idioma pt-BR** em toda a UI (textos, mensagens de erro, labels)
 
 ### Estilo
+
 - Usar componentes shadcn/ui existentes em `components/ui/` antes de criar novos
 - Tailwind CSS para styling — não usar CSS modules ou styled-components
 - Dark theme padrão: background `#0d1117`, primary blue `#3B82F6`
 - Mobile-first responsive design
 
 ### Segurança
+
 - Env vars nunca commitadas — usar `.env.local` (já no `.gitignore`)
 - `NEXT_PUBLIC_*` apenas para variáveis seguras para o browser (URL, anon key)
 - `SUPABASE_SERVICE_ROLE_KEY` apenas no servidor (API routes)
 - Validar inputs em API routes antes de queries ao banco
 
 ### Database
+
 - Todas as tabelas devem ter RLS habilitado
 - UUIDs como primary keys (gerados pelo Postgres via `gen_random_uuid()`)
 - Timestamps com `timestamptz` e default `now()`
