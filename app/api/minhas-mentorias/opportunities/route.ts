@@ -18,7 +18,7 @@ const DEFAULT_CHECKLIST = [
 
 const createSchema = z.object({
   company_name: z.string().min(1, "Nome da empresa e obrigatorio"),
-  company_linkedin_url: z.string().min(1, "LinkedIn da empresa e obrigatorio"),
+  company_linkedin_url: z.string().optional().or(z.literal("")),
   title: z.string().optional().or(z.literal("")),
   url: z.string().optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),

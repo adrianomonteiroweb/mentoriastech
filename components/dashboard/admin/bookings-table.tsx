@@ -29,9 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Check, Copy, ExternalLink, Loader2, MessageCircle, Pencil, Trash2 } from "lucide-react"
+import { Check, Copy, ExternalLink, Loader2, MessageCircle, Pencil, Trash2, Users } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
-import type { BookingWithRelations, BookingStatus, MentoringTopic } from "@/lib/types/database"
+import type { BookingWithRelations, BookingStatus, MentoringTopic, OriginCategory } from "@/lib/types/database"
 import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
 import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
@@ -67,6 +67,14 @@ const REQUESTED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
 })
+
+const ORIGIN_LABELS: Record<OriginCategory, string> = {
+  linkedin: "LinkedIn",
+  palestra: "Palestra",
+  indicacao: "Indicação",
+  instagram: "Instagram",
+  evento: "Evento",
+}
 
 function parseIsoDate(date: string | null | undefined) {
   if (!date) return null
@@ -271,6 +279,11 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
     b.profiles?.email || b.guest_email || ""
   const getTopic = (b: BookingWithRelations) =>
     b.paid_mentorships?.title || b.mentoring_topics?.name || "—"
+  const getOrigin = (b: BookingWithRelations) => {
+    if (!b.origin_category) return "—"
+    const label = ORIGIN_LABELS[b.origin_category] || b.origin_category
+    return b.origin_description ? `${label} (${b.origin_description})` : label
+  }
   const isSingleBookingFilter = !!bookingId
 
   return (
@@ -369,6 +382,9 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                     {formatDate(date)}
                     {b.start_time ? ` às ${b.start_time.substring(0, 5)}` : ""}
                   </span>
+                  {b.origin_category && (
+                    <span className="text-[10px]">Origem: {getOrigin(b)}</span>
+                  )}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <Badge variant="outline" className="text-[10px] capitalize">
@@ -393,6 +409,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
               <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
               <TableHead className="hidden sm:table-cell">Tema</TableHead>
               <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+              <TableHead className="hidden xl:table-cell">Origem</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="hidden lg:table-cell">Solicitado em</TableHead>
               <TableHead className="hidden md:table-cell">Data/Hora</TableHead>
@@ -475,6 +492,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         {b.booking_type}
                       </Badge>
                     </TableCell>
+                    <TableCell className="hidden xl:table-cell text-xs">{getOrigin(b)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[b.status]}`}>
                         {STATUS_LABELS[b.status]}
@@ -534,6 +552,14 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                               <ExternalLink className="h-3 w-3 sm:mr-1" />
                               <span className="hidden sm:inline">Meet</span>
                             </a>
+                          </Button>
+                        )}
+                        {b.mentee_id && (
+                          <Button size="sm" variant="ghost" className="text-xs h-7" title="Ir para mentorado" asChild>
+                            <Link href={`/admin/mentees?search=${encodeURIComponent(getEmail(b))}`}>
+                              <Users className="h-3 w-3 sm:mr-1" />
+                              <span className="hidden sm:inline">Mentorado</span>
+                            </Link>
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" className="text-xs h-7" title="Editar"
@@ -627,6 +653,10 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                     <span className="text-xs text-muted-foreground">Solicitado em</span>
                     <p>{formatRequestedAt(selectedBooking.created_at)}</p>
                   </div>
+                  <div className="grid gap-1">
+                    <span className="text-xs text-muted-foreground">Origem</span>
+                    <p>{getOrigin(selectedBooking)}</p>
+                  </div>
                   <div className="grid gap-2">
                     {email && (
                       <Button
@@ -678,6 +708,14 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         <ExternalLink className="h-4 w-4" />
                         Meet
                       </a>
+                    </Button>
+                  )}
+                  {selectedBooking.mentee_id && (
+                    <Button variant="ghost" className="justify-start" asChild>
+                      <Link href={`/admin/mentees?search=${encodeURIComponent(getEmail(selectedBooking))}`}>
+                        <Users className="h-4 w-4" />
+                        Ir para mentorado
+                      </Link>
                     </Button>
                   )}
                   <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedBooking)}>

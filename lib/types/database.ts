@@ -476,6 +476,11 @@ export interface TopicRanking {
   bookingCount: number
 }
 
+export interface MostRequestedMentorship {
+  name: string
+  count: number
+}
+
 export interface AdminStats {
   totalBookings: number
   pendingBookings: number
@@ -494,4 +499,19 @@ export interface AdminStats {
   minhasMentoriasLinkedinToolUses: number
   minhasMentoriasOpportunityToolUses: number
   minhasMentoriasResumeJobToolUses: number
+  // Indicadores de negócio
+  adsConversionRate: number // % (clicks/views de anúncios)
+  paidConversionRate: number // % (clicks/views de mentorias pagas)
+  monthlyPaidRevenueCents: number // receita confirmada no mês atual
+  totalPaidRevenueCents: number // receita confirmada acumulada
+  avgTicketCents: number // ticket médio de pagamentos confirmados
+  newMenteesThisMonth: number // novos mentorados no mês atual
+  completionRate: number // % (concluídas / total de agendamentos)
+  // Tráfego da página pública
+  publicVisits: number
+  publicClicks: number
+  publicConversionRate: number // % (clicks/visitas)
+  // Mentorias mais pedidas
+  mostRequestedPaid: MostRequestedMentorship | null
+  mostRequestedFree: MostRequestedMentorship | null
 }

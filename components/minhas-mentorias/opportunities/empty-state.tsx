@@ -14,7 +14,7 @@ const CONFIG: Record<ViewTab, { icon: typeof Briefcase; title: string; descripti
   kanban: {
     icon: Briefcase,
     title: "Nenhuma oportunidade ainda",
-    description: "Cadastre sua primeira oportunidade para comecar a organizar suas candidaturas.",
+    description: "Cadastre uma oportunidade ou explore as vagas sugeridas para voce.",
   },
   lista: {
     icon: List,

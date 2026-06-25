@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { MenteesTable } from "@/components/dashboard/admin/mentees-table"
 
@@ -6,7 +7,9 @@ export default function AdminMenteesPage() {
     <>
       <DashboardHeader title="Mentorados" description="Visualizar todos os mentorados cadastrados" />
       <div className="p-4 md:p-6">
-        <MenteesTable canManage />
+        <Suspense>
+          <MenteesTable canManage />
+        </Suspense>
       </div>
     </>
   )

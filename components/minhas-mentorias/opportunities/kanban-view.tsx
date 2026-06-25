@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { useIsMobile } from "@/components/ui/use-mobile"
 import { STAGES } from "./constants"
-import { EmptyState } from "./empty-state"
 import { OpportunityCard } from "./opportunity-card"
 import { SuggestedJobsColumn } from "./suggested-jobs-column"
 import { useOpportunities } from "./opportunities-context"
@@ -150,11 +149,6 @@ export function KanbanView() {
   const isMobile = useIsMobile()
 
   const groups = useMemo(() => groupByStage(state.opportunities), [state.opportunities])
-  const totalOpps = state.opportunities.length
-
-  if (totalOpps === 0) {
-    return <EmptyState view="kanban" />
-  }
 
   return isMobile
     ? <MobileKanban groups={groups} />

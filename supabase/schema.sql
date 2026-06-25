@@ -664,6 +664,33 @@ CREATE POLICY "Admin can manage page shares"
   WITH CHECK (public.current_user_is_admin());
 
 -- -----------------------------------------------------------------------------
+-- PAGE_EVENTS — eventos de visita/click em páginas públicas (tráfego e conversão)
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.page_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  path TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('visit', 'click')),
+  target TEXT,
+  visitor_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_page_events_type_created ON public.page_events(path, event_type, created_at);
+CREATE INDEX idx_page_events_visitor ON public.page_events(path, event_type, visitor_hash);
+
+ALTER TABLE public.page_events ENABLE ROW LEVEL SECURITY;
+
+-- Qualquer visitante pode registrar eventos (formulário público)
+CREATE POLICY "Anyone can create page events"
+  ON public.page_events FOR INSERT
+  WITH CHECK (true);
+
+-- Admin pode ler eventos
+CREATE POLICY "Admin can read page events"
+  ON public.page_events FOR SELECT
+  USING (public.current_user_is_admin());
+
+-- -----------------------------------------------------------------------------
 -- AUDIT_LOGS - Eventos sensiveis sem conteudo completo de PII
 -- -----------------------------------------------------------------------------
 CREATE TABLE public.audit_logs (

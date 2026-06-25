@@ -47,7 +47,7 @@ const initialState: OpportunitiesState = {
   opportunities: [],
   todayActions: [],
   stats: null,
-  activeTab: "hoje",
+  activeTab: "kanban",
   selectedId: null,
   isDetailOpen: false,
   isCreateOpen: false,

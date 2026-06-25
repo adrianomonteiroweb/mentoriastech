@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
-import { and, count, countDistinct, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, count, countDistinct, desc, eq, gte, inArray, sql } from "drizzle-orm"
 import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
 import {
+  ads,
   auditLogs,
   bookings,
   contentItems,
@@ -9,10 +10,17 @@ import {
   jobActions,
   jobs,
   mentoringTopics,
+  pageEvents,
   pageShares,
-  profiles,
+  paidMentorships,
+  payments,
 } from "@/lib/db"
-import type { AdminStats, TopicRanking } from "@/lib/types/database"
+import type { AdminStats, MostRequestedMentorship, TopicRanking } from "@/lib/types/database"
+
+function rate(numerator: number, denominator: number): number {
+  if (!denominator) return 0
+  return Math.round((numerator / denominator) * 1000) / 10 // 1 casa decimal
+}
 
 export async function GET(request: Request) {
   try {
@@ -25,6 +33,9 @@ export async function GET(request: Request) {
       : mentorId
 
     const mentorFilter = eq(bookings.mentorId, filterMentorId)
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
 
     const [
       totalBookings,
@@ -42,6 +53,14 @@ export async function GET(request: Request) {
       linkedinToolUses,
       opportunityToolUses,
       resumeJobToolUses,
+      adsAgg,
+      paidAgg,
+      monthlyRevenueAgg,
+      totalRevenueAgg,
+      newMenteesAgg,
+      publicVisitsAgg,
+      publicClicksAgg,
+      mostRequestedPaidRows,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings).where(mentorFilter),
       db.select({ value: count() }).from(bookings).where(and(eq(bookings.status, "pending"), mentorFilter)),
@@ -58,6 +77,43 @@ export async function GET(request: Request) {
       db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "linkedin_ai_analyzed")),
       db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "minhas_mentorias_opportunity_created")),
       db.select({ value: count() }).from(auditLogs).where(eq(auditLogs.action, "minhas_mentorias_resume_job_created")),
+      // Conversão de anúncios (global)
+      db.select({
+        views: sql<number>`coalesce(sum(${ads.viewCount}), 0)::int`,
+        clicks: sql<number>`coalesce(sum(${ads.clickCount}), 0)::int`,
+      }).from(ads),
+      // Conversão de mentorias pagas (global)
+      db.select({
+        views: sql<number>`coalesce(sum(${paidMentorships.viewCount}), 0)::int`,
+        clicks: sql<number>`coalesce(sum(${paidMentorships.clickCount}), 0)::int`,
+      }).from(paidMentorships),
+      // Receita confirmada no mês atual
+      db.select({ value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int` })
+        .from(payments)
+        .where(and(eq(payments.status, "confirmed"), gte(payments.paidAt, monthStart))),
+      // Receita confirmada acumulada + nº de pagamentos
+      db.select({
+        total: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int`,
+        countConfirmed: count(),
+      }).from(payments).where(eq(payments.status, "confirmed")),
+      // Novos mentorados no mês (por primeiro agendamento criado no mês, filtrado por mentor)
+      db.select({ value: countDistinct(bookings.menteeId) })
+        .from(bookings)
+        .where(and(mentorFilter, gte(bookings.createdAt, monthStart))),
+      // Visitas na página pública
+      db.select({ value: count() }).from(pageEvents).where(eq(pageEvents.eventType, "visit")),
+      // Clicks na página pública
+      db.select({ value: count() }).from(pageEvents).where(eq(pageEvents.eventType, "click")),
+      // Mentoria paga mais pedida (por nº de bookings)
+      db.select({
+        name: paidMentorships.title,
+        bookingCount: count(bookings.id),
+      })
+        .from(paidMentorships)
+        .leftJoin(bookings, eq(bookings.paidMentorshipId, paidMentorships.id))
+        .groupBy(paidMentorships.id, paidMentorships.title)
+        .orderBy(desc(count(bookings.id)))
+        .limit(1),
     ])
 
     const pageSharesTotal = totalPageShares[0]?.value || 0
@@ -67,6 +123,23 @@ export async function GET(request: Request) {
     const minhasMentoriasLinkedinToolUses = linkedinToolUses[0]?.value || 0
     const minhasMentoriasOpportunityToolUses = opportunityToolUses[0]?.value || 0
     const minhasMentoriasResumeJobToolUses = resumeJobToolUses[0]?.value || 0
+
+    const totalBookingsValue = totalBookings[0]?.value || 0
+    const completedBookingsValue = completedBookings[0]?.value || 0
+    const adsViews = adsAgg[0]?.views || 0
+    const adsClicks = adsAgg[0]?.clicks || 0
+    const paidViews = paidAgg[0]?.views || 0
+    const paidClicks = paidAgg[0]?.clicks || 0
+    const totalRevenueCents = totalRevenueAgg[0]?.total || 0
+    const confirmedPaymentsCount = totalRevenueAgg[0]?.countConfirmed || 0
+    const publicVisits = publicVisitsAgg[0]?.value || 0
+    const publicClicks = publicClicksAgg[0]?.value || 0
+
+    const mostRequestedPaidRow = mostRequestedPaidRows[0]
+    const mostRequestedPaid: MostRequestedMentorship | null =
+      mostRequestedPaidRow && mostRequestedPaidRow.bookingCount > 0
+        ? { name: mostRequestedPaidRow.name, count: mostRequestedPaidRow.bookingCount }
+        : null
 
     const topicRankingRows = await db
       .select({
@@ -88,13 +161,18 @@ export async function GET(request: Request) {
       bookingCount: row.bookingCount,
     }))
 
+    const topFree = topicRanking.find((t) => t.category === "free" && t.bookingCount > 0)
+    const mostRequestedFree: MostRequestedMentorship | null = topFree
+      ? { name: topFree.topicName, count: topFree.bookingCount }
+      : null
+
     const stats: AdminStats = {
-      totalBookings: totalBookings[0]?.value || 0,
+      totalBookings: totalBookingsValue,
       pendingBookings: pendingBookings[0]?.value || 0,
       totalMentees: totalMentees[0]?.value || 0,
       pendingJobs: pendingJobs[0]?.value || 0,
       publishedContent: publishedContent[0]?.value || 0,
-      completedBookings: completedBookings[0]?.value || 0,
+      completedBookings: completedBookingsValue,
       reportedJobs: reportedJobs[0]?.value || 0,
       totalApplications: totalApplications[0]?.value || 0,
       totalPageShares: pageSharesTotal,
@@ -110,6 +188,18 @@ export async function GET(request: Request) {
       minhasMentoriasLinkedinToolUses,
       minhasMentoriasOpportunityToolUses,
       minhasMentoriasResumeJobToolUses,
+      adsConversionRate: rate(adsClicks, adsViews),
+      paidConversionRate: rate(paidClicks, paidViews),
+      monthlyPaidRevenueCents: monthlyRevenueAgg[0]?.value || 0,
+      totalPaidRevenueCents: totalRevenueCents,
+      avgTicketCents: confirmedPaymentsCount ? Math.round(totalRevenueCents / confirmedPaymentsCount) : 0,
+      newMenteesThisMonth: newMenteesAgg[0]?.value || 0,
+      completionRate: rate(completedBookingsValue, totalBookingsValue),
+      publicVisits,
+      publicClicks,
+      publicConversionRate: rate(publicClicks, publicVisits),
+      mostRequestedPaid,
+      mostRequestedFree,
     }
 
     return NextResponse.json({ data: stats, topicRanking })

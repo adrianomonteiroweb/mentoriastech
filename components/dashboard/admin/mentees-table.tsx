@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -146,7 +147,8 @@ interface MenteesTableProps {
 export function MenteesTable({ canManage = false, showSelectionProcesses = true }: MenteesTableProps) {
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState("")
+  const searchParams = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get("search") || "")
   const { mentorId: filterMentorId, buildUrl } = useMentorFilter()
   const [historyFilter, setHistoryFilter] = useState<PresenceFilter>("all")
   const [linkedinFilter, setLinkedinFilter] = useState<PresenceFilter>("all")

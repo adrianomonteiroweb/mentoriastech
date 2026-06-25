@@ -190,28 +190,6 @@ export async function getActiveMessageTemplates() {
 // Vagas sugeridas (match simples por nivel)
 // ---------------------------------------------------------------------------
 export async function getSuggestedJobs(profileId: string) {
-  const [profile] = await db
-    .select({
-      seniority: profiles.seniority,
-      careerFocus: profiles.careerFocus,
-    })
-    .from(profiles)
-    .where(eq(profiles.id, profileId))
-    .limit(1)
-
-  if (!profile) return []
-
-  // Mapear seniority do profile -> level do job
-  type JobLevel = "internship" | "junior" | "mid" | "senior"
-  const levelMap: Record<string, JobLevel> = {
-    junior: "junior",
-    mid: "mid",
-    senior: "senior",
-    undefined: "junior",
-  }
-  const targetLevel: JobLevel = profile.seniority ? levelMap[profile.seniority] || "junior" : "junior"
-
-  // Buscar vagas aprovadas que batem com o nivel
   const suggestedJobs = await db
     .select({
       job: jobs,
@@ -225,7 +203,6 @@ export async function getSuggestedJobs(profileId: string) {
     .where(
       and(
         eq(jobs.status, "approved"),
-        eq(jobs.level, targetLevel),
         or(
           isNull(jobs.expiresAt),
           gt(jobs.expiresAt, new Date()),

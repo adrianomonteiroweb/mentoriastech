@@ -9,11 +9,16 @@ const LEGACY_PREFERENCES_KEY = "adriano:user-preferences"
 export interface UserPreferences {
   showJobFilters: boolean
   showTips: boolean
+  // Visibilidade dos blocos do dashboard admin.
+  // Um bloco só é ocultado quando explicitamente `false` — ausente = visível.
+  // Assim, novos blocos aparecem por padrão mesmo para quem já tem preferências salvas.
+  dashboardBlocks: Record<string, boolean>
 }
 
 const DEFAULT_USER_PREFERENCES: UserPreferences = {
   showJobFilters: false,
   showTips: true,
+  dashboardBlocks: {},
 }
 
 function readUserPreferences(): UserPreferences {

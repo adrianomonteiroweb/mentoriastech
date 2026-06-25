@@ -45,8 +45,8 @@ export function QuickCreateModal() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!companyName.trim() || !companyLinkedin.trim()) {
-      setError("Preencha o nome e o LinkedIn da empresa.")
+    if (!companyName.trim()) {
+      setError("Preencha o nome da empresa.")
       return
     }
 
@@ -55,7 +55,7 @@ export function QuickCreateModal() {
     try {
       await createOpportunity({
         company_name: companyName.trim(),
-        company_linkedin_url: companyLinkedin.trim(),
+        company_linkedin_url: companyLinkedin.trim() || undefined,
         title: jobTitle.trim() || undefined,
         url: jobUrl.trim() || undefined,
       })
@@ -89,16 +89,6 @@ export function QuickCreateModal() {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="company-linkedin">LinkedIn da empresa *</Label>
-            <Input
-              id="company-linkedin"
-              value={companyLinkedin}
-              onChange={(e) => setCompanyLinkedin(e.target.value)}
-              placeholder="https://linkedin.com/company/..."
-            />
-          </div>
-
           <Collapsible open={expanded} onOpenChange={setExpanded}>
             <CollapsibleTrigger asChild>
               <Button
@@ -111,6 +101,15 @@ export function QuickCreateModal() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="company-linkedin">LinkedIn da empresa</Label>
+                <Input
+                  id="company-linkedin"
+                  value={companyLinkedin}
+                  onChange={(e) => setCompanyLinkedin(e.target.value)}
+                  placeholder="https://linkedin.com/company/..."
+                />
+              </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="job-title">Titulo da vaga</Label>
                 <Input

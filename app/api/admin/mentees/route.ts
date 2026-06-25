@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
-import { db, profiles, bookings, selectionProcesses, selectionProcessCandidates } from "@/lib/db"
+import { db, profiles, bookings, selectionProcesses, selectionProcessCandidates, opportunities as opportunitiesTable } from "@/lib/db"
 import { toProfile } from "@/lib/db/mappers"
 import type { MenteeSelectionProcessSummary } from "@/lib/types/database"
 import { requireMentorAccess, getMentorId, requireRole } from "@/lib/utils/auth"
@@ -87,6 +87,7 @@ export async function GET(request: Request) {
     const careerStatus = searchParams.get("career_status")
     const seniority = searchParams.get("seniority")
     const origin = searchParams.get("origin")
+    const opportunitiesParam = searchParams.get("opportunities")
     const page = parseInt(searchParams.get("page") || "1")
     const pageSize = parseInt(searchParams.get("pageSize") || "20")
 
@@ -146,6 +147,11 @@ export async function GET(request: Request) {
       filters.push(eq(profiles.originCategory, origin))
     } else if (origin === "none") {
       filters.push(sql`(${profiles.originCategory} IS NULL OR ${profiles.originCategory} = '')`)
+    }
+    if (opportunitiesParam === "with") {
+      filters.push(sql`EXISTS (SELECT 1 FROM ${opportunitiesTable} WHERE ${opportunitiesTable.profileId} = ${profiles.id})`)
+    } else if (opportunitiesParam === "without") {
+      filters.push(sql`NOT EXISTS (SELECT 1 FROM ${opportunitiesTable} WHERE ${opportunitiesTable.profileId} = ${profiles.id})`)
     }
 
     const where = and(...filters)

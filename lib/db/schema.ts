@@ -340,6 +340,18 @@ export const pageShares = pgTable("page_shares", {
 })
 
 // -----------------------------------------------------------------------------
+// PAGE_EVENTS — eventos de visita/click em páginas públicas (tráfego e conversão)
+// -----------------------------------------------------------------------------
+export const pageEvents = pgTable("page_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  path: text("path").notNull(), // ex: "/"
+  eventType: text("event_type").notNull(), // 'visit' | 'click'
+  target: text("target"), // clicks: 'booking_submit' | 'platform_link' | 'social_link' | ...
+  visitorHash: text("visitor_hash").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// -----------------------------------------------------------------------------
 // AUDIT_LOGS - eventos sensiveis sem conteudo completo de PII
 // -----------------------------------------------------------------------------
 export const auditLogs = pgTable("audit_logs", {

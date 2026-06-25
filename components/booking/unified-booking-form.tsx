@@ -17,6 +17,7 @@ import { ContactStep } from "./steps/contact-step";
 import { ReviewStep } from "./steps/review-step";
 import { PaidPaymentStep } from "./steps/paid-payment-step";
 import type { PublicPaidMentorship } from "@/lib/types/database";
+import { trackPageEvent } from "@/lib/track-page";
 
 // Fallback topics keep the form readable when topic loading fails.
 // Time slots must come from /api/schedule so occupied dates are never offered.
@@ -266,6 +267,7 @@ export function UnifiedBookingForm(_props: UnifiedBookingFormProps = {}) {
       }
 
       dispatch({ type: "SET_STATUS", status: "success" });
+      void trackPageEvent("click", "booking_submit", "/");
     } catch (err) {
       dispatch({
         type: "SET_STATUS",

@@ -4,11 +4,13 @@ import { ShareButton } from "@/components/share-button";
 import { SocialLinks } from "@/components/social-links";
 import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
 import { FreeSlotsNotice } from "@/components/booking/free-slots-notice";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import { CalendarDays } from "lucide-react";
 
 export default function Page() {
   return (
     <main className="flex min-h-screen flex-col items-center bg-background px-4 py-8 md:py-14">
+      <PageViewTracker path="/" />
       <div className="flex w-full max-w-lg flex-col gap-7">
         <HeroSection />
 

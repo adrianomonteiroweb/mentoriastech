@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   ArrowRight,
@@ -5,6 +7,7 @@ import {
   BriefcaseBusiness,
   FileText,
 } from "lucide-react"
+import { trackPageEvent } from "@/lib/track-page"
 
 const links = [
   {
@@ -34,6 +37,7 @@ export function PlatformLinks() {
         <Link
           key={link.label}
           href={link.href}
+          onClick={() => trackPageEvent("click", "platform_link")}
           className="group flex min-h-20 items-center gap-3 rounded-lg border border-border bg-card px-4 py-4 text-sm font-medium text-card-foreground transition-all duration-200 hover:border-primary/40 hover:bg-primary/5"
         >
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">

@@ -2,6 +2,7 @@
 
 import { Instagram, Linkedin, MessageCircle } from "lucide-react"
 import { SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp"
+import { trackPageEvent } from "@/lib/track-page"
 
 const links = [
   {
@@ -35,6 +36,7 @@ export function SocialLinks() {
           rel="noopener noreferrer"
           aria-label={link.label}
           title={link.label}
+          onClick={() => trackPageEvent("click", "social_link")}
           className={`flex h-11 w-11 items-center justify-center rounded-full border border-border bg-secondary/70 text-muted-foreground shadow-sm shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 ${link.color}`}
         >
           <link.icon className="h-5 w-5" />

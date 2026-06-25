@@ -134,12 +134,17 @@ function MenteeSelector({
   const [mentees, setMentees] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [opportunitiesFilter, setOpportunitiesFilter] = useState<"all" | "with" | "without">("with")
   const { buildUrl } = useMentorFilter()
 
   useEffect(() => {
     async function load() {
+      setLoading(true)
       try {
         const params = new URLSearchParams({ pageSize: "200" })
+        if (opportunitiesFilter !== "all") {
+          params.set("opportunities", opportunitiesFilter)
+        }
         const res = await fetch(buildUrl(`/api/admin/mentees?${params}`))
         const json = await res.json()
         setMentees(json.data || [])
@@ -150,7 +155,7 @@ function MenteeSelector({
       }
     }
     load()
-  }, [])
+  }, [opportunitiesFilter])
 
   const filtered = search.trim()
     ? mentees.filter(
@@ -170,9 +175,21 @@ function MenteeSelector({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">
-        Selecione um mentorado para ver suas oportunidades e candidaturas.
-      </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          Selecione um mentorado para ver suas oportunidades e candidaturas.
+        </p>
+        <Select value={opportunitiesFilter} onValueChange={(v) => setOpportunitiesFilter(v as "all" | "with" | "without")}>
+          <SelectTrigger className="h-8 w-[200px] text-xs flex-shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="with">Com oportunidades</SelectItem>
+            <SelectItem value="without">Sem oportunidades</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -189,6 +206,8 @@ function MenteeSelector({
           Nenhum mentorado encontrado.
         </p>
       ) : (
+        <div className="flex flex-col gap-2">
+        <span className="text-xs text-muted-foreground">{filtered.length} mentorado{filtered.length !== 1 ? "s" : ""}</span>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((m) => (
             <Card
@@ -212,6 +231,7 @@ function MenteeSelector({
               </CardContent>
             </Card>
           ))}
+        </div>
         </div>
       )}
     </div>
