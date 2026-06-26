@@ -293,6 +293,8 @@ export interface Job {
   title: string
   company: string | null
   description: string | null
+  description_en: string | null
+  stack_tags: string[]
   recommendation_note: string | null
   location: string | null
   job_type: JobType

@@ -124,6 +124,21 @@ export async function POST(request: Request) {
       )
     }
 
+    if (parsed.data.application_url) {
+      const existing = await db
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(eq(jobs.applicationUrl, parsed.data.application_url))
+        .limit(1)
+
+      if (existing.length > 0) {
+        return NextResponse.json(
+          { error: "Esta vaga já foi cadastrada com este link." },
+          { status: 409 },
+        )
+      }
+    }
+
     // HR e admin: vaga auto-aprovada. Mentee: pendente
     const autoApprove = profile.role === "hr" || profile.role === "admin"
 
@@ -133,6 +148,8 @@ export async function POST(request: Request) {
         title: parsed.data.title,
         company: parsed.data.company,
         description: parsed.data.description,
+        descriptionEn: parsed.data.description_en || null,
+        stackTags: parsed.data.stack_tags,
         location: parsed.data.location,
         jobType: parsed.data.job_type,
         level: parsed.data.level,

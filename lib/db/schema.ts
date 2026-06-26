@@ -430,6 +430,8 @@ export const jobs = pgTable("jobs", {
   title: text("title").notNull(),
   company: text("company"),
   description: text("description"),
+  descriptionEn: text("description_en"),
+  stackTags: text("stack_tags").array().notNull().default([]),
   recommendationNote: text("recommendation_note"),
   location: text("location"),
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] })

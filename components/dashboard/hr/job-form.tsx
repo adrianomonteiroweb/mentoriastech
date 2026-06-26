@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Loader2, Send, CheckCircle2 } from "lucide-react"
+import { Loader2, Send, CheckCircle2, X } from "lucide-react"
 import {
   CUSTOM_JOB_CATEGORY_VALUE,
   getJobCategoryLabel,
@@ -57,6 +57,10 @@ export function JobForm({
   )
   const [activeHoursChanged, setActiveHoursChanged] = useState(false)
   const [description, setDescription] = useState(job?.description || "")
+  const [descriptionEn, setDescriptionEn] = useState(job?.description_en || "")
+  const [stackTags, setStackTags] = useState<string[]>(job?.stack_tags || [])
+  const [stackInput, setStackInput] = useState("")
+  const stackInputRef = useRef<HTMLInputElement>(null)
   const [location, setLocation] = useState(job?.location || "")
   const [jobType, setJobType] = useState(job?.job_type || "remote")
   const [level, setLevel] = useState(job?.level || "junior")
@@ -100,6 +104,26 @@ export function JobForm({
       .catch(() => setSavedCategories([]))
   }, [adminMode, categorySourceEndpoint])
 
+  function addStackTag(raw: string) {
+    const tag = raw.trim()
+    if (!tag || stackTags.includes(tag) || stackTags.length >= 15) return
+    setStackTags((prev) => [...prev, tag])
+    setStackInput("")
+  }
+
+  function removeStackTag(tag: string) {
+    setStackTags((prev) => prev.filter((t) => t !== tag))
+  }
+
+  function handleStackKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addStackTag(stackInput)
+    } else if (e.key === "Backspace" && !stackInput && stackTags.length > 0) {
+      setStackTags((prev) => prev.slice(0, -1))
+    }
+  }
+
   function handleCategoryChange(value: string) {
     if (value === CUSTOM_JOB_CATEGORY_VALUE) {
       setUsesCustomCategory(true)
@@ -139,6 +163,8 @@ export function JobForm({
           title,
           company,
           description,
+          description_en: descriptionEn || undefined,
+          stack_tags: stackTags,
           location: location || undefined,
           job_type: jobType,
           level,
@@ -166,6 +192,9 @@ export function JobForm({
         setActiveHours("")
         setActiveHoursChanged(false)
         setDescription("")
+        setDescriptionEn("")
+        setStackTags([])
+        setStackInput("")
         setLocation("")
         setSalaryRange("")
         setApplicationUrl("")
@@ -238,8 +267,45 @@ export function JobForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="desc">Descricao</Label>
-        <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} placeholder="Requisitos, responsabilidades, beneficios..." />
+        <Label htmlFor="desc">Descrição</Label>
+        <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} required rows={4} placeholder="Requisitos, responsabilidades, benefícios..." />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label>Stack / Tecnologias</Label>
+        <div
+          className="flex min-h-10 flex-wrap gap-1.5 rounded-md border border-input bg-background px-3 py-2 cursor-text"
+          onClick={() => stackInputRef.current?.focus()}
+        >
+          {stackTags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeStackTag(tag) }}
+                aria-label={`Remover ${tag}`}
+                className="rounded-full hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          <input
+            ref={stackInputRef}
+            value={stackInput}
+            onChange={(e) => setStackInput(e.target.value)}
+            onKeyDown={handleStackKeyDown}
+            onBlur={() => addStackTag(stackInput)}
+            placeholder={stackTags.length === 0 ? "React, Node.js, TypeScript..." : ""}
+            className="min-w-24 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Digite e pressione Enter ou vírgula para adicionar. Máximo 15 tags.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -309,22 +375,40 @@ export function JobForm({
       </div>
 
       {isInternational && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="lang">Idioma exigido</Label>
-            <Input id="lang" value={requiredLanguage} onChange={(e) => setRequiredLanguage(e.target.value)} placeholder="Inglês" />
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="lang">Idioma exigido</Label>
+              <Input id="lang" value={requiredLanguage} onChange={(e) => setRequiredLanguage(e.target.value)} placeholder="Inglês" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Nível do idioma</Label>
+              <Select value={languageLevel} onValueChange={setLanguageLevel}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Básico</SelectItem>
+                  <SelectItem value="intermediate">Intermediário</SelectItem>
+                  <SelectItem value="advanced">Avançado</SelectItem>
+                  <SelectItem value="fluent">Fluente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label>Nivel do idioma</Label>
-            <Select value={languageLevel} onValueChange={setLanguageLevel}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="basic">Basico</SelectItem>
-                <SelectItem value="intermediate">Intermediario</SelectItem>
-                <SelectItem value="advanced">Avancado</SelectItem>
-                <SelectItem value="fluent">Fluente</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label htmlFor="desc-en">
+              Descrição em inglês{" "}
+              <span className="text-xs font-normal text-muted-foreground">(original)</span>
+            </Label>
+            <Textarea
+              id="desc-en"
+              value={descriptionEn}
+              onChange={(e) => setDescriptionEn(e.target.value)}
+              rows={4}
+              placeholder="Original job description in English..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Cole aqui o texto original em inglês. A descrição em português acima será exibida como tradução.
+            </p>
           </div>
         </div>
       )}

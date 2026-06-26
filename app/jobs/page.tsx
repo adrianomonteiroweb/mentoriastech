@@ -49,6 +49,8 @@ interface Job {
   title: string;
   company: string | null;
   description: string | null;
+  description_en: string | null;
+  stack_tags: string[];
   recommendation_note: string | null;
   location: string | null;
   job_type: "remote" | "hybrid" | "onsite";
@@ -650,6 +652,19 @@ export default function JobsPage() {
                 </div>
               )}
 
+              {job.stack_tags && job.stack_tags.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {job.stack_tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               {job.description && (
                 <>
                   <p
@@ -678,6 +693,17 @@ export default function JobsPage() {
                     </button>
                   )}
                 </>
+              )}
+
+              {job.description_en && expandedJobs.has(job.id) && (
+                <details className="mb-3">
+                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+                    Ver descrição original em inglês
+                  </summary>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    {job.description_en}
+                  </p>
+                </details>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3">

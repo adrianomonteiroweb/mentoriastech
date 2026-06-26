@@ -11,6 +11,8 @@ const updateSchema = z.object({
   title: z.string().min(3).optional(),
   company: z.string().min(2).optional(),
   description: z.string().min(10).optional(),
+  description_en: z.string().optional(),
+  stack_tags: z.array(z.string().min(1).max(30)).max(15).optional(),
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).optional(),
   level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
@@ -43,6 +45,8 @@ export async function PUT(
     if (parsed.data.title !== undefined) updateData.title = parsed.data.title
     if (parsed.data.company !== undefined) updateData.company = parsed.data.company
     if (parsed.data.description !== undefined) updateData.description = parsed.data.description
+    if (parsed.data.description_en !== undefined) updateData.descriptionEn = parsed.data.description_en || null
+    if (parsed.data.stack_tags !== undefined) updateData.stackTags = parsed.data.stack_tags
     if (parsed.data.location !== undefined) updateData.location = parsed.data.location || null
     if (parsed.data.job_type !== undefined) updateData.jobType = parsed.data.job_type
     if (parsed.data.level !== undefined) updateData.level = parsed.data.level

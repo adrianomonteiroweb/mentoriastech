@@ -278,6 +278,8 @@ export function toJob(row: DbJob): Job {
     title: row.title,
     company: row.company,
     description: row.description,
+    description_en: row.descriptionEn,
+    stack_tags: row.stackTags ?? [],
     recommendation_note: row.recommendationNote,
     location: row.location,
     job_type: row.jobType,

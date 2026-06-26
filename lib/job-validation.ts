@@ -25,6 +25,8 @@ export const createJobSchema = z.object({
   title: z.string().min(3),
   company: z.string().min(2),
   description: z.string().min(10),
+  description_en: z.string().optional(),
+  stack_tags: z.array(z.string().min(1).max(30)).max(15).default([]),
   location: z.string().optional(),
   job_type: z.enum(["remote", "hybrid", "onsite"]).default("remote"),
   level: z.enum(["internship", "junior", "mid", "senior"]).default("junior"),

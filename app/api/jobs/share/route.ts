@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
@@ -26,6 +27,19 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Dados invalidos", details: parsed.error.flatten() },
         { status: 400 },
+      )
+    }
+
+    const existing = await db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(eq(jobs.applicationUrl, parsed.data.application_url))
+      .limit(1)
+
+    if (existing.length > 0) {
+      return NextResponse.json(
+        { error: "Esta vaga já foi cadastrada com este link." },
+        { status: 409 },
       )
     }
 
