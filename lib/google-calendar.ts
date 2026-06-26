@@ -205,8 +205,11 @@ export async function createCalendarEvent(params: {
 
   const duration = params.durationMinutes || 60
   const startDateTime = `${params.date}T${params.time}:00`
-  const startDate = new Date(startDateTime)
-  const endDate = new Date(startDate.getTime() + duration * 60 * 1000)
+  const [h, m] = params.time.split(":").map(Number)
+  const endTotal = h * 60 + m + duration
+  const endH = String(Math.floor(endTotal / 60) % 24).padStart(2, "0")
+  const endM = String(endTotal % 60).padStart(2, "0")
+  const endDateTime = `${params.date}T${endH}:${endM}:00`
 
   // O organizador é a própria conta conectada (calendário "primary").
   const attendees = params.attendeeEmail ? [{ email: params.attendeeEmail }] : []
@@ -218,11 +221,11 @@ export async function createCalendarEvent(params: {
       summary: params.summary,
       description: params.description,
       start: {
-        dateTime: startDate.toISOString(),
+        dateTime: startDateTime,
         timeZone: "America/Fortaleza",
       },
       end: {
-        dateTime: endDate.toISOString(),
+        dateTime: endDateTime,
         timeZone: "America/Fortaleza",
       },
       attendees,

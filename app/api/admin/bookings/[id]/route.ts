@@ -183,6 +183,24 @@ export async function PUT(
       }
     }
 
+    if (
+      parsed.data.status === "cancelled" &&
+      row.booking.googleEventId &&
+      row.booking.mentorId
+    ) {
+      try {
+        const { deleteCalendarEvent } = await import("@/lib/google-calendar")
+        await deleteCalendarEvent({
+          mentorId: row.booking.mentorId,
+          eventId: row.booking.googleEventId,
+        })
+        updateData.googleEventId = null
+        updateData.googleMeetUrl = null
+      } catch (calendarError) {
+        console.error("[bookings] Calendar delete error (non-blocking):", calendarError)
+      }
+    }
+
     let data
     try {
       ;[data] = await db
