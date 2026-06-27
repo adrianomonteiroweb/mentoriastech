@@ -1,5 +1,6 @@
+import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { and, eq, gt } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
@@ -7,19 +8,102 @@ import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { jobActiveHoursSchema } from "@/lib/job-validation"
 import { requireRole } from "@/lib/utils/auth"
 
-// Indicação enxuta da comunidade: apenas link + por que achou interessante (+ título).
-const shareSchema = z.object({
-  title: z.string().min(3),
-  application_url: z.string().url(),
-  recommendation_note: z.string().min(10),
-  company: z.string().optional(),
-  active_hours: jobActiveHoursSchema.default(0),
-})
+// Limite de corpo: indicacao e enxuta, nada legitimo se aproxima disso.
+const MAX_BODY_BYTES = 8 * 1024
 
-// POST: indicar vaga (qualquer usuario autenticado). Sempre pendente — admin aprova.
+// Rate-limit do caminho bot (baseado em DB, robusto em serverless).
+const BOT_RATE_LIMIT_MAX = 20
+const BOT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
+
+const httpUrlSchema = z
+  .string()
+  .url()
+  .max(2000)
+  .refine((value) => {
+    try {
+      const protocol = new URL(value).protocol
+      return protocol === "http:" || protocol === "https:"
+    } catch {
+      return false
+    }
+  }, "URL deve ser http(s)")
+
+// Indicação enxuta da comunidade: apenas link + por que achou interessante (+ título).
+const shareSchema = z
+  .object({
+    title: z.string().min(3).max(200),
+    application_url: httpUrlSchema,
+    recommendation_note: z.string().min(10).max(2000),
+    company: z.string().max(150).optional(),
+    active_hours: jobActiveHoursSchema.default(0),
+  })
+  .strict()
+
+// Valida o Bearer token do bot com comparacao timing-safe. Sem env configurada,
+// o caminho bot fica desabilitado (retorna false).
+function isValidBotToken(request: Request): boolean {
+  const expected = process.env.JOBS_SHARE_BOT_TOKEN
+  if (!expected) return false
+
+  const header = request.headers.get("authorization") || ""
+  const provided = header.startsWith("Bearer ") ? header.slice(7) : ""
+  if (!provided) return false
+
+  const a = Buffer.from(provided)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for")
+  if (forwarded) return forwarded.split(",")[0].trim()
+  return request.headers.get("x-real-ip") || "unknown"
+}
+
+async function botRateLimited(botProfileId: string): Promise<boolean> {
+  const cutoff = new Date(Date.now() - BOT_RATE_LIMIT_WINDOW_MS)
+  const recent = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(and(eq(jobs.postedBy, botProfileId), gt(jobs.createdAt, cutoff)))
+    .limit(BOT_RATE_LIMIT_MAX)
+
+  return recent.length >= BOT_RATE_LIMIT_MAX
+}
+
+// POST: indicar vaga. Dois caminhos:
+//  - bot externo via Bearer token (publico, autor = perfil bot dedicado)
+//  - usuario autenticado da plataforma (fluxo existente, autor = profile.id)
+// Em ambos a vaga entra como pendente — admin aprova.
 export async function POST(request: Request) {
   try {
-    const profile = await requireRole("admin", "hr", "mentee")
+    const contentLength = Number(request.headers.get("content-length") || 0)
+    if (contentLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ error: "Corpo muito grande" }, { status: 413 })
+    }
+
+    let postedBy: string
+
+    if (isValidBotToken(request)) {
+      const botProfileId = process.env.JOBS_BOT_PROFILE_ID
+      if (!botProfileId) {
+        console.error("[jobs/share] JOBS_BOT_PROFILE_ID nao configurado")
+        return NextResponse.json({ error: "Bot nao configurado" }, { status: 500 })
+      }
+
+      if (await botRateLimited(botProfileId)) {
+        return NextResponse.json(
+          { error: "Limite de indicacoes excedido. Tente mais tarde." },
+          { status: 429 },
+        )
+      }
+
+      postedBy = botProfileId
+    } else {
+      const profile = await requireRole("admin", "hr", "mentee")
+      postedBy = profile.id
+    }
+
     const body = await request.json()
 
     const parsed = shareSchema.safeParse(body)
@@ -52,12 +136,19 @@ export async function POST(request: Request) {
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
         sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
-        postedBy: profile.id,
+        postedBy,
         status: "pending",
         approvedBy: null,
         approvedAt: null,
       })
       .returning()
+
+    if (postedBy === process.env.JOBS_BOT_PROFILE_ID) {
+      console.log("[jobs/share] bot post", {
+        application_url: parsed.data.application_url,
+        ip: getClientIp(request),
+      })
+    }
 
     return NextResponse.json({ data: toJob(data) }, { status: 201 })
   } catch (error) {
