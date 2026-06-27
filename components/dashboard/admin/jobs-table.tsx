@@ -93,7 +93,7 @@ export function JobsTable({
 
   const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = 10 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
+  const columnCount = 11 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
 
   return (
     <div className="flex flex-col gap-2">
@@ -180,6 +180,7 @@ export function JobsTable({
           <TableRow>
             <TableHead>Titulo</TableHead>
             <TableHead>Empresa</TableHead>
+            <TableHead>Link</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Nivel</TableHead>
             <TableHead>Categoria</TableHead>
@@ -212,6 +213,21 @@ export function JobsTable({
               <TableRow key={job.id}>
                 <TableCell className="font-medium">{job.title}</TableCell>
                 <TableCell>{job.company || "—"}</TableCell>
+                <TableCell>
+                  {job.application_url ? (
+                    <a
+                      href={job.application_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Abrir
+                    </a>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs capitalize">{job.job_type}</Badge>
                 </TableCell>
