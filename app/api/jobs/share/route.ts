@@ -36,6 +36,7 @@ const shareSchema = z
     recommendation_note: z.string().min(10).max(2000),
     company: z.string().max(150).optional(),
     active_hours: jobActiveHoursSchema.default(0),
+    level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
   })
   .strict()
 
@@ -135,6 +136,7 @@ export async function POST(request: Request) {
         description: null,
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
+        level: parsed.data.level ?? "junior",
         sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy,
         status: "pending",
