@@ -513,6 +513,9 @@ export interface AdminStats {
   publicVisits: number
   publicClicks: number
   publicConversionRate: number // % (clicks/visitas)
+  visitsToday: number // visitas hoje (fuso de São Paulo)
+  visitsThisWeek: number // visitas na semana atual (desde segunda)
+  visitsThisMonth: number // visitas no mês atual
   // Mentorias mais pedidas
   mostRequestedPaid: MostRequestedMentorship | null
   mostRequestedFree: MostRequestedMentorship | null

@@ -37,6 +37,21 @@ export async function GET(request: Request) {
     monthStart.setDate(1)
     monthStart.setHours(0, 0, 0, 0)
 
+    // Limites de período no fuso de São Paulo (UTC-3, sem horário de verão), para que
+    // "hoje/semana/mês" reflitam o dia civil do Brasil e não o do servidor (UTC).
+    const SP_OFFSET_MS = 3 * 60 * 60 * 1000
+    const DAY_MS = 24 * 60 * 60 * 1000
+    const nowSp = new Date(Date.now() - SP_OFFSET_MS)
+    const visitsDayStart = new Date(
+      Date.UTC(nowSp.getUTCFullYear(), nowSp.getUTCMonth(), nowSp.getUTCDate()) + SP_OFFSET_MS,
+    )
+    // Semana começando na segunda-feira (0 = segunda ... 6 = domingo)
+    const daysSinceMonday = (nowSp.getUTCDay() + 6) % 7
+    const visitsWeekStart = new Date(visitsDayStart.getTime() - daysSinceMonday * DAY_MS)
+    const visitsMonthStart = new Date(
+      Date.UTC(nowSp.getUTCFullYear(), nowSp.getUTCMonth(), 1) + SP_OFFSET_MS,
+    )
+
     const [
       totalBookings,
       pendingBookings,
@@ -60,6 +75,9 @@ export async function GET(request: Request) {
       newMenteesAgg,
       publicVisitsAgg,
       publicClicksAgg,
+      visitsTodayAgg,
+      visitsWeekAgg,
+      visitsMonthAgg,
       mostRequestedPaidRows,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings).where(mentorFilter),
@@ -104,6 +122,13 @@ export async function GET(request: Request) {
       db.select({ value: count() }).from(pageEvents).where(eq(pageEvents.eventType, "visit")),
       // Clicks na página pública
       db.select({ value: count() }).from(pageEvents).where(eq(pageEvents.eventType, "click")),
+      // Visitas por período (fuso de São Paulo)
+      db.select({ value: count() }).from(pageEvents)
+        .where(and(eq(pageEvents.eventType, "visit"), gte(pageEvents.createdAt, visitsDayStart))),
+      db.select({ value: count() }).from(pageEvents)
+        .where(and(eq(pageEvents.eventType, "visit"), gte(pageEvents.createdAt, visitsWeekStart))),
+      db.select({ value: count() }).from(pageEvents)
+        .where(and(eq(pageEvents.eventType, "visit"), gte(pageEvents.createdAt, visitsMonthStart))),
       // Mentoria paga mais pedida (por nº de bookings)
       db.select({
         name: paidMentorships.title,
@@ -134,6 +159,9 @@ export async function GET(request: Request) {
     const confirmedPaymentsCount = totalRevenueAgg[0]?.countConfirmed || 0
     const publicVisits = publicVisitsAgg[0]?.value || 0
     const publicClicks = publicClicksAgg[0]?.value || 0
+    const visitsToday = visitsTodayAgg[0]?.value || 0
+    const visitsThisWeek = visitsWeekAgg[0]?.value || 0
+    const visitsThisMonth = visitsMonthAgg[0]?.value || 0
 
     const mostRequestedPaidRow = mostRequestedPaidRows[0]
     const mostRequestedPaid: MostRequestedMentorship | null =
@@ -198,6 +226,9 @@ export async function GET(request: Request) {
       publicVisits,
       publicClicks,
       publicConversionRate: rate(publicClicks, publicVisits),
+      visitsToday,
+      visitsThisWeek,
+      visitsThisMonth,
       mostRequestedPaid,
       mostRequestedFree,
     }

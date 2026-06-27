@@ -59,7 +59,8 @@
       "PowerShell(Start-Sleep -Seconds 2; \\(Invoke-WebRequest -Uri \"http://localhost:3000/minhas-mentorias\" -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue\\).Headers)",
       "Bash(xargs grep -l \"pageShares\\\\|page_shares\\\\|shareCount\\\\|share_count\")",
       "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\('Entries count:', j.entries.length\\); console.log\\('Last entry:', JSON.stringify\\(j.entries[j.entries.length-1]\\)\\)\")",
-      "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\(j.entries.length, j.entries[j.entries.length-1]\\)\")"
+      "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\(j.entries.length, j.entries[j.entries.length-1]\\)\")",
+      "PowerShell(pnpm build)"
     ]
   }
 }

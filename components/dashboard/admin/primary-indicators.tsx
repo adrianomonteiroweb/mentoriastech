@@ -8,7 +8,6 @@ import {
   Clock,
   CreditCard,
   Crown,
-  Eye,
   Gift,
   MousePointerClick,
   Percent,
@@ -21,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import type { AdminStats } from "@/lib/types/database"
 import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
+import { VisitsCard } from "@/components/dashboard/admin/visits-card"
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -107,7 +107,6 @@ function buildGroups(stats: AdminStats | null): IndicatorGroup[] {
       id: "publico",
       title: "Página Pública & Aquisição",
       cards: [
-        { label: "Visitas", value: stats?.publicVisits ?? 0, icon: Eye, color: "text-cyan-400" },
         { label: "Cliques", value: stats?.publicClicks ?? 0, icon: MousePointerClick, color: "text-violet-400" },
         {
           label: "Conversão página",
@@ -192,6 +191,7 @@ export function PrimaryIndicators({ isBlockVisible }: PrimaryIndicatorsProps = {
             {group.title}
           </h3>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+            {group.id === "publico" && <VisitsCard stats={stats} loading={loading} />}
             {group.cards.map((card) => (
               <Card key={card.label} className="border-primary/20 bg-primary/[0.03]">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
