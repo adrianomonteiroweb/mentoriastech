@@ -24,5 +24,11 @@ export default async function CurriculoPage() {
     : []
   const hasResume = Boolean(usableResumePathname(profile?.resumeUrl) || resumeRow)
 
-  return <ResumeImprover email={session.email} initialHasResume={hasResume} />
+  return (
+    <ResumeImprover
+      variant="authenticated"
+      email={session.email}
+      initialHasResume={hasResume}
+    />
+  )
 }

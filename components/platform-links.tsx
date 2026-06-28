@@ -7,10 +7,17 @@ import {
   BriefcaseBusiness,
   FileText,
   Route,
+  Sparkles,
 } from "lucide-react"
 import { trackPageEvent } from "@/lib/track-page"
 
 const links = [
+  {
+    label: "Ferramentas",
+    description: "Ferramentas de IA grátis para currículo e carreira",
+    href: "/ferramentas",
+    icon: Sparkles,
+  },
   {
     label: "Trilhas",
     description: "Percurso guiado do posicionamento à contratação",

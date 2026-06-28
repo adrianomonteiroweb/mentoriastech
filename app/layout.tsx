@@ -6,14 +6,19 @@ import { PWARegister } from '@/components/pwa-register'
 import { InstallPrompt } from '@/components/install-prompt'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeColorMeta, ThemeToggle } from '@/components/theme-toggle'
+import { SITE_URL } from '@/lib/site'
 
 const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
 
 export const metadata: Metadata = {
-  title: 'MentoriasTech | Mentorias em Tecnologia',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'MentoriasTech | Mentorias em Tecnologia',
+    template: '%s | MentoriasTech',
+  },
   description:
-    'Plataforma de mentorias em desenvolvimento de software e carreira em tecnologia. Conecte-se. Cresça. Transforme.',
+    'Plataforma de mentorias em desenvolvimento de software e carreira em tecnologia. Ferramentas de IA grátis para currículo e carreira. Conecte-se. Cresça. Transforme.',
   manifest: '/manifest.json',
   applicationName: 'MentoriasTech',
   appleWebApp: {
@@ -27,6 +32,16 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: 'website',
+    locale: 'pt_BR',
+    siteName: 'MentoriasTech',
+    url: SITE_URL,
+    title: 'MentoriasTech | Mentorias em Tecnologia',
+    description:
+      'Mentorias em tech e ferramentas de IA grátis para currículo e carreira.',
   },
 }
 

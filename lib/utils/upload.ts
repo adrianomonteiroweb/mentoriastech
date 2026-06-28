@@ -218,6 +218,24 @@ async function validateFile(file: File, category: UploadCategory) {
 }
 
 /**
+ * Valida um arquivo (tamanho, MIME e assinatura) SEM enviá-lo ao Blob.
+ * Usado por rotas públicas que processam o arquivo em memória sem armazenar.
+ */
+export async function validateUploadedFile(
+  file: File,
+  category: UploadCategory = "resume",
+): Promise<{ mime: string }> {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new UploadError(
+      `Arquivo muito grande. Tamanho maximo: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+      413,
+    )
+  }
+  const { mime } = await validateFile(file, category)
+  return { mime }
+}
+
+/**
  * Upload de arquivo para Vercel Blob.
  *
  * Todos os uploads usam blob publico (ver UPLOAD_CONFIG). Curriculos ficam sob o

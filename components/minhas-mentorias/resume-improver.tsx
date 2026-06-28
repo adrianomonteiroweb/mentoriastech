@@ -45,9 +45,23 @@ import { parseResumeMarkdown, type ResumeBlock } from "@/lib/resume/markdown-blo
 import type { Job } from "@/lib/types/database"
 
 interface Props {
-  email: string
-  initialHasResume: boolean
+  variant?: "authenticated" | "public"
+  email?: string
+  initialHasResume?: boolean
 }
+
+const ENDPOINTS = {
+  authenticated: {
+    analyze: "/api/minhas-mentorias/resume/improve/analyze",
+    improve: "/api/minhas-mentorias/resume/improve",
+    pdf: "/api/minhas-mentorias/resume/improve/pdf",
+  },
+  public: {
+    analyze: "/api/tools/resume/analyze",
+    improve: "/api/tools/resume/improve",
+    pdf: "/api/tools/resume/pdf",
+  },
+} as const
 
 type RequirementKind = "essential" | "differential"
 type RequirementEvidence = "strong" | "weak" | "missing"
@@ -313,11 +327,36 @@ function CompatibilityMeter({
   )
 }
 
-export function ResumeImprover({ email, initialHasResume }: Props) {
+export function ResumeImprover({
+  variant = "authenticated",
+  email,
+  initialHasResume = false,
+}: Props) {
+  const isPublic = variant === "public"
+  const endpoints = ENDPOINTS[variant]
+
   const [hasResume, setHasResume] = useState(initialHasResume)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // No modo público o PDF fica só em memória (não é armazenado).
+  const resumeReady = isPublic ? Boolean(file) : hasResume
+
+  // POST que envia o PDF (público, multipart) ou JSON (autenticado, currículo salvo).
+  async function postAI(endpoint: string, payload: Record<string, unknown>) {
+    if (isPublic) {
+      const fd = new FormData()
+      if (file) fd.append("file", file)
+      fd.append("data", JSON.stringify(payload))
+      return fetch(endpoint, { method: "POST", body: fd })
+    }
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+  }
 
   const [jobSourceMode, setJobSourceMode] = useState<JobSourceMode>("existing")
   const [availableJobs, setAvailableJobs] = useState<Job[]>([])
@@ -446,6 +485,10 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
   }
 
   async function handleAnalyze() {
+    if (isPublic && !file) {
+      setError("Envie o PDF do seu currículo para começar.")
+      return
+    }
     setAnalyzing(true)
     setError("")
     setNotice("")
@@ -458,11 +501,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
     setExtraResults("")
 
     try {
-      const res = await fetch("/api/minhas-mentorias/resume/improve/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescription }),
-      })
+      const res = await postAI(endpoints.analyze, { jobDescription })
 
       const data = await res.json().catch(() => null)
       if (!res.ok) {
@@ -566,15 +605,11 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
     setRequirementsAfter(null)
 
     try {
-      const res = await fetch("/api/minhas-mentorias/resume/improve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobDescription,
-          requirements: analysis?.requirements ?? [],
-          evidenceAnswers: buildEvidenceAnswers(),
-          trajectory: trajectory.map(({ year, text }) => ({ year, text })),
-        }),
+      const res = await postAI(endpoints.improve, {
+        jobDescription,
+        requirements: analysis?.requirements ?? [],
+        evidenceAnswers: buildEvidenceAnswers(),
+        trajectory: trajectory.map(({ year, text }) => ({ year, text })),
       })
 
       const data = await res.json().catch(() => null)
@@ -607,7 +642,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
     setError("")
 
     try {
-      const res = await fetch("/api/minhas-mentorias/resume/improve/pdf", {
+      const res = await fetch(endpoints.pdf, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markdown: result }),
@@ -678,16 +713,20 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <header className="flex flex-col gap-1">
           <Link
-            href="/minhas-mentorias/historico"
+            href={isPublic ? "/ferramentas" : "/minhas-mentorias/historico"}
             className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar para Minhas Mentorias
+            {isPublic ? "Voltar para Ferramentas" : "Voltar para Minhas Mentorias"}
           </Link>
           <h1 className="mt-1 text-2xl font-semibold text-foreground">
-            Melhorar currículo com IA
+            Melhorar currículo com IA {isPublic && "grátis"}
           </h1>
-          <p className="text-xs text-muted-foreground">Acesso via {email}</p>
+          <p className="text-xs text-muted-foreground">
+            {isPublic
+              ? "Otimize seu currículo para a vaga e baixe em PDF. Sem cadastro."
+              : `Acesso via ${email}`}
+          </p>
         </header>
 
         {/* Steps indicator */}
@@ -721,7 +760,18 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                   </span>
                 </div>
 
-                {hasResume ? (
+                {isPublic ? (
+                  <p className="text-xs text-muted-foreground">
+                    {file ? (
+                      <>
+                        Currículo carregado:{" "}
+                        <span className="text-foreground">{file.name}</span>
+                      </>
+                    ) : (
+                      "Envie seu currículo em PDF para começar."
+                    )}
+                  </p>
+                ) : hasResume ? (
                   <a
                     href="/api/minhas-mentorias/resume/download"
                     target="_blank"
@@ -749,25 +799,32 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                     }}
                     className="text-xs text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:text-foreground"
                   />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!file || uploading}
-                    onClick={handleUpload}
-                    className="shrink-0"
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    <span className="ml-1">
-                      {uploading ? "Enviando…" : hasResume ? "Adicionar" : "Enviar"}
-                    </span>
-                  </Button>
+                  {!isPublic && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!file || uploading}
+                      onClick={handleUpload}
+                      className="shrink-0"
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      <span className="ml-1">
+                        {uploading ? "Enviando…" : hasResume ? "Adicionar" : "Enviar"}
+                      </span>
+                    </Button>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground">Tamanho máximo: 5MB</p>
+                <p className="text-xs text-muted-foreground">
+                  Tamanho máximo: 5MB.
+                  {isPublic
+                    ? " Seu PDF é processado apenas para gerar o resultado e não é armazenado."
+                    : ""}
+                </p>
               </CardContent>
             </Card>
 
@@ -881,7 +938,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                 <Button
                   type="button"
                   disabled={
-                    !hasResume ||
+                    !resumeReady ||
                     analyzing ||
                     jobDescription.trim().length < 20 ||
                     (jobSourceMode === "new" && !createdJob)
@@ -896,7 +953,7 @@ export function ResumeImprover({ email, initialHasResume }: Props) {
                   )}
                   {analyzing ? "Analisando…" : "Analisar currículo"}
                 </Button>
-                {!hasResume && (
+                {!resumeReady && (
                   <p className="text-xs text-muted-foreground">
                     Envie um currículo acima para habilitar a análise.
                   </p>
