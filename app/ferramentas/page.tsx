@@ -47,7 +47,7 @@ const TOOLS = [
     title: "Melhorar LinkedIn",
     description:
       "Fortaleça seu perfil profissional e atraia mais recrutadores.",
-    badge: "Na área do mentorado",
+    badge: "Grátis · sem cadastro",
     available: false,
   },
   // {
