@@ -1,11 +1,11 @@
-import Link from "next/link"
-import { ArrowRight, Bot, Clock, Code2, GraduationCap } from "lucide-react"
+import Link from "next/link";
+import { ArrowRight, Bot, Clock, Code2, GraduationCap } from "lucide-react";
 
 const highlights = [
+  { label: "Carreira Tech", icon: GraduationCap },
   { label: "Software", icon: Code2 },
   { label: "RPA", icon: Bot },
-  { label: "Carreira tech", icon: GraduationCap },
-]
+];
 
 function Logo() {
   return (
@@ -17,17 +17,37 @@ function Logo() {
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="hero-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="hero-bg"
+            x1="0"
+            y1="0"
+            x2="64"
+            y2="64"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#0d1117" />
             <stop offset="1" stopColor="#161b22" />
           </linearGradient>
-          <linearGradient id="hero-fg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="hero-fg"
+            x1="0"
+            y1="0"
+            x2="64"
+            y2="64"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor="#60a5fa" />
             <stop offset="1" stopColor="#3b82f6" />
           </linearGradient>
         </defs>
         <rect width="64" height="64" rx="14" fill="url(#hero-bg)" />
-        <g fill="none" stroke="url(#hero-fg)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <g
+          fill="none"
+          stroke="url(#hero-fg)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M 19 20 L 12 32 L 19 44" />
           <path d="M 35 20 L 29 44" />
           <path d="M 45 20 L 52 32 L 45 44" />
@@ -41,7 +61,7 @@ function Logo() {
         </span>
       </h1>
     </div>
-  )
+  );
 }
 
 export function HeroSection() {
@@ -54,12 +74,8 @@ export function HeroSection() {
           Conecte-se. Cresça. Transforme.
         </p>
         <p className="max-w-sm text-sm font-medium leading-relaxed text-foreground/85">
-          Plataforma de mentorias em desenvolvimento de software, automações RPA
-          e carreira em tecnologia.
-        </p>
-        <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-          Mentoria prática para transformar dúvidas em próximos passos:
-          carreira, portfólio, entrevistas, automações e desenvolvimento web.
+          Plataforma de mentorias em busca de oportunidades, posicionamento de
+          carreira e evolução em soft e hard skills.
         </p>
       </div>
 
@@ -89,5 +105,5 @@ export function HeroSection() {
         </p>
       </div>
     </header>
-  )
+  );
 }
