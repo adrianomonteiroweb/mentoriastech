@@ -61,7 +61,8 @@
       "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\('Entries count:', j.entries.length\\); console.log\\('Last entry:', JSON.stringify\\(j.entries[j.entries.length-1]\\)\\)\")",
       "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\(j.entries.length, j.entries[j.entries.length-1]\\)\")",
       "PowerShell(pnpm build)",
-      "Bash(xargs grep -l \"getClientIp\\\\|x-forwarded-for\\\\|x-real-ip\")"
+      "Bash(xargs grep -l \"getClientIp\\\\|x-forwarded-for\\\\|x-real-ip\")",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
     ]
   }
 }

@@ -1,27 +1,41 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Copy,
   Download,
   FileText,
+  Info,
   Linkedin,
   Loader2,
+  MinusCircle,
   Sparkles,
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  TrajectoryCapture,
+  type TrajectoryTopic,
+} from "@/components/minhas-mentorias/trajectory-capture";
 import {
   parseResumeMarkdown,
   type ResumeBlock,
 } from "@/lib/resume/markdown-blocks";
+import {
+  sortBySeverity,
+  type ChecklistSeverity,
+  type ChecklistStatus,
+  type LinkedInChecklistItem,
+} from "@/lib/linkedin/checklist";
 
 interface Props {
   email: string;
@@ -39,6 +53,63 @@ interface PositioningData {
   mainSkills: string;
 }
 
+interface ChecklistResult {
+  score: number;
+  checklist: LinkedInChecklistItem[];
+}
+
+const SEVERITY_META: Record<
+  ChecklistSeverity,
+  { label: string; accent: string; badge: string }
+> = {
+  critical: {
+    label: "Crítico",
+    accent: "border-l-destructive",
+    badge: "bg-destructive/10 text-destructive",
+  },
+  important: {
+    label: "Importante",
+    accent: "border-l-amber-500",
+    badge: "bg-amber-500/10 text-amber-400",
+  },
+  bonus: {
+    label: "Bônus",
+    accent: "border-l-border",
+    badge: "bg-secondary text-muted-foreground",
+  },
+};
+
+const STATUS_META: Record<
+  ChecklistStatus,
+  { label: string; className: string; icon: typeof CheckCircle2 }
+> = {
+  ok: { label: "OK", className: "text-emerald-400", icon: CheckCircle2 },
+  partial: { label: "Parcial", className: "text-amber-400", icon: MinusCircle },
+  missing: { label: "Falta", className: "text-destructive", icon: AlertCircle },
+};
+
+function scoreColor(score: number) {
+  if (score >= 75) return "text-emerald-400";
+  if (score >= 50) return "text-amber-400";
+  return "text-destructive";
+}
+
+function ScoreMeter({ label, score }: { label: string; score: number }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span className={`text-2xl font-bold ${scoreColor(score)}`}>
+          {score}%
+        </span>
+      </div>
+      <Progress value={score} />
+    </div>
+  );
+}
+
 function RenderedMarkdown({ markdown }: { markdown: string }) {
   const blocks = parseResumeMarkdown(markdown);
 
@@ -48,25 +119,14 @@ function RenderedMarkdown({ markdown }: { markdown: string }) {
         switch (block.type) {
           case "h1":
             return (
-              <h2 key={i} className="text-xl font-semibold text-foreground">
+              <h2 key={i} className="text-base font-semibold text-foreground">
                 {block.text}
               </h2>
             );
           case "h2":
-            return (
-              <h3
-                key={i}
-                className="mt-3 border-b border-primary/40 pb-1 text-xs font-semibold uppercase tracking-wider text-primary"
-              >
-                {block.text}
-              </h3>
-            );
           case "h3":
             return (
-              <h4
-                key={i}
-                className="mt-2 text-sm font-semibold text-foreground"
-              >
+              <h4 key={i} className="mt-1 text-sm font-semibold text-foreground">
                 {block.text}
               </h4>
             );
@@ -85,6 +145,67 @@ function RenderedMarkdown({ markdown }: { markdown: string }) {
             );
         }
       })}
+    </div>
+  );
+}
+
+function ChecklistView({ items }: { items: LinkedInChecklistItem[] }) {
+  const ordered = sortBySeverity(items);
+  return (
+    <div className="flex flex-col gap-3">
+      {ordered.map((item) => {
+        const severity = SEVERITY_META[item.severity];
+        const status = STATUS_META[item.status];
+        const StatusIcon = status.icon;
+        return (
+          <div
+            key={item.id}
+            className={`flex flex-col gap-2 rounded-lg border border-l-4 border-border bg-background/50 p-3 ${severity.accent}`}
+          >
+            <div className="flex items-start gap-2">
+              <StatusIcon
+                className={`mt-0.5 h-4 w-4 shrink-0 ${status.className}`}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-sm font-semibold text-foreground">
+                    {item.label}
+                  </span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase ${severity.badge}`}
+                  >
+                    {severity.label}
+                  </span>
+                  <span className="text-[10px] uppercase text-muted-foreground">
+                    {item.section}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {item.recommendation && (
+              <div className="pl-6">
+                <RenderedMarkdown markdown={item.recommendation} />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SeverityLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-destructive" /> Crítico
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Importante
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/50" /> Bônus
+      </span>
     </div>
   );
 }
@@ -119,6 +240,9 @@ function SelectField({
   );
 }
 
+const DISCLAIMER =
+  "Tudo isso são recomendações — não são regras nem fórmula de sucesso. Adapte cada sugestão ao seu contexto e ao seu momento de carreira.";
+
 export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
   const [hasLinkedinPdf, setHasLinkedinPdf] = useState(initialHasLinkedinPdf);
   const [file, setFile] = useState<File | null>(null);
@@ -134,13 +258,47 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
     connections: "",
     mainSkills: "",
   });
+  const [trajectory, setTrajectory] = useState<TrajectoryTopic[]>([]);
+
+  const [scoring, setScoring] = useState(false);
+  const [scoreResult, setScoreResult] = useState<ChecklistResult | null>(null);
 
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<ChecklistResult | null>(null);
   const [copied, setCopied] = useState(false);
 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const autoScoredRef = useRef(false);
+
+  async function runScore() {
+    setScoring(true);
+    setError("");
+    try {
+      const res = await fetch("/api/minhas-mentorias/linkedin/score", {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Erro ao avaliar perfil");
+      }
+      setScoreResult({ score: data.score, checklist: data.checklist });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao avaliar perfil");
+    } finally {
+      setScoring(false);
+    }
+  }
+
+  // Mostra o % "assim que carrega o profile" quando já existe um PDF enviado.
+  useEffect(() => {
+    if (hasLinkedinPdf && !autoScoredRef.current) {
+      autoScoredRef.current = true;
+      runScore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasLinkedinPdf]);
 
   async function handleUpload() {
     if (!file) return;
@@ -166,6 +324,8 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
       setFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setNotice("PDF do LinkedIn enviado com sucesso!");
+      setScoreResult(null);
+      runScore();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar PDF");
     } finally {
@@ -200,7 +360,10 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
       const res = await fetch("/api/minhas-mentorias/linkedin/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(positioning),
+        body: JSON.stringify({
+          ...positioning,
+          trajectory: trajectory.map(({ year, text }) => ({ year, text })),
+        }),
       });
 
       const data = await res.json().catch(() => null);
@@ -208,7 +371,7 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
         throw new Error(data?.error || "Erro ao analisar perfil");
       }
 
-      setResult(data.analysis as string);
+      setResult({ score: data.score, checklist: data.checklist });
       setPhase("result");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao analisar perfil");
@@ -219,8 +382,18 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
 
   async function handleCopy() {
     if (!result) return;
+    const text = [
+      `Análise do perfil LinkedIn — ${result.score}% segundo as recomendações`,
+      "",
+      ...sortBySeverity(result.checklist).map(
+        (item) =>
+          `## ${item.label} [${SEVERITY_META[item.severity].label} • ${STATUS_META[item.status].label}]\n${item.recommendation}`,
+      ),
+      "",
+      DISCLAIMER,
+    ].join("\n");
     try {
-      await navigator.clipboard.writeText(result);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -390,23 +563,54 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
                 <p className="text-xs text-muted-foreground">
                   Tamanho máximo: 5MB
                 </p>
-
-                {hasLinkedinPdf && (
-                  <Button
-                    type="button"
-                    onClick={handleGoToPositioning}
-                    className="mt-2 w-fit"
-                  >
-                    <ArrowRight className="h-4 w-4 mr-1" />
-                    Próximo: Posicionamento
-                  </Button>
-                )}
               </CardContent>
             </Card>
+
+            {/* Score inicial do perfil (gancho assim que carrega) */}
+            {hasLinkedinPdf && (scoring || scoreResult) && (
+              <Card>
+                <CardContent className="flex flex-col gap-4 py-4">
+                  {scoring ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Avaliando seu perfil…
+                    </div>
+                  ) : (
+                    scoreResult && (
+                      <>
+                        <ScoreMeter
+                          label="Seu perfil hoje (base no PDF)"
+                          score={scoreResult.score}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Esse é o quanto seu perfil já atende às nossas
+                          recomendações com base no PDF. Responda o
+                          posicionamento para a análise completa e os textos
+                          prontos.
+                        </p>
+                        <SeverityLegend />
+                        <ChecklistView items={scoreResult.checklist} />
+                      </>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {hasLinkedinPdf && (
+              <Button
+                type="button"
+                onClick={handleGoToPositioning}
+                className="w-fit"
+              >
+                <ArrowRight className="mr-1 h-4 w-4" />
+                Próximo: Posicionamento
+              </Button>
+            )}
           </>
         )}
 
-        {/* Phase 2: Positioning Questions */}
+        {/* Phase 2: Positioning + Trajectory */}
         {phase === "positioning" && (
           <Card>
             <CardContent className="flex flex-col gap-5 py-4">
@@ -501,6 +705,13 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
                 />
               </div>
 
+              <div className="border-t border-border pt-4">
+                <TrajectoryCapture
+                  topics={trajectory}
+                  onChange={setTrajectory}
+                />
+              </div>
+
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
@@ -532,7 +743,9 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
 
               {!isPositioningValid() && (
                 <p className="text-xs text-muted-foreground">
-                  Preencha todos os campos para habilitar a análise.
+                  Preencha todos os campos para habilitar a análise. A
+                  trajetória é opcional, mas deixa o &ldquo;Sobre&rdquo; bem mais
+                  forte.
                 </p>
               )}
             </CardContent>
@@ -575,21 +788,30 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
-                    <span className="ml-1">
-                      {copied ? "Copiado" : "Copiar"}
-                    </span>
+                    <span className="ml-1">{copied ? "Copiado" : "Copiar"}</span>
                   </Button>
                 </div>
               </div>
 
               <div className="rounded-lg border border-border bg-background/50 p-4">
-                <RenderedMarkdown markdown={result} />
+                <ScoreMeter
+                  label="Seu perfil segundo as recomendações"
+                  score={result.score}
+                />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Conforme você aplica os pontos abaixo, seu perfil fica mais
+                  perto dos 100%.
+                </p>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                Revise com atenção: a IA pode cometer erros. Confira se todas as
-                sugestões fazem sentido para o seu contexto antes de aplicá-las.
-              </p>
+              <SeverityLegend />
+
+              <ChecklistView items={result.checklist} />
+
+              <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 p-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{DISCLAIMER}</p>
+              </div>
             </CardContent>
           </Card>
         )}

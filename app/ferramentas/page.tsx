@@ -5,7 +5,7 @@ import {
   ArrowRight,
   // BookOpenCheck,
   // Briefcase,
-  // Linkedin,
+  Linkedin,
   Sparkles,
 } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
@@ -41,14 +41,15 @@ const TOOLS = [
     badge: "Grátis · sem cadastro",
     available: true,
   },
-  // {
-  //   href: "/minhas-mentorias/linkedin",
-  //   icon: Linkedin,
-  //   title: "Melhorar LinkedIn",
-  //   description: "Fortaleça seu perfil profissional e atraia mais recrutadores.",
-  //   badge: "Na área do mentorado",
-  //   available: false,
-  // },
+  {
+    href: "/minhas-mentorias/linkedin",
+    icon: Linkedin,
+    title: "Melhorar LinkedIn",
+    description:
+      "Fortaleça seu perfil profissional e atraia mais recrutadores.",
+    badge: "Na área do mentorado",
+    available: false,
+  },
   // {
   //   href: "/minhas-mentorias/plano-de-estudos",
   //   icon: BookOpenCheck,

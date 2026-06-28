@@ -4,7 +4,17 @@ import {
   ANALYSIS_PROMPT,
   REQUIREMENTS_EVALUATION_PROMPT,
 } from "@/lib/resume-ai-prompt"
-import { composeLinkedinPrompt } from "@/lib/linkedin-ai-prompt"
+import {
+  composeLinkedinPrompt,
+  composeLinkedinChecklistPrompt,
+} from "@/lib/linkedin-ai-prompt"
+import {
+  ALL_AXIS_IDS,
+  PDF_AXIS_IDS,
+  mergeChecklist,
+  scoreFromChecklist,
+  type LinkedInChecklistItem,
+} from "@/lib/linkedin/checklist"
 import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
 
 const DEFAULT_MODEL = "gemini-2.5-flash"
@@ -78,7 +88,13 @@ export interface LinkedInAnalysisInput {
   publishingFrequency: string
   connections: string
   mainSkills: string
+  trajectory?: TrajectoryTopic[]
   customPrompt?: string | null
+}
+
+export interface LinkedInAnalysisResult {
+  score: number
+  checklist: LinkedInChecklistItem[]
 }
 
 export async function analyzeResume({
@@ -375,6 +391,15 @@ const CONNECTION_LABELS: Record<string, string> = {
   "mais-de-1000": "Mais de 1.000",
 }
 
+function parseChecklistResponse(
+  text: string,
+  allowedIds: string[],
+): LinkedInAnalysisResult {
+  const parsed = JSON.parse(text) as { items?: unknown }
+  const checklist = mergeChecklist(parsed.items, allowedIds)
+  return { score: scoreFromChecklist(checklist), checklist }
+}
+
 export async function analyzeLinkedInProfile({
   pdfBase64,
   careerGoal,
@@ -383,13 +408,14 @@ export async function analyzeLinkedInProfile({
   publishingFrequency,
   connections,
   mainSkills,
+  trajectory,
   customPrompt,
-}: LinkedInAnalysisInput): Promise<string> {
+}: LinkedInAnalysisInput): Promise<LinkedInAnalysisResult> {
   const { ai, model } = getClient()
 
   const systemInstruction = composeLinkedinPrompt(customPrompt)
 
-  const userText = [
+  let userText = [
     `Informações de posicionamento fornecidas pelo profissional:`,
     ``,
     `**Foco para próxima oportunidade:** ${careerGoal}`,
@@ -399,12 +425,23 @@ export async function analyzeLinkedInProfile({
     `**Número de conexões:** ${CONNECTION_LABELS[connections] || connections}`,
     `**Principais áreas de atuação/skills:** ${mainSkills}`,
     ``,
-    `Analise o perfil do LinkedIn (PDF anexado) junto com essas informações e gere a análise completa em Markdown, seguindo estritamente as regras e seções definidas.`,
   ].join("\n")
+
+  if (trajectory && trajectory.length > 0) {
+    userText += `Trajetória do profissional (ordem cronológica) — use para avaliar e construir o texto da seção "Sobre", contando como ele chegou até aqui:\n\n`
+    for (const topic of trajectory) {
+      const year = topic.year?.trim()
+      userText += `- ${year ? `(${year}) ` : ""}${topic.text.trim()}\n`
+    }
+    userText += `\n`
+  }
+
+  userText += `Analise o perfil do LinkedIn (PDF anexado) junto com essas informações e retorne o JSON do checklist, seguindo estritamente o formato e os ids definidos.`
 
   const config: Record<string, unknown> = {
     systemInstruction,
     temperature: 0.4,
+    responseMimeType: "application/json",
   }
   if (model.includes("flash")) {
     config.thinkingConfig = { thinkingBudget: 0 }
@@ -429,11 +466,65 @@ export async function analyzeLinkedInProfile({
     if (!text) {
       throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
     }
-    return text
+    return parseChecklistResponse(text, ALL_AXIS_IDS)
   } catch (error) {
     if (error instanceof ResumeAIError) throw error
+    if (error instanceof SyntaxError) {
+      throw new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
+    }
     const message = error instanceof Error ? error.message : "Erro desconhecido"
     throw new ResumeAIError(`Falha ao analisar o perfil LinkedIn com IA: ${message}`)
+  }
+}
+
+export async function scoreLinkedInProfile({
+  pdfBase64,
+  customPrompt,
+}: {
+  pdfBase64: string
+  customPrompt?: string | null
+}): Promise<LinkedInAnalysisResult> {
+  const { ai, model } = getClient()
+
+  const systemInstruction = composeLinkedinChecklistPrompt(customPrompt)
+  const userText = `Avalie o perfil do LinkedIn (PDF anexado) e retorne o JSON do checklist apenas com os eixos avaliáveis pelo PDF, seguindo o formato definido.`
+
+  const config: Record<string, unknown> = {
+    systemInstruction,
+    temperature: 0.3,
+    responseMimeType: "application/json",
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType: "application/pdf", data: pdfBase64 } },
+            { text: userText },
+          ],
+        },
+      ],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+    return parseChecklistResponse(text, PDF_AXIS_IDS)
+  } catch (error) {
+    if (error instanceof ResumeAIError) throw error
+    if (error instanceof SyntaxError) {
+      throw new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
+    }
+    const message = error instanceof Error ? error.message : "Erro desconhecido"
+    throw new ResumeAIError(`Falha ao avaliar o perfil LinkedIn com IA: ${message}`)
   }
 }
 

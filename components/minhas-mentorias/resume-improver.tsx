@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   ArrowDown,
   ArrowLeft,
-  ArrowUp,
   Briefcase,
   Building2,
   CheckCircle2,
@@ -27,6 +26,10 @@ import {
   Upload,
 } from "lucide-react"
 import { JobForm } from "@/components/dashboard/hr/job-form"
+import {
+  TrajectoryCapture,
+  type TrajectoryTopic,
+} from "@/components/minhas-mentorias/trajectory-capture"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -82,12 +85,6 @@ interface ResumeAnalysis {
   requirements: RequirementItem[]
   questions: GapQuestion[]
   compatibility: number
-}
-
-interface TrajectoryTopic {
-  id: string
-  year: string
-  text: string
 }
 
 const EVIDENCE_META: Record<
@@ -377,8 +374,6 @@ export function ResumeImprover({
   const [extraResults, setExtraResults] = useState("")
 
   const [trajectory, setTrajectory] = useState<TrajectoryTopic[]>([])
-  const [trajYear, setTrajYear] = useState("")
-  const [trajText, setTrajText] = useState("")
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -565,33 +560,6 @@ export function ResumeImprover({
     return [...fromQuestions, ...fromExtras]
   }
 
-  function addTrajectoryTopic() {
-    if (!trajText.trim()) return
-    setTrajectory((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        year: trajYear.trim(),
-        text: trajText.trim(),
-      },
-    ])
-    setTrajYear("")
-    setTrajText("")
-  }
-
-  function removeTrajectoryTopic(id: string) {
-    setTrajectory((prev) => prev.filter((t) => t.id !== id))
-  }
-
-  function moveTrajectoryTopic(index: number, direction: -1 | 1) {
-    setTrajectory((prev) => {
-      const target = index + direction
-      if (target < 0 || target >= prev.length) return prev
-      const next = [...prev]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      return next
-    })
-  }
 
   async function handleGenerate() {
     setGenerating(true)
@@ -690,8 +658,6 @@ export function ResumeImprover({
     setExtraAnswer("")
     setExtraResults("")
     setTrajectory([])
-    setTrajYear("")
-    setTrajText("")
     setResult(null)
     setOriginalResult(null)
     setEditingResume(false)
@@ -1140,17 +1106,6 @@ export function ResumeImprover({
         {phase === "trajectory" && (
           <Card>
             <CardContent className="flex flex-col gap-4 py-4">
-              <div>
-                <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <Route className="h-4 w-4 text-primary" />
-                  Sua trajetória
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Em tópicos e em ordem cronológica, conte como você chegou até aqui.
-                  A IA usa isso para escrever o &ldquo;Resumo&rdquo; (sobre) do seu currículo.
-                </p>
-              </div>
-
               {analysis && (
                 <div className="rounded-lg border border-border bg-background/50 p-3">
                   <CompatibilityMeter
@@ -1160,95 +1115,12 @@ export function ResumeImprover({
                 </div>
               )}
 
-              {/* Linha de adição */}
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={trajYear}
-                  onChange={(e) => setTrajYear(e.target.value)}
-                  inputMode="numeric"
-                  maxLength={9}
-                  placeholder="Ano"
-                  aria-label="Ano"
-                  className="sm:w-24"
-                />
-                <Input
-                  value={trajText}
-                  onChange={(e) => setTrajText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      addTrajectoryTopic()
-                    }
-                  }}
-                  placeholder="Ex.: comecei a estudar programação por conta própria"
-                  aria-label="Descrição do tópico"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addTrajectoryTopic}
-                  disabled={!trajText.trim()}
-                  className="w-full sm:w-auto"
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  Adicionar
-                </Button>
-              </div>
-
-              {/* Lista de tópicos */}
-              {trajectory.length > 0 ? (
-                <ol className="flex flex-col gap-2">
-                  {trajectory.map((topic, index) => (
-                    <li
-                      key={topic.id}
-                      className="flex items-start gap-2 rounded-lg border border-border bg-card/50 p-2.5"
-                    >
-                      <div className="flex shrink-0 flex-col">
-                        <button
-                          type="button"
-                          onClick={() => moveTrajectoryTopic(index, -1)}
-                          disabled={index === 0}
-                          aria-label="Mover para cima"
-                          className="flex h-5 w-8 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
-                        >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveTrajectoryTopic(index, 1)}
-                          disabled={index === trajectory.length - 1}
-                          aria-label="Mover para baixo"
-                          className="flex h-5 w-8 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        {topic.year && (
-                          <span className="mr-1.5 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                            {topic.year}
-                          </span>
-                        )}
-                        <span className="text-sm text-foreground">{topic.text}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeTrajectoryTopic(topic.id)}
-                        aria-label="Remover tópico"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Nenhum tópico ainda. Adicione marcos da sua jornada (opcional, mas
-                  deixa o &ldquo;Resumo&rdquo; bem mais forte).
-                </p>
-              )}
+              <TrajectoryCapture
+                topics={trajectory}
+                onChange={setTrajectory}
+                description="Em tópicos e em ordem cronológica, conte como você chegou até aqui. A IA usa isso para escrever o “Resumo” (sobre) do seu currículo."
+                emptyHint="Nenhum tópico ainda. Adicione marcos da sua jornada (opcional, mas deixa o “Resumo” bem mais forte)."
+              />
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button
