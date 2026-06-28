@@ -27,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, Info, MousePointerClick, Pencil, Percent, Share2, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel } from "@/lib/job-options"
 import type { JobStatus, JobWithAuthor } from "@/lib/types/database"
 
@@ -118,11 +118,18 @@ export function JobsTable({
   const getJobStatusLabel = (status: JobWithCounts["status"]) =>
     status === "approved" ? "Aprovada" : status === "pending" ? "Pendente" : status === "rejected" ? "Rejeitada" : "Expirada"
 
+  const conversionRate = (job: JobWithCounts) => {
+    const views = job.view_count ?? 0
+    const clicks = job.click_count ?? 0
+    return views > 0 ? Math.round((clicks / views) * 100) : 0
+  }
+
   const metricItems = (job: JobWithCounts) => [
-    { label: "Views", value: job.view_count ?? 0, icon: Eye },
-    { label: "Cliques", value: job.click_count ?? 0, icon: MousePointerClick },
-    { label: "Compart.", value: job.share_count ?? 0, icon: Share2 },
-    ...(adminMode ? [{ label: "Curtidas", value: job.action_counts?.liked ?? 0, icon: Heart }] : []),
+    { label: "Views", value: String(job.view_count ?? 0), icon: Eye },
+    { label: "Cliques", value: String(job.click_count ?? 0), icon: MousePointerClick },
+    { label: "Conversão", value: `${conversionRate(job)}%`, icon: Percent },
+    { label: "Compart.", value: String(job.share_count ?? 0), icon: Share2 },
+    ...(adminMode ? [{ label: "Curtidas", value: String(job.action_counts?.liked ?? 0), icon: Heart }] : []),
   ]
 
   const visibleJobs = showAll
@@ -379,6 +386,14 @@ export function JobsTable({
                 {showActions && (
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setSelectedJob(job)}
+                      >
+                        <Info className="h-3 w-3 mr-1" /> Detalhes
+                      </Button>
                       {adminMode && job.status === "pending" && (
                         <>
                         <Button size="sm" variant="outline" className="text-xs h-7"

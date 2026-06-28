@@ -22,6 +22,8 @@ const updateSchema = z.object({
   is_international: z.boolean().optional(),
   required_language: z.string().optional(),
   language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
+  summary: z.string().max(4000).optional(),
+  important_note: z.string().max(4000).optional(),
   active_hours: jobActiveHoursSchema.optional(),
 })
 
@@ -72,6 +74,8 @@ export async function PUT(
     if (parsed.data.is_international !== undefined) updateData.isInternational = parsed.data.is_international
     if (parsed.data.required_language !== undefined) updateData.requiredLanguage = parsed.data.required_language || null
     if (parsed.data.language_level !== undefined) updateData.languageLevel = parsed.data.language_level || null
+    if (parsed.data.summary !== undefined) updateData.summary = parsed.data.summary || null
+    if (parsed.data.important_note !== undefined) updateData.importantNote = parsed.data.important_note || null
     if (parsed.data.active_hours !== undefined) {
       updateData.sourcePostedAt = getJobSourcePostedAt(parsed.data.active_hours)
     }

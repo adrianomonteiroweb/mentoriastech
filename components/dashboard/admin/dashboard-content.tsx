@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { PrimaryIndicators } from "@/components/dashboard/admin/primary-indicators"
 import { StatsCards } from "@/components/dashboard/admin/stats-cards"
+import { TopEngagement } from "@/components/dashboard/admin/top-engagement"
 import { TopicRanking } from "@/components/dashboard/admin/topic-ranking"
 import { useUserPreferences } from "@/hooks/use-user-preferences"
 import { DASHBOARD_BLOCKS, isBlockVisible } from "@/lib/dashboard-blocks"
@@ -62,6 +63,7 @@ export function DashboardContent() {
 
       <PrimaryIndicators isBlockVisible={visible} />
       {visible("outras-metricas") && <StatsCards />}
+      {visible("mais-vistos") && <TopEngagement />}
       {visible("ranking") && <TopicRanking />}
     </div>
   )

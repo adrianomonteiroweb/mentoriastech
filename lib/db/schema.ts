@@ -454,6 +454,9 @@ export const jobs = pgTable("jobs", {
   languageLevel: text("language_level", {
     enum: ["basic", "intermediate", "advanced", "fluent"],
   }),
+  // Apenas para vagas internacionais: resumo (tabela "Item/Detalhes") e observação.
+  summary: text("summary"),
+  importantNote: text("important_note"),
   status: text("status", {
     enum: ["pending", "approved", "rejected", "expired"],
   })

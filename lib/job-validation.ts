@@ -36,5 +36,7 @@ export const createJobSchema = z.object({
   is_international: z.boolean().default(false),
   required_language: z.string().optional(),
   language_level: z.enum(["basic", "intermediate", "advanced", "fluent"]).optional(),
+  summary: z.string().max(4000).optional(),
+  important_note: z.string().max(4000).optional(),
   active_hours: jobActiveHoursSchema.default(0),
 })

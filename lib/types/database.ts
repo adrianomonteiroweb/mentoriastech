@@ -305,6 +305,8 @@ export interface Job {
   is_international: boolean
   required_language: string | null
   language_level: LanguageLevel | null
+  summary: string | null
+  important_note: string | null
   status: JobStatus
   approved_by: string | null
   approved_at: string | null
@@ -587,6 +589,20 @@ export interface TopicRanking {
 export interface MostRequestedMentorship {
   name: string
   count: number
+}
+
+export interface TopJob {
+  id: string
+  title: string
+  company: string | null
+  views: number
+  clicks: number
+}
+
+export interface TopContent {
+  id: string
+  title: string
+  views: number
 }
 
 export interface AdminStats {

@@ -6,6 +6,7 @@ import {
   auditLogs,
   bookings,
   contentItems,
+  contentViews,
   db,
   jobActions,
   jobs,
@@ -15,7 +16,13 @@ import {
   paidMentorships,
   payments,
 } from "@/lib/db"
-import type { AdminStats, MostRequestedMentorship, TopicRanking } from "@/lib/types/database"
+import type {
+  AdminStats,
+  MostRequestedMentorship,
+  TopContent,
+  TopJob,
+  TopicRanking,
+} from "@/lib/types/database"
 
 function rate(numerator: number, denominator: number): number {
   if (!denominator) return 0
@@ -194,6 +201,48 @@ export async function GET(request: Request) {
       ? { name: topFree.topicName, count: topFree.bookingCount }
       : null
 
+    // Top 5 vagas mais vistas e clicadas (acumulado)
+    const topJobsRows = await db
+      .select({
+        id: jobs.id,
+        title: jobs.title,
+        company: jobs.company,
+        views: jobs.viewCount,
+        clicks: jobs.clickCount,
+      })
+      .from(jobs)
+      .where(sql`${jobs.viewCount} + ${jobs.clickCount} > 0`)
+      .orderBy(desc(sql`${jobs.viewCount} + ${jobs.clickCount}`))
+      .limit(5)
+
+    const topJobs: TopJob[] = topJobsRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      company: row.company,
+      views: row.views,
+      clicks: row.clicks,
+    }))
+
+    // Top 5 conteúdos mais vistos hoje (fuso de São Paulo)
+    const topContentTodayRows = await db
+      .select({
+        id: contentItems.id,
+        title: contentItems.title,
+        views: count(contentViews.id),
+      })
+      .from(contentViews)
+      .innerJoin(contentItems, eq(contentItems.id, contentViews.contentId))
+      .where(gte(contentViews.viewedAt, visitsDayStart))
+      .groupBy(contentItems.id, contentItems.title)
+      .orderBy(desc(count(contentViews.id)))
+      .limit(5)
+
+    const topContentToday: TopContent[] = topContentTodayRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      views: row.views,
+    }))
+
     const stats: AdminStats = {
       totalBookings: totalBookingsValue,
       pendingBookings: pendingBookings[0]?.value || 0,
@@ -233,7 +282,7 @@ export async function GET(request: Request) {
       mostRequestedFree,
     }
 
-    return NextResponse.json({ data: stats, topicRanking })
+    return NextResponse.json({ data: stats, topicRanking, topJobs, topContentToday })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

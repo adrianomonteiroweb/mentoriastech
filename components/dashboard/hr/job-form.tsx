@@ -74,6 +74,8 @@ export function JobForm({
   const [isInternational, setIsInternational] = useState(job?.is_international || false)
   const [requiredLanguage, setRequiredLanguage] = useState(job?.required_language || "")
   const [languageLevel, setLanguageLevel] = useState(job?.language_level || "")
+  const [summary, setSummary] = useState(job?.summary || "")
+  const [importantNote, setImportantNote] = useState(job?.important_note || "")
   const [loading, setLoading] = useState(false)
   const [approving, setApproving] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -181,6 +183,8 @@ export function JobForm({
           is_international: isInternational,
           required_language: isInternational && requiredLanguage ? requiredLanguage : undefined,
           language_level: isInternational && languageLevel ? languageLevel : undefined,
+          summary: isInternational ? summary.trim() : "",
+          important_note: isInternational ? importantNote.trim() : "",
           ...(!isEditing || activeHoursChanged
             ? { active_hours: Number(activeHours) }
             : {}),
@@ -201,6 +205,8 @@ export function JobForm({
         setActiveHoursChanged(false)
         setDescription("")
         setDescriptionEn("")
+        setSummary("")
+        setImportantNote("")
         setStackTags([])
         setStackInput("")
         setLocation("")
@@ -416,8 +422,33 @@ export function JobForm({
               placeholder="Original job description in English..."
             />
             <p className="text-xs text-muted-foreground">
-              Cole aqui o texto original em inglês. A descrição em português acima será exibida como tradução.
+              Cole aqui o texto original em inglês. Ele será exibido como descrição principal, com a tradução (português) disponível em destaque.
             </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="summary">Resumo da vaga</Label>
+            <Textarea
+              id="summary"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              rows={8}
+              placeholder={`Um item por linha, no formato "Rótulo: Valor". Ex.:\nCargo: AI Engineer II\nModalidade: Tempo integral\nExperiência: 3–5 anos\nSalário: US$ 3.333–6.000/mês`}
+            />
+            <p className="text-xs text-muted-foreground">
+              Cada linha vira uma linha da tabela (Item / Detalhes). Aceita também colar uma tabela separada por tabulação.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="important-note">Observação importante</Label>
+            <Textarea
+              id="important-note"
+              value={importantNote}
+              onChange={(e) => setImportantNote(e.target.value)}
+              rows={4}
+              placeholder="Contexto e destaque sobre o perfil buscado na vaga..."
+            />
           </div>
         </div>
       )}

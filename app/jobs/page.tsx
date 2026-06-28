@@ -61,6 +61,8 @@ interface Job {
   is_international: boolean;
   required_language: string | null;
   language_level: "basic" | "intermediate" | "advanced" | "fluent" | null;
+  summary: string | null;
+  important_note: string | null;
   like_count: number;
   source_posted_at: string;
   created_at: string;
@@ -107,6 +109,30 @@ const SCOPE_TABS = [
   { key: "international", label: "Internacional" },
 ] as const;
 
+function parseSummaryRows(summary: string): { label: string; value: string }[] {
+  return summary
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const tab = line.indexOf("\t");
+      const sep = tab >= 0 ? tab : line.indexOf(":");
+      if (sep === -1) return { label: line, value: "" };
+      return {
+        label: line.slice(0, sep).trim(),
+        value: line.slice(sep + 1).trim(),
+      };
+    })
+    // Ignora um eventual cabeçalho "Item / Detalhes" colado junto.
+    .filter(
+      (row) =>
+        !(
+          row.label.toLowerCase() === "item" &&
+          row.value.toLowerCase() === "detalhes"
+        ),
+    );
+}
+
 function trackJobEvent(jobId: string, event: "view" | "click") {
   fetch(`/api/jobs/${jobId}/track`, {
     method: "POST",
@@ -131,6 +157,7 @@ export default function JobsPage() {
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  const [translatedJobs, setTranslatedJobs] = useState<Set<string>>(new Set());
   const [targetJobId, setTargetJobId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -300,6 +327,18 @@ export default function JobsPage() {
 
   function handleLike(jobId: string) {
     toggleAction(jobId, "liked");
+  }
+
+  function toggleTranslation(jobId: string) {
+    setTranslatedJobs((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
   }
 
   function resetFilters() {
@@ -665,46 +704,134 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {job.description && (
-                <>
-                  <p
-                    className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
-                      expandedJobs.has(job.id) ? "" : "line-clamp-3"
-                    }`}
-                  >
-                    {job.description}
+              {/* Resumo da vaga (internacional) */}
+              {job.is_international &&
+                job.summary &&
+                (() => {
+                  const rows = parseSummaryRows(job.summary);
+                  if (rows.length === 0) return null;
+                  return (
+                    <div className="mb-3 overflow-hidden rounded-lg border border-violet-500/20 bg-violet-500/5">
+                      <p className="border-b border-violet-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
+                        Resumo da vaga
+                      </p>
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {rows.map((row, i) => (
+                            <tr
+                              key={i}
+                              className="border-b border-border/50 align-top last:border-0"
+                            >
+                              <th
+                                scope="row"
+                                className="w-2/5 px-3 py-1.5 text-left font-medium text-foreground"
+                              >
+                                {row.label}
+                              </th>
+                              <td className="px-3 py-1.5 text-muted-foreground">
+                                {row.value}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+
+              {/* Observação importante (internacional) */}
+              {job.is_international && job.important_note && (
+                <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Observação importante
                   </p>
-                  {job.description.length > 150 && (
-                    <button
-                      onClick={() => {
-                        setExpandedJobs((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(job.id)) {
-                            next.delete(job.id);
-                          } else {
-                            next.add(job.id);
-                          }
-                          return next;
-                        });
-                      }}
-                      className="mb-3 min-h-9 text-sm font-medium text-primary hover:underline"
-                    >
-                      {expandedJobs.has(job.id) ? "Ver menos" : "Ver mais"}
-                    </button>
-                  )}
-                </>
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    {job.important_note}
+                  </p>
+                </div>
               )}
 
-              {job.description_en && expandedJobs.has(job.id) && (
-                <details className="mb-3">
-                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
-                    Ver descrição original em inglês
-                  </summary>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                    {job.description_en}
-                  </p>
-                </details>
-              )}
+              {/* Descrição — internacional: original (EN) em destaque + tradução visível */}
+              {(() => {
+                const original = job.description_en?.trim() || null;
+                const translation = job.description?.trim() || null;
+                const canToggle =
+                  job.is_international && !!original && !!translation;
+                const showingTranslation = translatedJobs.has(job.id);
+                const primary = job.is_international
+                  ? (showingTranslation ? translation : original) ??
+                    translation ??
+                    original
+                  : translation;
+                if (!primary) return null;
+                const expanded = expandedJobs.has(job.id);
+                return (
+                  <>
+                    {canToggle && (
+                      <div className="mb-2 inline-flex rounded-lg border border-border bg-card p-0.5 text-xs font-medium">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            showingTranslation && toggleTranslation(job.id)
+                          }
+                          aria-pressed={!showingTranslation}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 transition-colors",
+                            !showingTranslation
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <Globe className="h-3.5 w-3.5" />
+                          Original (EN)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            !showingTranslation && toggleTranslation(job.id)
+                          }
+                          aria-pressed={showingTranslation}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-md px-2.5 py-1 transition-colors",
+                            showingTranslation
+                              ? "bg-primary text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          <Languages className="h-3.5 w-3.5" />
+                          Ver tradução (PT)
+                        </button>
+                      </div>
+                    )}
+                    <p
+                      className={`mb-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground ${
+                        expanded ? "" : "line-clamp-3"
+                      }`}
+                    >
+                      {primary}
+                    </p>
+                    {primary.length > 150 && (
+                      <button
+                        onClick={() => {
+                          setExpandedJobs((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(job.id)) {
+                              next.delete(job.id);
+                            } else {
+                              next.add(job.id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="mb-3 min-h-9 text-sm font-medium text-primary hover:underline"
+                      >
+                        {expanded ? "Ver menos" : "Ver mais"}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">

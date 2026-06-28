@@ -298,6 +298,8 @@ export function toJob(row: DbJob): Job {
     is_international: row.isInternational,
     required_language: row.requiredLanguage,
     language_level: row.languageLevel,
+    summary: row.summary,
+    important_note: row.importantNote,
     status: row.status,
     approved_by: row.approvedBy,
     approved_at: toIso(row.approvedAt),

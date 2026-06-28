@@ -159,6 +159,8 @@ export async function POST(request: Request) {
         isInternational: parsed.data.is_international,
         requiredLanguage: parsed.data.required_language,
         languageLevel: parsed.data.language_level,
+        summary: parsed.data.summary || null,
+        importantNote: parsed.data.important_note || null,
         sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy: user.id,
         status: autoApprove ? "approved" : "pending",

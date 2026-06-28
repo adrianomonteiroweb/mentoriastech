@@ -12,6 +12,7 @@ export const DASHBOARD_BLOCKS: DashboardBlock[] = [
   { id: "publico", label: "Página Pública & Aquisição" },
   { id: "ferramentas", label: "Ferramentas Minhas Mentorias" },
   { id: "outras-metricas", label: "Outras métricas" },
+  { id: "mais-vistos", label: "Mais vistos (Vagas & Conteúdos)" },
   { id: "ranking", label: "Ranking de Temas" },
 ]
 
