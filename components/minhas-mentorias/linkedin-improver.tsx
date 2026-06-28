@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -38,9 +38,22 @@ import {
 } from "@/lib/linkedin/checklist";
 
 interface Props {
-  email: string;
-  initialHasLinkedinPdf: boolean;
+  email?: string;
+  variant?: "authenticated" | "public";
+  backHref?: string;
+  backLabel?: string;
 }
+
+const ENDPOINTS = {
+  authenticated: {
+    score: "/api/minhas-mentorias/linkedin/score",
+    analyze: "/api/minhas-mentorias/linkedin/analyze",
+  },
+  public: {
+    score: "/api/tools/linkedin/score",
+    analyze: "/api/tools/linkedin/analyze",
+  },
+} as const;
 
 type Phase = "upload" | "positioning" | "result";
 
@@ -243,8 +256,22 @@ function SelectField({
 const DISCLAIMER =
   "Tudo isso são recomendações — não são regras nem fórmula de sucesso. Adapte cada sugestão ao seu contexto e ao seu momento de carreira.";
 
-export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
-  const [hasLinkedinPdf, setHasLinkedinPdf] = useState(initialHasLinkedinPdf);
+export function LinkedInImprover({
+  email,
+  variant = "authenticated",
+  backHref,
+  backLabel,
+}: Props) {
+  const isPublic = variant === "public";
+  const endpoints = ENDPOINTS[variant];
+  const resolvedBackHref =
+    backHref ?? (isPublic ? "/ferramentas" : "/minhas-mentorias/historico");
+  const resolvedBackLabel =
+    backLabel ??
+    (isPublic ? "Voltar para Ferramentas" : "Voltar para Minhas Mentorias");
+
+  // Sempre começa exigindo um novo upload — não reaproveita o último PDF enviado.
+  const [hasLinkedinPdf, setHasLinkedinPdf] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,15 +297,28 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const autoScoredRef = useRef(false);
+  // No fluxo público o PDF não é armazenado: fica em memória e é enviado inline.
+  const pdfReady = isPublic ? Boolean(file) : hasLinkedinPdf;
+
+  function postLinkedin(endpoint: string, payload: Record<string, unknown>) {
+    if (isPublic) {
+      const fd = new FormData();
+      if (file) fd.append("file", file);
+      fd.append("data", JSON.stringify(payload));
+      return fetch(endpoint, { method: "POST", body: fd });
+    }
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
 
   async function runScore() {
     setScoring(true);
     setError("");
     try {
-      const res = await fetch("/api/minhas-mentorias/linkedin/score", {
-        method: "POST",
-      });
+      const res = await postLinkedin(endpoints.score, {});
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(data?.error || "Erro ao avaliar perfil");
@@ -290,15 +330,6 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
       setScoring(false);
     }
   }
-
-  // Mostra o % "assim que carrega o profile" quando já existe um PDF enviado.
-  useEffect(() => {
-    if (hasLinkedinPdf && !autoScoredRef.current) {
-      autoScoredRef.current = true;
-      runScore();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasLinkedinPdf]);
 
   async function handleUpload() {
     if (!file) return;
@@ -357,13 +388,9 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
     setResult(null);
 
     try {
-      const res = await fetch("/api/minhas-mentorias/linkedin/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...positioning,
-          trajectory: trajectory.map(({ year, text }) => ({ year, text })),
-        }),
+      const res = await postLinkedin(endpoints.analyze, {
+        ...positioning,
+        trajectory: trajectory.map(({ year, text }) => ({ year, text })),
       });
 
       const data = await res.json().catch(() => null);
@@ -420,16 +447,24 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <header className="flex flex-col gap-1">
           <Link
-            href="/minhas-mentorias/historico"
+            href={resolvedBackHref}
             className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Voltar para Minhas Mentorias
+            {resolvedBackLabel}
           </Link>
           <h1 className="mt-1 text-2xl font-semibold text-foreground">
-            Melhorar perfil LinkedIn com IA
+            Melhorar perfil LinkedIn com IA{isPublic ? " grátis" : ""}
           </h1>
-          <p className="text-xs text-muted-foreground">Acesso via {email}</p>
+          {email && (
+            <p className="text-xs text-muted-foreground">Acesso via {email}</p>
+          )}
+          {isPublic && (
+            <p className="text-xs text-muted-foreground">
+              Grátis e sem cadastro. Seu PDF é usado só para a análise e não fica
+              salvo.
+            </p>
+          )}
         </header>
 
         {/* Steps indicator */}
@@ -509,7 +544,19 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
                   </span>
                 </div>
 
-                {hasLinkedinPdf ? (
+                {isPublic ? (
+                  file ? (
+                    <p className="text-xs text-foreground">
+                      Arquivo selecionado:{" "}
+                      <span className="font-medium">{file.name}</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Selecione o PDF do seu perfil LinkedIn. Ele é usado só para
+                      a análise e não fica salvo.
+                    </p>
+                  )
+                ) : hasLinkedinPdf ? (
                   <a
                     href="/api/minhas-mentorias/linkedin/download"
                     target="_blank"
@@ -535,30 +582,33 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
                       setError("");
                       setNotice("");
                       setFile(e.target.files?.[0] || null);
+                      if (isPublic) setScoreResult(null);
                     }}
                     className="text-xs text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-secondary file:px-3 file:py-1.5 file:text-xs file:text-foreground"
                   />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={!file || uploading}
-                    onClick={handleUpload}
-                    className="shrink-0"
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="h-3.5 w-3.5" />
-                    )}
-                    <span className="ml-1">
-                      {uploading
-                        ? "Enviando…"
-                        : hasLinkedinPdf
-                          ? "Substituir"
-                          : "Enviar"}
-                    </span>
-                  </Button>
+                  {!isPublic && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!file || uploading}
+                      onClick={handleUpload}
+                      className="shrink-0"
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      <span className="ml-1">
+                        {uploading
+                          ? "Enviando…"
+                          : hasLinkedinPdf
+                            ? "Substituir"
+                            : "Enviar"}
+                      </span>
+                    </Button>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Tamanho máximo: 5MB
@@ -567,7 +617,7 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
             </Card>
 
             {/* Score inicial do perfil (gancho assim que carrega) */}
-            {hasLinkedinPdf && (scoring || scoreResult) && (
+            {pdfReady && (scoring || scoreResult) && (
               <Card>
                 <CardContent className="flex flex-col gap-4 py-4">
                   {scoring ? (
@@ -597,8 +647,8 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
               </Card>
             )}
 
-            {/* Fallback quando a avaliação inicial falha (ex.: IA sobrecarregada) */}
-            {hasLinkedinPdf && !scoring && !scoreResult && (
+            {/* Avaliar o perfil (e retry quando a IA está sobrecarregada) */}
+            {pdfReady && !scoring && !scoreResult && (
               <Button
                 type="button"
                 variant="outline"
@@ -611,7 +661,7 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
               </Button>
             )}
 
-            {hasLinkedinPdf && (
+            {pdfReady && (
               <Button
                 type="button"
                 onClick={handleGoToPositioning}

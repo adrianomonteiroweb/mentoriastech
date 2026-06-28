@@ -42,13 +42,13 @@ const TOOLS = [
     available: true,
   },
   {
-    href: "/minhas-mentorias/linkedin",
+    href: "/ferramentas/linkedin",
     icon: Linkedin,
     title: "Melhorar LinkedIn",
     description:
       "Fortaleça seu perfil profissional e atraia mais recrutadores.",
     badge: "Grátis · sem cadastro",
-    available: false,
+    available: true,
   },
   // {
   //   href: "/minhas-mentorias/plano-de-estudos",
