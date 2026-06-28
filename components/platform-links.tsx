@@ -6,10 +6,17 @@ import {
   BookOpenCheck,
   BriefcaseBusiness,
   FileText,
+  Route,
 } from "lucide-react"
 import { trackPageEvent } from "@/lib/track-page"
 
 const links = [
+  {
+    label: "Trilhas",
+    description: "Percurso guiado do posicionamento à contratação",
+    href: "/trilhas",
+    icon: Route,
+  },
   {
     label: "Conteúdos",
     description: "Guias, artigos e materiais para estudar com foco",

@@ -5,6 +5,8 @@ import type {
   ContentItem as DbContentItem,
   ContentSuggestion as DbContentSuggestion,
   Job as DbJob,
+  LearningTrack as DbLearningTrack,
+  LearningTrackPhase as DbLearningTrackPhase,
   MentoringSlot as DbMentoringSlot,
   MentoringTopic as DbMentoringTopic,
   PaidMentorship as DbPaidMentorship,
@@ -14,6 +16,8 @@ import type {
   SelectionProcessCandidate as DbSelectionProcessCandidate,
   SelectionProcessShareLink as DbSelectionProcessShareLink,
   Tip as DbTip,
+  TrackEnrollment as DbTrackEnrollment,
+  TrackEnrollmentPhase as DbTrackEnrollmentPhase,
 } from "@/lib/db/schema"
 import type {
   Ad,
@@ -22,6 +26,8 @@ import type {
   ContentItem,
   ContentSuggestion,
   Job,
+  LearningTrack,
+  LearningTrackPhase,
   MentoringSlot,
   MentoringTopic,
   PaidMentorship,
@@ -31,6 +37,8 @@ import type {
   SelectionProcessCandidate,
   SelectionProcessShareLink,
   Tip,
+  TrackEnrollment,
+  TrackEnrollmentPhase,
 } from "@/lib/types/database"
 import { normalizeSelectionProcessChecklist } from "@/lib/selection-process-checklist"
 
@@ -324,6 +332,74 @@ export function toSelectionProcessCandidate(row: DbSelectionProcessCandidate): S
     score: row.score,
     checklist: normalizeSelectionProcessChecklist(row.checklist),
     notes: row.notes,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toLearningTrack(row: DbLearningTrack): LearningTrack {
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    description: row.description,
+    cover_image_url: row.coverImageUrl,
+    supports_english: row.supportsEnglish,
+    english_paid_mentorship_id: row.englishPaidMentorshipId,
+    is_active: row.isActive,
+    sort_order: row.sortOrder,
+    created_by: row.createdBy,
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toLearningTrackPhase(row: DbLearningTrackPhase): LearningTrackPhase {
+  return {
+    id: row.id,
+    track_id: row.trackId,
+    phase_key: row.phaseKey,
+    title: row.title,
+    description: row.description,
+    sort_order: row.sortOrder,
+    is_optional: row.isOptional,
+    created_at: toIso(row.createdAt) || "",
+  }
+}
+
+export function toTrackEnrollment(row: DbTrackEnrollment): TrackEnrollment {
+  return {
+    id: row.id,
+    track_id: row.trackId,
+    mentee_id: row.menteeId,
+    guest_name: row.guestName,
+    guest_email: row.guestEmail,
+    guest_whatsapp: row.guestWhatsapp,
+    target_international: row.targetInternational,
+    include_english: row.includeEnglish,
+    english_interviews: row.englishInterviews,
+    requested_slot_id: row.requestedSlotId,
+    requested_session_date: row.requestedSessionDate,
+    requested_start_time: row.requestedStartTime,
+    requested_topic_id: row.requestedTopicId,
+    status: row.status,
+    notes: row.notes,
+    confirmed_at: toIso(row.confirmedAt),
+    created_at: toIso(row.createdAt) || "",
+    updated_at: toIso(row.updatedAt) || "",
+  }
+}
+
+export function toTrackEnrollmentPhase(row: DbTrackEnrollmentPhase): TrackEnrollmentPhase {
+  return {
+    id: row.id,
+    enrollment_id: row.enrollmentId,
+    phase_key: row.phaseKey,
+    title: row.title,
+    sort_order: row.sortOrder,
+    status: row.status,
+    booking_id: row.bookingId,
+    completed_at: toIso(row.completedAt),
     created_at: toIso(row.createdAt) || "",
     updated_at: toIso(row.updatedAt) || "",
   }

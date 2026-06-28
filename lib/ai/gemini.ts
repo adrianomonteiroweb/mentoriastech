@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai"
 import {
   composeResumePrompt,
   ANALYSIS_PROMPT,
+  REQUIREMENTS_EVALUATION_PROMPT,
 } from "@/lib/resume-ai-prompt"
 import { composeLinkedinPrompt } from "@/lib/linkedin-ai-prompt"
 import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
@@ -28,31 +29,45 @@ function getClient() {
   return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || DEFAULT_MODEL }
 }
 
+export interface TrajectoryTopic {
+  year: string
+  text: string
+}
+
+export type RequirementKind = "essential" | "differential"
+export type RequirementEvidence = "strong" | "weak" | "missing"
+
+export interface RequirementItem {
+  skill: string
+  kind: RequirementKind
+  evidence: RequirementEvidence
+}
+
+export interface GapQuestion {
+  skill: string
+  question: string
+}
+
+export interface EvidenceAnswer {
+  skill: string
+  answer: string
+  results?: string
+}
+
 interface ImproveResumeInput {
   pdfBase64: string
   jobDescription: string
   customPrompt?: string | null
-  projectAnswers?: ProjectAnswer[]
+  requirements?: RequirementItem[]
+  evidenceAnswers?: EvidenceAnswer[]
+  trajectory?: TrajectoryTopic[]
 }
 
 export interface ResumeAnalysis {
-  experiences: AnalysisItem[]
-  formations: AnalysisItem[]
   hasExperience: boolean
-}
-
-export interface AnalysisItem {
-  title: string
-  where: string
-  period: string
-  relevance: string
-  question: string
-}
-
-export interface ProjectAnswer {
-  title: string
-  where: string
-  answer: string
+  requirements: RequirementItem[]
+  questions: GapQuestion[]
+  compatibility: number
 }
 
 export interface LinkedInAnalysisInput {
@@ -69,8 +84,11 @@ export interface LinkedInAnalysisInput {
 export async function analyzeResume({
   pdfBase64,
   jobDescription,
-  customPrompt: _customPrompt,
-}: Omit<ImproveResumeInput, "projectAnswers">): Promise<ResumeAnalysis> {
+}: {
+  pdfBase64: string
+  jobDescription: string
+  customPrompt?: string | null
+}): Promise<ResumeAnalysis> {
   const { ai, model } = getClient()
 
   const userText = `Descrição da vaga:\n\n${jobDescription}\n\nAnalise o currículo anexado e retorne o JSON conforme as regras.`
@@ -104,11 +122,27 @@ export async function analyzeResume({
       throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
     }
 
-    const parsed = JSON.parse(text) as ResumeAnalysis
-    if (!parsed.experiences || !parsed.formations) {
+    const parsed = JSON.parse(text) as {
+      hasExperience?: boolean
+      requirements?: RequirementItem[]
+      questions?: GapQuestion[]
+    }
+    const requirements = normalizeRequirements(parsed.requirements)
+    if (requirements.length === 0) {
       throw new ResumeAIError("Formato de resposta inválido da IA.")
     }
-    return parsed
+    const questions = Array.isArray(parsed.questions)
+      ? parsed.questions
+          .filter((q) => q && typeof q.skill === "string" && typeof q.question === "string")
+          .slice(0, 6)
+      : []
+
+    return {
+      hasExperience: Boolean(parsed.hasExperience),
+      requirements,
+      questions,
+      compatibility: scoreFromRequirements(requirements),
+    }
   } catch (error) {
     if (error instanceof ResumeAIError) throw error
     if (error instanceof SyntaxError) {
@@ -123,26 +157,55 @@ export async function improveResume({
   pdfBase64,
   jobDescription,
   customPrompt,
-  projectAnswers,
-}: ImproveResumeInput): Promise<string> {
+  requirements,
+  evidenceAnswers,
+  trajectory,
+}: ImproveResumeInput): Promise<{ resume: string; suggestions: string[] }> {
   const { ai, model } = getClient()
 
   const systemInstruction = composeResumePrompt(customPrompt)
 
   let userText = `Descrição da vaga para a qual o currículo deve ser otimizado:\n\n${jobDescription}\n\n`
 
-  if (projectAnswers && projectAnswers.length > 0) {
-    userText += `Informações adicionais fornecidas pelo candidato sobre projetos e experiências práticas:\n\n`
-    for (const pa of projectAnswers) {
-      userText += `**${pa.title} (${pa.where}):**\n${pa.answer}\n\n`
+  if (requirements && requirements.length > 0) {
+    const essentials = requirements.filter((r) => r.kind === "essential")
+    const differentials = requirements.filter((r) => r.kind === "differential")
+    userText += `Requisitos da vaga (use para direcionar o currículo; conecte cada requisito a evidência concreta quando existir):\n`
+    if (essentials.length > 0) {
+      userText += `Essenciais (dia a dia): ${essentials.map((r) => r.skill).join(", ")}\n`
+    }
+    if (differentials.length > 0) {
+      userText += `Diferenciais: ${differentials.map((r) => r.skill).join(", ")}\n`
+    }
+    userText += `\n`
+  }
+
+  if (trajectory && trajectory.length > 0) {
+    userText += `Trajetória do candidato (ordem cronológica) — use para construir a seção "## Resumo" (sobre), contando como ele chegou até aqui:\n\n`
+    for (const topic of trajectory) {
+      const year = topic.year?.trim()
+      userText += `- ${year ? `(${year}) ` : ""}${topic.text.trim()}\n`
+    }
+    userText += `\n`
+  }
+
+  if (evidenceAnswers && evidenceAnswers.length > 0) {
+    userText += `Evidências concretas fornecidas pelo candidato (skill → relato de projeto/atividade real, com os resultados obtidos). Use-as para comprovar os requisitos correspondentes, sem inventar nada além do relatado. SEMPRE que houver resultados, transforme-os em bullets de impacto quantificado — é o que o gestor da vaga avalia:\n\n`
+    for (const ev of evidenceAnswers) {
+      userText += `**${ev.skill}:**\nProjeto/atividade: ${ev.answer}\n`
+      if (ev.results && ev.results.trim()) {
+        userText += `Resultados obtidos: ${ev.results.trim()}\n`
+      }
+      userText += `\n`
     }
   }
 
-  userText += `Gere agora o currículo otimizado em Markdown, seguindo estritamente as regras.`
+  userText += `Gere agora o JSON com "resume" (currículo em Markdown, sem sugestões) e "suggestions", seguindo estritamente as regras.`
 
   const config: Record<string, unknown> = {
     systemInstruction,
     temperature: 0.4,
+    responseMimeType: "application/json",
   }
   if (model.includes("flash")) {
     config.thinkingConfig = { thinkingBudget: 0 }
@@ -167,12 +230,121 @@ export async function improveResume({
     if (!text) {
       throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
     }
-    return text
+
+    // Tolerante a falhas: se não vier JSON válido, trata todo o texto como currículo.
+    try {
+      const parsed = JSON.parse(text) as { resume?: string; suggestions?: unknown }
+      const resume = (parsed.resume || "").trim()
+      if (!resume) throw new Error("empty resume")
+      const suggestions = Array.isArray(parsed.suggestions)
+        ? parsed.suggestions
+            .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+            .map((s) => s.trim())
+            .slice(0, 8)
+        : []
+      return { resume, suggestions }
+    } catch {
+      return { resume: text, suggestions: [] }
+    }
   } catch (error) {
     if (error instanceof ResumeAIError) throw error
     const message = error instanceof Error ? error.message : "Erro desconhecido"
     throw new ResumeAIError(`Falha ao gerar o currículo com IA: ${message}`)
   }
+}
+
+const REQUIREMENT_WEIGHT: Record<RequirementKind, number> = {
+  essential: 3,
+  differential: 1,
+}
+const EVIDENCE_COVERAGE: Record<RequirementEvidence, number> = {
+  strong: 1,
+  weak: 0.5,
+  missing: 0,
+}
+
+/**
+ * Calcula a compatibilidade (0-100) a partir da cobertura dos requisitos.
+ * Determinístico: o número só sobe quando a evidência classificada melhora.
+ */
+export function scoreFromRequirements(requirements: RequirementItem[]): number {
+  let weighted = 0
+  let total = 0
+  for (const req of requirements) {
+    const weight = REQUIREMENT_WEIGHT[req.kind] ?? 1
+    total += weight
+    weighted += weight * (EVIDENCE_COVERAGE[req.evidence] ?? 0)
+  }
+  if (total === 0) return 0
+  return Math.round((100 * weighted) / total)
+}
+
+function normalizeRequirements(value: unknown): RequirementItem[] {
+  if (!Array.isArray(value)) return []
+  const out: RequirementItem[] = []
+  for (const raw of value) {
+    if (!raw || typeof raw.skill !== "string" || !raw.skill.trim()) continue
+    const kind: RequirementKind = raw.kind === "differential" ? "differential" : "essential"
+    const evidence: RequirementEvidence =
+      raw.evidence === "strong" || raw.evidence === "weak" ? raw.evidence : "missing"
+    out.push({ skill: raw.skill.trim(), kind, evidence })
+  }
+  return out.slice(0, 12)
+}
+
+/**
+ * Reclassifica a evidência de cada requisito (lista fixa) sobre um currículo em
+ * texto e devolve a pontuação calculada no código. Usado para o "depois".
+ */
+export async function evaluateRequirements({
+  jobDescription,
+  resumeText,
+  requirements,
+}: {
+  jobDescription: string
+  resumeText: string
+  requirements: RequirementItem[]
+}): Promise<{ requirements: RequirementItem[]; score: number }> {
+  if (requirements.length === 0) return { requirements: [], score: 0 }
+
+  const { ai, model } = getClient()
+
+  const reqList = requirements.map((r) => ({ skill: r.skill, kind: r.kind }))
+  const userText = `Vaga:\n\n${jobDescription}\n\nRequisitos a avaliar (preserve skill e kind, defina apenas evidence):\n${JSON.stringify(reqList)}\n\nCurrículo a avaliar:\n\n${resumeText}\n\nRetorne o JSON com a evidência de cada requisito.`
+
+  const config: Record<string, unknown> = {
+    systemInstruction: REQUIREMENTS_EVALUATION_PROMPT,
+    temperature: 0.2,
+    responseMimeType: "application/json",
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: [{ role: "user", parts: [{ text: userText }] }],
+    config,
+  })
+
+  const text = (response.text || "").trim()
+  if (!text) {
+    throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+  }
+
+  const parsed = JSON.parse(text) as { requirements?: unknown }
+  const evaluated = normalizeRequirements(parsed.requirements)
+
+  // Garante a mesma lista de requisitos da análise (kind original; evidence reavaliado).
+  const evidenceBySkill = new Map(
+    evaluated.map((r) => [r.skill.toLowerCase(), r.evidence]),
+  )
+  const merged = requirements.map((r) => ({
+    ...r,
+    evidence: evidenceBySkill.get(r.skill.toLowerCase()) ?? r.evidence,
+  }))
+
+  return { requirements: merged, score: scoreFromRequirements(merged) }
 }
 
 const LANGUAGE_LABELS: Record<string, string> = {

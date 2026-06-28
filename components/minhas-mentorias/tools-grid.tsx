@@ -1,8 +1,15 @@
 import Link from "next/link"
-import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck } from "lucide-react"
+import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 const TOOLS = [
+  {
+    href: "/minhas-mentorias/trilha",
+    icon: Route,
+    title: "Minha Trilha",
+    description: "Acompanhe seu percurso de recolocação fase a fase e seus conteúdos",
+    badge: "Novo",
+  },
   {
     href: "/minhas-mentorias/curriculo",
     icon: Sparkles,

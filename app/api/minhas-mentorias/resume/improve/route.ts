@@ -3,7 +3,11 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { db, siteSettings } from "@/lib/db"
 import { logAuditEvent } from "@/lib/audit"
-import { improveResume, ResumeAIError } from "@/lib/ai/gemini"
+import {
+  evaluateRequirements,
+  improveResume,
+  ResumeAIError,
+} from "@/lib/ai/gemini"
 import {
   RESUME_AI_PROMPT_SETTING_KEY,
   normalizeResumeAiPrompt,
@@ -16,10 +20,21 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-const projectAnswerSchema = z.object({
-  title: z.string(),
-  where: z.string(),
+const requirementSchema = z.object({
+  skill: z.string(),
+  kind: z.enum(["essential", "differential"]),
+  evidence: z.enum(["strong", "weak", "missing"]),
+})
+
+const evidenceAnswerSchema = z.object({
+  skill: z.string(),
   answer: z.string(),
+  results: z.string().optional(),
+})
+
+const trajectoryTopicSchema = z.object({
+  year: z.string(),
+  text: z.string(),
 })
 
 const schema = z.object({
@@ -28,7 +43,9 @@ const schema = z.object({
     .trim()
     .min(20, "Descreva a vaga com mais detalhes (mínimo 20 caracteres).")
     .max(8000, "Descrição muito longa (máximo 8000 caracteres)."),
-  projectAnswers: z.array(projectAnswerSchema).optional(),
+  requirements: z.array(requirementSchema).optional(),
+  evidenceAnswers: z.array(evidenceAnswerSchema).optional(),
+  trajectory: z.array(trajectoryTopicSchema).optional(),
 })
 
 export async function POST(request: Request) {
@@ -68,12 +85,31 @@ export async function POST(request: Request) {
       .limit(1)
     const customPrompt = normalizeResumeAiPrompt(setting?.value)
 
-    const markdown = await improveResume({
+    const { resume: markdown, suggestions } = await improveResume({
       pdfBase64,
       jobDescription: parsed.data.jobDescription,
       customPrompt,
-      projectAnswers: parsed.data.projectAnswers,
+      requirements: parsed.data.requirements,
+      evidenceAnswers: parsed.data.evidenceAnswers,
+      trajectory: parsed.data.trajectory,
     })
+
+    // Reavaliação por requisitos do currículo gerado — não bloqueia a entrega.
+    let compatibilityAfter: number | null = null
+    let requirementsAfter: typeof parsed.data.requirements | null = null
+    if (parsed.data.requirements && parsed.data.requirements.length > 0) {
+      try {
+        const evaluated = await evaluateRequirements({
+          jobDescription: parsed.data.jobDescription,
+          resumeText: markdown,
+          requirements: parsed.data.requirements,
+        })
+        compatibilityAfter = evaluated.score
+        requirementsAfter = evaluated.requirements
+      } catch (scoreError) {
+        console.error("[resume] requirements eval error (non-blocking):", scoreError)
+      }
+    }
 
     await logAuditEvent({
       actorId: profile.id,
@@ -84,7 +120,7 @@ export async function POST(request: Request) {
       metadata: { jobDescriptionLength: parsed.data.jobDescription.length },
     })
 
-    return NextResponse.json({ markdown })
+    return NextResponse.json({ markdown, suggestions, compatibilityAfter, requirementsAfter })
   } catch (error) {
     if (error instanceof ResumeAIError) {
       return NextResponse.json({ error: error.message }, { status: error.status })

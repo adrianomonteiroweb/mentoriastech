@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp";
 
@@ -214,6 +215,11 @@ export const bookings = pgTable("bookings", {
     enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
   }),
   originDescription: text("origin_description"),
+  // Vincula o agendamento a uma fase de trilha (quando criado a partir de uma inscrição).
+  trackEnrollmentPhaseId: uuid("track_enrollment_phase_id").references(
+    (): AnyPgColumn => trackEnrollmentPhases.id,
+    { onDelete: "set null" },
+  ),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -1011,6 +1017,164 @@ export const selectionProcessShareLinks = pgTable(
 );
 
 // -----------------------------------------------------------------------------
+// LEARNING_TRACKS — trilhas de recolocação (template/oferta criada pelo admin)
+// -----------------------------------------------------------------------------
+export const TRACK_PHASE_KEYS = [
+  "positioning",
+  "english",
+  "interview_rh",
+  "interview_tech",
+  "interview_manager",
+  "job_search",
+] as const;
+
+export const learningTracks = pgTable("learning_tracks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  coverImageUrl: text("cover_image_url"),
+  supportsEnglish: boolean("supports_english").notNull().default(false),
+  // Mentoria paga de inglês indicada na fase 2 (só exibida se ativa).
+  englishPaidMentorshipId: uuid("english_paid_mentorship_id").references(
+    () => paidMentorships.id,
+    { onDelete: "set null" },
+  ),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// LEARNING_TRACK_PHASES — fases-template de uma trilha (semeadas na criação)
+// -----------------------------------------------------------------------------
+export const learningTrackPhases = pgTable("learning_track_phases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  trackId: uuid("track_id")
+    .notNull()
+    .references(() => learningTracks.id, { onDelete: "cascade" }),
+  phaseKey: text("phase_key", { enum: TRACK_PHASE_KEYS }).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isOptional: boolean("is_optional").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// TRACK_PHASE_CONTENT — conteúdos vinculados a uma fase-template
+// -----------------------------------------------------------------------------
+export const trackPhaseContent = pgTable(
+  "track_phase_content",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    phaseId: uuid("phase_id")
+      .notNull()
+      .references(() => learningTrackPhases.id, { onDelete: "cascade" }),
+    contentId: uuid("content_id")
+      .notNull()
+      .references(() => contentItems.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_track_phase_content_unique").on(
+      table.phaseId,
+      table.contentId,
+    ),
+  ],
+);
+
+// -----------------------------------------------------------------------------
+// TRACK_ENROLLMENTS — inscrição de um mentorado em uma trilha
+// -----------------------------------------------------------------------------
+export const trackEnrollments = pgTable("track_enrollments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  trackId: uuid("track_id").references(() => learningTracks.id, {
+    onDelete: "set null",
+  }),
+  menteeId: uuid("mentee_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  guestName: text("guest_name"),
+  guestEmail: text("guest_email"),
+  guestWhatsapp: text("guest_whatsapp"),
+  targetInternational: boolean("target_international").notNull().default(false),
+  includeEnglish: boolean("include_english").notNull().default(false),
+  englishInterviews: boolean("english_interviews").notNull().default(false),
+  requestedSlotId: uuid("requested_slot_id").references(
+    () => mentoringSlots.id,
+    { onDelete: "set null" },
+  ),
+  requestedSessionDate: date("requested_session_date"),
+  requestedStartTime: time("requested_start_time"),
+  requestedTopicId: uuid("requested_topic_id").references(
+    () => mentoringTopics.id,
+    { onDelete: "set null" },
+  ),
+  status: text("status", {
+    enum: ["pending", "active", "completed", "cancelled"],
+  })
+    .notNull()
+    .default("pending"),
+  notes: text("notes"),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// TRACK_ENROLLMENT_PHASES — progresso por fase de uma inscrição
+// -----------------------------------------------------------------------------
+export const trackEnrollmentPhases = pgTable("track_enrollment_phases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  enrollmentId: uuid("enrollment_id")
+    .notNull()
+    .references(() => trackEnrollments.id, { onDelete: "cascade" }),
+  phaseKey: text("phase_key", { enum: TRACK_PHASE_KEYS }).notNull(),
+  title: text("title").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  status: text("status", {
+    enum: [
+      "locked",
+      "pending",
+      "scheduled",
+      "in_progress",
+      "completed",
+      "skipped",
+    ],
+  })
+    .notNull()
+    .default("locked"),
+  bookingId: uuid("booking_id").references(() => bookings.id, {
+    onDelete: "set null",
+  }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect;
@@ -1061,3 +1225,13 @@ export type NewSelectionProcessShareLink =
   typeof selectionProcessShareLinks.$inferInsert;
 export type BookingAttachment = typeof bookingAttachments.$inferSelect;
 export type NewBookingAttachment = typeof bookingAttachments.$inferInsert;
+export type LearningTrack = typeof learningTracks.$inferSelect;
+export type NewLearningTrack = typeof learningTracks.$inferInsert;
+export type LearningTrackPhase = typeof learningTrackPhases.$inferSelect;
+export type NewLearningTrackPhase = typeof learningTrackPhases.$inferInsert;
+export type TrackPhaseContent = typeof trackPhaseContent.$inferSelect;
+export type NewTrackPhaseContent = typeof trackPhaseContent.$inferInsert;
+export type TrackEnrollment = typeof trackEnrollments.$inferSelect;
+export type NewTrackEnrollment = typeof trackEnrollments.$inferInsert;
+export type TrackEnrollmentPhase = typeof trackEnrollmentPhases.$inferSelect;
+export type NewTrackEnrollmentPhase = typeof trackEnrollmentPhases.$inferInsert;

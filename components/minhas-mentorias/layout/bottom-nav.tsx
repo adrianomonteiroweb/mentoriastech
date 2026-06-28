@@ -19,6 +19,7 @@ const NAV_ITEMS = [
     icon: Wrench,
     matchPrefix: "/minhas-mentorias/ferramentas",
     extraPaths: [
+      "/minhas-mentorias/trilha",
       "/minhas-mentorias/curriculo",
       "/minhas-mentorias/linkedin",
       "/minhas-mentorias/oportunidades",

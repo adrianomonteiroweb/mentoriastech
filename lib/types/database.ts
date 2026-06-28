@@ -406,6 +406,112 @@ export interface GoogleCalendarConfig {
 }
 
 // -----------------------------------------------------------------------------
+// Learning Tracks (Trilhas)
+// -----------------------------------------------------------------------------
+export type TrackPhaseKey =
+  | "positioning"
+  | "english"
+  | "interview_rh"
+  | "interview_tech"
+  | "interview_manager"
+  | "job_search"
+export type TrackEnrollmentStatus =
+  | "pending"
+  | "active"
+  | "completed"
+  | "cancelled"
+export type TrackPhaseStatus =
+  | "locked"
+  | "pending"
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "skipped"
+
+export interface LearningTrack {
+  id: string
+  title: string
+  slug: string
+  description: string | null
+  cover_image_url: string | null
+  supports_english: boolean
+  english_paid_mentorship_id: string | null
+  is_active: boolean
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LearningTrackPhase {
+  id: string
+  track_id: string
+  phase_key: TrackPhaseKey
+  title: string
+  description: string | null
+  sort_order: number
+  is_optional: boolean
+  created_at: string
+}
+
+export interface LearningTrackPhaseWithContent extends LearningTrackPhase {
+  content: ContentItem[]
+}
+
+export interface LearningTrackWithPhases extends LearningTrack {
+  phases: LearningTrackPhaseWithContent[]
+  english_mentorship?: PublicPaidMentorship | null
+}
+
+export interface TrackEnrollment {
+  id: string
+  track_id: string | null
+  mentee_id: string | null
+  guest_name: string | null
+  guest_email: string | null
+  guest_whatsapp: string | null
+  target_international: boolean
+  include_english: boolean
+  english_interviews: boolean
+  requested_slot_id: string | null
+  requested_session_date: string | null
+  requested_start_time: string | null
+  requested_topic_id: string | null
+  status: TrackEnrollmentStatus
+  notes: string | null
+  confirmed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrackEnrollmentPhase {
+  id: string
+  enrollment_id: string
+  phase_key: TrackPhaseKey
+  title: string
+  sort_order: number
+  status: TrackPhaseStatus
+  booking_id: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrackEnrollmentPhaseWithDetails extends TrackEnrollmentPhase {
+  content: ContentItem[]
+  booking?: Pick<Booking, "id" | "session_date" | "start_time" | "status" | "google_meet_url"> | null
+}
+
+export interface TrackEnrollmentWithDetails extends TrackEnrollment {
+  track?: Pick<
+    LearningTrack,
+    "id" | "title" | "slug" | "supports_english" | "cover_image_url"
+  > | null
+  phases: TrackEnrollmentPhaseWithDetails[]
+  english_mentorship?: PublicPaidMentorship | null
+}
+
+// -----------------------------------------------------------------------------
 // API Response types
 // -----------------------------------------------------------------------------
 export interface ApiResponse<T = unknown> {
