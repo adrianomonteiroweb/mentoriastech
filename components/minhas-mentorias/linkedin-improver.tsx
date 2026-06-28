@@ -597,6 +597,20 @@ export function LinkedInImprover({ email, initialHasLinkedinPdf }: Props) {
               </Card>
             )}
 
+            {/* Fallback quando a avaliação inicial falha (ex.: IA sobrecarregada) */}
+            {hasLinkedinPdf && !scoring && !scoreResult && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={runScore}
+                className="w-fit"
+              >
+                <Sparkles className="mr-1 h-4 w-4" />
+                Avaliar meu perfil
+              </Button>
+            )}
+
             {hasLinkedinPdf && (
               <Button
                 type="button"

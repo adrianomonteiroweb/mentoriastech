@@ -39,6 +39,79 @@ function getClient() {
   return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || DEFAULT_MODEL }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Erros transitórios do Gemini (sobrecarga/limite). Vale a pena tentar de novo:
+ * 503 UNAVAILABLE ("high demand"), 429 RESOURCE_EXHAUSTED e 500 internos.
+ */
+function isRetriableAIError(error: unknown): boolean {
+  const e = error as { status?: number; code?: number; message?: string }
+  const status = e?.status ?? e?.code
+  if (status === 503 || status === 429 || status === 500) return true
+  const msg = (e?.message || "").toUpperCase()
+  return (
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("RESOURCE_EXHAUSTED") ||
+    msg.includes("OVERLOADED") ||
+    msg.includes("HIGH DEMAND") ||
+    msg.includes('"CODE":503') ||
+    msg.includes('"CODE":429') ||
+    msg.includes('"CODE":500')
+  )
+}
+
+type GenerateContentParams = Parameters<
+  GoogleGenAI["models"]["generateContent"]
+>[0]
+
+/**
+ * Chama o Gemini com retry e backoff exponencial para erros transitórios
+ * (sobrecarga do modelo). Tenta até `retries` vezes antes de propagar o erro.
+ */
+async function generateContentWithRetry(
+  ai: GoogleGenAI,
+  params: GenerateContentParams,
+  { retries = 3, baseDelayMs = 800 }: { retries?: number; baseDelayMs?: number } = {},
+) {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await ai.models.generateContent(params)
+    } catch (error) {
+      lastError = error
+      if (attempt < retries && isRetriableAIError(error)) {
+        await sleep(baseDelayMs * 2 ** attempt + Math.floor(Math.random() * 300))
+        continue
+      }
+      throw error
+    }
+  }
+  throw lastError
+}
+
+/**
+ * Converte um erro em ResumeAIError com mensagem amigável. Erros de sobrecarga
+ * viram 503 com texto orientando a tentar novamente; JSON inválido vira mensagem
+ * de formato; demais erros usam o prefixo da operação.
+ */
+function toResumeAIError(error: unknown, prefix: string): ResumeAIError {
+  if (error instanceof ResumeAIError) return error
+  if (isRetriableAIError(error)) {
+    return new ResumeAIError(
+      "A IA está com alta demanda no momento. Aguarde alguns instantes e tente novamente.",
+      503,
+    )
+  }
+  if (error instanceof SyntaxError) {
+    return new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
+  }
+  const message = error instanceof Error ? error.message : "Erro desconhecido"
+  return new ResumeAIError(`${prefix}: ${message}`)
+}
+
 export interface TrajectoryTopic {
   year: string
   text: string
@@ -119,7 +192,7 @@ export async function analyzeResume({
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model,
       contents: [
         {
@@ -160,12 +233,7 @@ export async function analyzeResume({
       compatibility: scoreFromRequirements(requirements),
     }
   } catch (error) {
-    if (error instanceof ResumeAIError) throw error
-    if (error instanceof SyntaxError) {
-      throw new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
-    }
-    const message = error instanceof Error ? error.message : "Erro desconhecido"
-    throw new ResumeAIError(`Falha na análise do currículo: ${message}`)
+    throw toResumeAIError(error, "Falha na análise do currículo")
   }
 }
 
@@ -228,7 +296,7 @@ export async function improveResume({
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model,
       contents: [
         {
@@ -263,9 +331,7 @@ export async function improveResume({
       return { resume: text, suggestions: [] }
     }
   } catch (error) {
-    if (error instanceof ResumeAIError) throw error
-    const message = error instanceof Error ? error.message : "Erro desconhecido"
-    throw new ResumeAIError(`Falha ao gerar o currículo com IA: ${message}`)
+    throw toResumeAIError(error, "Falha ao gerar o currículo com IA")
   }
 }
 
@@ -337,7 +403,7 @@ export async function evaluateRequirements({
     config.thinkingConfig = { thinkingBudget: 0 }
   }
 
-  const response = await ai.models.generateContent({
+  const response = await generateContentWithRetry(ai, {
     model,
     contents: [{ role: "user", parts: [{ text: userText }] }],
     config,
@@ -448,7 +514,7 @@ export async function analyzeLinkedInProfile({
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model,
       contents: [
         {
@@ -468,12 +534,7 @@ export async function analyzeLinkedInProfile({
     }
     return parseChecklistResponse(text, ALL_AXIS_IDS)
   } catch (error) {
-    if (error instanceof ResumeAIError) throw error
-    if (error instanceof SyntaxError) {
-      throw new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
-    }
-    const message = error instanceof Error ? error.message : "Erro desconhecido"
-    throw new ResumeAIError(`Falha ao analisar o perfil LinkedIn com IA: ${message}`)
+    throw toResumeAIError(error, "Falha ao analisar o perfil LinkedIn com IA")
   }
 }
 
@@ -499,7 +560,7 @@ export async function scoreLinkedInProfile({
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model,
       contents: [
         {
@@ -519,12 +580,7 @@ export async function scoreLinkedInProfile({
     }
     return parseChecklistResponse(text, PDF_AXIS_IDS)
   } catch (error) {
-    if (error instanceof ResumeAIError) throw error
-    if (error instanceof SyntaxError) {
-      throw new ResumeAIError("A IA retornou um formato inválido. Tente novamente.")
-    }
-    const message = error instanceof Error ? error.message : "Erro desconhecido"
-    throw new ResumeAIError(`Falha ao avaliar o perfil LinkedIn com IA: ${message}`)
+    throw toResumeAIError(error, "Falha ao avaliar o perfil LinkedIn com IA")
   }
 }
 
@@ -627,7 +683,7 @@ export async function generateStudyPlan({
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithRetry(ai, {
       model,
       contents: [{ role: "user", parts: [{ text: userText }] }],
       config,
@@ -639,8 +695,6 @@ export async function generateStudyPlan({
     }
     return text
   } catch (error) {
-    if (error instanceof ResumeAIError) throw error
-    const message = error instanceof Error ? error.message : "Erro desconhecido"
-    throw new ResumeAIError(`Falha ao gerar o plano de estudos com IA: ${message}`)
+    throw toResumeAIError(error, "Falha ao gerar o plano de estudos com IA")
   }
 }
