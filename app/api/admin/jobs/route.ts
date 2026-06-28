@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server"
 import { desc, eq, sql } from "drizzle-orm"
+import { z } from "zod"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
+
+const bulkDeleteSchema = z.object({
+  status: z.enum(["pending", "approved", "rejected", "expired"]),
+})
 
 export async function GET() {
   try {
@@ -47,6 +52,29 @@ export async function GET() {
         action_counts: actionCounts[job.id] || { applied: 0, link_issue: 0, closed: 0, liked: 0 },
       })),
     })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    await requireRole("admin")
+    const body = await request.json()
+
+    const parsed = bulkDeleteSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
+    }
+
+    const deleted = await db
+      .delete(jobs)
+      .where(eq(jobs.status, parsed.data.status))
+      .returning({ id: jobs.id })
+
+    return NextResponse.json({ success: true, deleted: deleted.length })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

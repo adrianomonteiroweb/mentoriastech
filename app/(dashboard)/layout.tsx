@@ -20,8 +20,8 @@ export default async function DashboardLayout({
         role={profile.role}
         userName={profile.full_name || profile.email || "Usuario"}
       />
-      <SidebarInset>
-        <div className="flex flex-1 flex-col">{children}</div>
+      <SidebarInset className="min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

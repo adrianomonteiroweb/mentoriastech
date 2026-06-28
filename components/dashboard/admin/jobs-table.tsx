@@ -14,9 +14,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, MousePointerClick, Pencil, Share2, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel } from "@/lib/job-options"
-import type { JobWithAuthor } from "@/lib/types/database"
+import type { JobStatus, JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
   action_counts?: { applied: number; link_issue: number; closed: number; liked: number }
@@ -37,6 +50,9 @@ export function JobsTable({
   const [loading, setLoading] = useState(true)
   const [editingJob, setEditingJob] = useState<JobWithCounts | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobWithCounts | null>(null)
+  const [statusFilter, setStatusFilter] = useState<"all" | JobStatus>("all")
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   function loadJobs() {
     setLoading(true)
@@ -68,6 +84,24 @@ export function JobsTable({
     loadJobs()
   }
 
+  async function bulkDeleteByStatus() {
+    if (statusFilter === "all") return
+    setBulkDeleting(true)
+    try {
+      await fetch("/api/admin/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: statusFilter }),
+      })
+      setBulkDeleteOpen(false)
+      loadJobs()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
   function handleEditSuccess() {
     setEditingJob(null)
     loadJobs()
@@ -91,12 +125,57 @@ export function JobsTable({
     ...(adminMode ? [{ label: "Curtidas", value: job.action_counts?.liked ?? 0, icon: Heart }] : []),
   ]
 
-  const visibleJobs = showAll ? jobs : jobs.filter((j) => j.status === "pending")
+  const visibleJobs = showAll
+    ? statusFilter === "all"
+      ? jobs
+      : jobs.filter((j) => j.status === statusFilter)
+    : jobs.filter((j) => j.status === "pending")
   const showActions = true
   const columnCount = 11 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
 
+  const showControls = adminMode && showAll
+  const statusOptions: { value: "all" | JobStatus; label: string }[] = [
+    { value: "all", label: "Todos os status" },
+    { value: "pending", label: "Pendente" },
+    { value: "approved", label: "Aprovada" },
+    { value: "rejected", label: "Rejeitada" },
+    { value: "expired", label: "Expirada" },
+  ]
+  const statusCount = (status: "all" | JobStatus) =>
+    status === "all" ? jobs.length : jobs.filter((j) => j.status === status).length
+  const bulkDeletableCount = statusFilter === "all" ? 0 : statusCount(statusFilter)
+
   return (
     <div className="flex flex-col gap-2">
+      {showControls && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => setStatusFilter(value as "all" | JobStatus)}
+          >
+            <SelectTrigger className="h-8 w-full text-xs sm:w-56">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label} ({statusCount(option.value)})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-8 text-xs"
+            disabled={statusFilter === "all" || bulkDeletableCount === 0}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="mr-1 h-3 w-3" />
+            Excluir todos{statusFilter !== "all" ? ` (${bulkDeletableCount})` : ""}
+          </Button>
+        </div>
+      )}
       {!loading && (
         <p className="text-xs text-muted-foreground">
           Exibindo {visibleJobs.length} resultado{visibleJobs.length !== 1 ? "s" : ""}
@@ -180,15 +259,15 @@ export function JobsTable({
           <TableRow>
             <TableHead>Titulo</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead>Link</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Nivel</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Autor</TableHead>
-            <TableHead>Views</TableHead>
-            <TableHead>Cliques</TableHead>
-            <TableHead>Compart.</TableHead>
-            {adminMode && <TableHead>Curtidas</TableHead>}
+            <TableHead className="hidden lg:table-cell">Link</TableHead>
+            <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+            <TableHead className="hidden lg:table-cell">Nivel</TableHead>
+            <TableHead className="hidden xl:table-cell">Categoria</TableHead>
+            <TableHead className="hidden xl:table-cell">Autor</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Views</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Cliques</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Compart.</TableHead>
+            {adminMode && <TableHead className="hidden 2xl:table-cell">Curtidas</TableHead>}
             <TableHead>Status</TableHead>
             {showActions && <TableHead>Acoes</TableHead>}
           </TableRow>
@@ -213,7 +292,7 @@ export function JobsTable({
               <TableRow key={job.id}>
                 <TableCell className="font-medium">{job.title}</TableCell>
                 <TableCell>{job.company || "—"}</TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   {job.application_url ? (
                     <a
                       href={job.application_url}
@@ -228,40 +307,40 @@ export function JobsTable({
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <Badge variant="outline" className="text-xs capitalize">{job.job_type}</Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden lg:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {job.level === "internship" ? "Estágio" : job.level === "junior" ? "Júnior" : job.level === "mid" ? "Pleno" : "Sênior"}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {job.category ? getJobCategoryLabel(job.category) : "—"}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs">{job.profiles?.full_name || "—"}</TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell text-xs">{job.profiles?.full_name || "—"}</TableCell>
+                <TableCell className="hidden 2xl:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Eye className="h-3 w-3" />
                     {job.view_count ?? 0}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden 2xl:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <MousePointerClick className="h-3 w-3" />
                     {job.click_count ?? 0}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden 2xl:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Share2 className="h-3 w-3" />
                     {job.share_count ?? 0}
                   </span>
                 </TableCell>
                 {adminMode && (
-                  <TableCell>
+                  <TableCell className="hidden 2xl:table-cell">
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Heart className="h-3 w-3" />
                       {job.action_counts?.liked ?? 0}
@@ -274,7 +353,7 @@ export function JobsTable({
                       variant={job.status === "approved" ? "default" : "outline"}
                       className="text-xs capitalize w-fit"
                     >
-                      {job.status === "approved" ? "Aprovada" : job.status === "pending" ? "Pendente" : "Rejeitada"}
+                      {getJobStatusLabel(job.status)}
                     </Badge>
                     {adminMode && job.action_counts && (job.action_counts.link_issue > 0 || job.action_counts.closed > 0) && (
                       <div className="flex gap-1">
@@ -439,6 +518,39 @@ export function JobsTable({
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir vagas em massa</AlertDialogTitle>
+            <AlertDialogDescription>
+              {statusFilter !== "all" && (
+                <>
+                  Esta ação vai excluir permanentemente{" "}
+                  <strong>
+                    {bulkDeletableCount} vaga{bulkDeletableCount !== 1 ? "s" : ""}
+                  </strong>{" "}
+                  com status <strong>{getJobStatusLabel(statusFilter)}</strong>. Não é
+                  possível desfazer.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                bulkDeleteByStatus()
+              }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleting ? "Excluindo..." : "Excluir todos"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!editingJob} onOpenChange={(open) => !open && setEditingJob(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">

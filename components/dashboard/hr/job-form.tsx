@@ -75,8 +75,10 @@ export function JobForm({
   const [requiredLanguage, setRequiredLanguage] = useState(job?.required_language || "")
   const [languageLevel, setLanguageLevel] = useState(job?.language_level || "")
   const [loading, setLoading] = useState(false)
+  const [approving, setApproving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
+  const canApprove = isEditing && adminMode && job?.status !== "approved"
   const [savedCategories, setSavedCategories] = useState<string[]>([])
   const categoryOptions = useMemo(
     () => mergeJobCategoryOptions([category, ...savedCategories]),
@@ -136,7 +138,12 @@ export function JobForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    await submit(false)
+  }
+
+  async function submit(approve: boolean) {
     setLoading(true)
+    if (approve) setApproving(true)
     setError("")
 
     try {
@@ -177,6 +184,7 @@ export function JobForm({
           ...(!isEditing || activeHoursChanged
             ? { active_hours: Number(activeHours) }
             : {}),
+          ...(approve ? { status: "approved" } : {}),
         }),
       })
 
@@ -207,6 +215,7 @@ export function JobForm({
       setError(err instanceof Error ? err.message : "Erro ao salvar")
     } finally {
       setLoading(false)
+      setApproving(false)
     }
   }
 
@@ -421,10 +430,26 @@ export function JobForm({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={loading}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-        {loading ? loadingLabel : isEditing ? "Salvar alteracoes" : submitLabel}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" variant={canApprove ? "outline" : "default"} disabled={loading}>
+          {loading && !approving ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+          ) : (
+            <Send className="h-4 w-4 mr-1" />
+          )}
+          {loading && !approving ? loadingLabel : isEditing ? "Salvar alteracoes" : submitLabel}
+        </Button>
+        {canApprove && (
+          <Button type="button" disabled={loading} onClick={() => submit(true)}>
+            {approving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 mr-1" />
+            )}
+            {approving ? loadingLabel : "Salvar e aprovar"}
+          </Button>
+        )}
+      </div>
     </form>
   )
 }
