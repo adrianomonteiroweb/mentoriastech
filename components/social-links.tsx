@@ -1,29 +1,32 @@
-"use client"
+"use client";
 
-import { Instagram, Linkedin, MessageCircle } from "lucide-react"
-import { SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp"
-import { trackPageEvent } from "@/lib/track-page"
+import { Instagram, Linkedin, MessageCircle } from "lucide-react";
+import { SUPPORT_WHATSAPP_NUMBER } from "@/lib/whatsapp";
+import { trackPageEvent } from "@/lib/track-page";
 
 const links = [
   {
     label: "LinkedIn",
-    href: "https://linkedin.com/in/adrianomonteirodev",
+    href: "https://www.linkedin.com/company/mentoriastech",
     icon: Linkedin,
-    color: "hover:border-[#0A66C2]/70 hover:bg-[#0A66C2]/10 hover:text-[#69aef5]",
+    color:
+      "hover:border-[#0A66C2]/70 hover:bg-[#0A66C2]/10 hover:text-[#69aef5]",
   },
   {
     label: "WhatsApp",
     href: `https://wa.me/${SUPPORT_WHATSAPP_NUMBER}`,
     icon: MessageCircle,
-    color: "hover:border-[#25D366]/70 hover:bg-[#25D366]/10 hover:text-[#4ade80]",
+    color:
+      "hover:border-[#25D366]/70 hover:bg-[#25D366]/10 hover:text-[#4ade80]",
   },
   {
     label: "Instagram",
     href: "https://www.instagram.com/mentoriastech/",
     icon: Instagram,
-    color: "hover:border-[#E4405F]/70 hover:bg-[#E4405F]/10 hover:text-[#fb7185]",
+    color:
+      "hover:border-[#E4405F]/70 hover:bg-[#E4405F]/10 hover:text-[#fb7185]",
   },
-]
+];
 
 export function SocialLinks() {
   return (
@@ -44,5 +47,5 @@ export function SocialLinks() {
         </a>
       ))}
     </nav>
-  )
+  );
 }
