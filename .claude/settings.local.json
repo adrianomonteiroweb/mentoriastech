@@ -62,7 +62,8 @@
       "Bash(node -e \"const j = require\\('./drizzle/meta/_journal.json'\\); console.log\\(j.entries.length, j.entries[j.entries.length-1]\\)\")",
       "PowerShell(pnpm build)",
       "Bash(xargs grep -l \"getClientIp\\\\|x-forwarded-for\\\\|x-real-ip\")",
-      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")"
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(xargs grep -l \"JOBS_SHARE_BOT_TOKEN\\\\|JOBS_BOT_PROFILE_ID\")"
     ]
   }
 }

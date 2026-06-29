@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
-import { and, eq, gt } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
@@ -10,10 +10,6 @@ import { requireRole } from "@/lib/utils/auth"
 
 // Limite de corpo: indicacao e enxuta, nada legitimo se aproxima disso.
 const MAX_BODY_BYTES = 8 * 1024
-
-// Rate-limit do caminho bot (baseado em DB, robusto em serverless).
-const BOT_RATE_LIMIT_MAX = 20
-const BOT_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
 
 const httpUrlSchema = z
   .string()
@@ -61,17 +57,6 @@ function getClientIp(request: Request): string {
   return request.headers.get("x-real-ip") || "unknown"
 }
 
-async function botRateLimited(botProfileId: string): Promise<boolean> {
-  const cutoff = new Date(Date.now() - BOT_RATE_LIMIT_WINDOW_MS)
-  const recent = await db
-    .select({ id: jobs.id })
-    .from(jobs)
-    .where(and(eq(jobs.postedBy, botProfileId), gt(jobs.createdAt, cutoff)))
-    .limit(BOT_RATE_LIMIT_MAX)
-
-  return recent.length >= BOT_RATE_LIMIT_MAX
-}
-
 // POST: indicar vaga. Dois caminhos:
 //  - bot externo via Bearer token (publico, autor = perfil bot dedicado)
 //  - usuario autenticado da plataforma (fluxo existente, autor = profile.id)
@@ -90,13 +75,6 @@ export async function POST(request: Request) {
       if (!botProfileId) {
         console.error("[jobs/share] JOBS_BOT_PROFILE_ID nao configurado")
         return NextResponse.json({ error: "Bot nao configurado" }, { status: 500 })
-      }
-
-      if (await botRateLimited(botProfileId)) {
-        return NextResponse.json(
-          { error: "Limite de indicacoes excedido. Tente mais tarde." },
-          { status: 429 },
-        )
       }
 
       postedBy = botProfileId
