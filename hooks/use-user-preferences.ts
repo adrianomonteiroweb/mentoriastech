@@ -13,12 +13,18 @@ export interface UserPreferences {
   // Um bloco só é ocultado quando explicitamente `false` — ausente = visível.
   // Assim, novos blocos aparecem por padrão mesmo para quem já tem preferências salvas.
   dashboardBlocks: Record<string, boolean>
+  // Vagas que o mentorado escondeu (X) no modo Match — não aparecem mais p/ ele.
+  hiddenJobIds: string[]
+  // Modo de visualização das vagas escolhido pelo mentorado.
+  jobsViewMode: "list" | "match"
 }
 
 const DEFAULT_USER_PREFERENCES: UserPreferences = {
   showJobFilters: false,
-  showTips: true,
+  showTips: false,
   dashboardBlocks: {},
+  hiddenJobIds: [],
+  jobsViewMode: "list",
 }
 
 function readUserPreferences(): UserPreferences {

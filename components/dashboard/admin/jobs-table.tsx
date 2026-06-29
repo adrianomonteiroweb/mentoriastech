@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { JobForm } from "@/components/dashboard/hr/job-form"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -28,8 +29,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, Info, MousePointerClick, Pencil, Percent, Share2, Trash2, XCircle } from "lucide-react"
-import { getJobCategoryLabel } from "@/lib/job-options"
-import type { JobStatus, JobWithAuthor } from "@/lib/types/database"
+import { getJobCategoryLabel, mergeJobCategoryOptions } from "@/lib/job-options"
+import type { JobLevel, JobStatus, JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
   action_counts?: { applied: number; link_issue: number; closed: number; liked: number }
@@ -51,7 +52,12 @@ export function JobsTable({
   const [editingJob, setEditingJob] = useState<JobWithCounts | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobWithCounts | null>(null)
   const [statusFilter, setStatusFilter] = useState<"all" | JobStatus>("all")
+  const [companyFilter, setCompanyFilter] = useState<string>("all")
+  const [levelFilter, setLevelFilter] = useState<"all" | JobLevel>("all")
+  const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [bulkDeleteSelectedOpen, setBulkDeleteSelectedOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
 
   function loadJobs() {
@@ -102,6 +108,37 @@ export function JobsTable({
     }
   }
 
+  async function bulkDeleteSelected() {
+    if (selectedIds.size === 0) return
+    setBulkDeleting(true)
+    try {
+      await fetch("/api/admin/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      })
+      setBulkDeleteSelectedOpen(false)
+      setSelectedIds(new Set())
+      loadJobs()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
   function handleEditSuccess() {
     setEditingJob(null)
     loadJobs()
@@ -132,15 +169,22 @@ export function JobsTable({
     ...(adminMode ? [{ label: "Curtidas", value: String(job.action_counts?.liked ?? 0), icon: Heart }] : []),
   ]
 
+  const showControls = adminMode && showAll
   const visibleJobs = showAll
-    ? statusFilter === "all"
-      ? jobs
-      : jobs.filter((j) => j.status === statusFilter)
+    ? jobs.filter((j) => {
+        if (statusFilter !== "all" && j.status !== statusFilter) return false
+        if (companyFilter !== "all" && (j.company || "") !== companyFilter)
+          return false
+        if (levelFilter !== "all" && j.level !== levelFilter) return false
+        if (categoryFilter !== "all" && j.category !== categoryFilter)
+          return false
+        return true
+      })
     : jobs.filter((j) => j.status === "pending")
   const showActions = true
-  const columnCount = 11 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
+  const columnCount =
+    (showControls ? 1 : 0) + 11 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
 
-  const showControls = adminMode && showAll
   const statusOptions: { value: "all" | JobStatus; label: string }[] = [
     { value: "all", label: "Todos os status" },
     { value: "pending", label: "Pendente" },
@@ -152,35 +196,132 @@ export function JobsTable({
     status === "all" ? jobs.length : jobs.filter((j) => j.status === status).length
   const bulkDeletableCount = statusFilter === "all" ? 0 : statusCount(statusFilter)
 
+  const companyOptions = Array.from(
+    new Set(jobs.map((j) => j.company).filter((c): c is string => !!c)),
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"))
+  const levelOptions: { value: "all" | JobLevel; label: string }[] = [
+    { value: "all", label: "Todos os níveis" },
+    { value: "internship", label: "Estágio" },
+    { value: "junior", label: "Júnior" },
+    { value: "mid", label: "Pleno" },
+    { value: "senior", label: "Sênior" },
+  ]
+  const categoryOptions = mergeJobCategoryOptions(jobs.map((j) => j.category))
+
+  // Mantém selecionadas apenas as vagas ainda visíveis no filtro atual.
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const visibleIds = new Set(visibleJobs.map((j) => j.id))
+      let changed = false
+      const next = new Set<string>()
+      prev.forEach((id) => {
+        if (visibleIds.has(id)) next.add(id)
+        else changed = true
+      })
+      return changed ? next : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, jobs])
+
+  const allVisibleSelected =
+    visibleJobs.length > 0 && visibleJobs.every((j) => selectedIds.has(j.id))
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      if (visibleJobs.every((j) => prev.has(j.id))) {
+        const next = new Set(prev)
+        visibleJobs.forEach((j) => next.delete(j.id))
+        return next
+      }
+      const next = new Set(prev)
+      visibleJobs.forEach((j) => next.add(j.id))
+      return next
+    })
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {showControls && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as "all" | JobStatus)}
-          >
-            <SelectTrigger className="h-8 w-full text-xs sm:w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label} ({statusCount(option.value)})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            size="sm"
-            variant="destructive"
-            className="h-8 text-xs"
-            disabled={statusFilter === "all" || bulkDeletableCount === 0}
-            onClick={() => setBulkDeleteOpen(true)}
-          >
-            <Trash2 className="mr-1 h-3 w-3" />
-            Excluir todos{statusFilter !== "all" ? ` (${bulkDeletableCount})` : ""}
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as "all" | JobStatus)}
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label} ({statusCount(option.value)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="h-8 w-full text-xs sm:w-44">
+                <SelectValue placeholder="Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as empresas</SelectItem>
+                {companyOptions.map((company) => (
+                  <SelectItem key={company} value={company}>
+                    {company}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={levelFilter}
+              onValueChange={(value) => setLevelFilter(value as "all" | JobLevel)}
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-40">
+                <SelectValue placeholder="Nível" />
+              </SelectTrigger>
+              <SelectContent>
+                {levelOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-8 w-full text-xs sm:w-44">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as categorias</SelectItem>
+                {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8 text-xs"
+              disabled={selectedIds.size === 0}
+              onClick={() => setBulkDeleteSelectedOpen(true)}
+            >
+              <Trash2 className="mr-1 h-3 w-3" />
+              Excluir selecionadas{selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              disabled={statusFilter === "all" || bulkDeletableCount === 0}
+              onClick={() => setBulkDeleteOpen(true)}
+            >
+              <Trash2 className="mr-1 h-3 w-3" />
+              Excluir todos por status{statusFilter !== "all" ? ` (${bulkDeletableCount})` : ""}
+            </Button>
+          </div>
         </div>
       )}
       {!loading && (
@@ -221,7 +362,20 @@ export function JobsTable({
               aria-label={`Abrir ações da vaga ${job.title}`}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                {showControls && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    className="pt-0.5"
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(job.id)}
+                      onCheckedChange={() => toggleSelected(job.id)}
+                      aria-label={`Selecionar ${job.title}`}
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
                   <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
                     {job.title}
                   </h3>
@@ -264,6 +418,15 @@ export function JobsTable({
       <Table>
         <TableHeader>
           <TableRow>
+            {showControls && (
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Selecionar todas as vagas visíveis"
+                />
+              </TableHead>
+            )}
             <TableHead>Titulo</TableHead>
             <TableHead>Empresa</TableHead>
             <TableHead className="hidden lg:table-cell">Link</TableHead>
@@ -296,7 +459,16 @@ export function JobsTable({
             </TableRow>
           ) : (
             visibleJobs.map((job) => (
-              <TableRow key={job.id}>
+              <TableRow key={job.id} data-state={selectedIds.has(job.id) ? "selected" : undefined}>
+                {showControls && (
+                  <TableCell className="w-10">
+                    <Checkbox
+                      checked={selectedIds.has(job.id)}
+                      onCheckedChange={() => toggleSelected(job.id)}
+                      aria-label={`Selecionar ${job.title}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">{job.title}</TableCell>
                 <TableCell>{job.company || "—"}</TableCell>
                 <TableCell className="hidden lg:table-cell">
@@ -562,6 +734,34 @@ export function JobsTable({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {bulkDeleting ? "Excluindo..." : "Excluir todos"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteSelectedOpen} onOpenChange={setBulkDeleteSelectedOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir vagas selecionadas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação vai excluir permanentemente{" "}
+              <strong>
+                {selectedIds.size} vaga{selectedIds.size !== 1 ? "s" : ""}
+              </strong>{" "}
+              selecionada{selectedIds.size !== 1 ? "s" : ""}. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                bulkDeleteSelected()
+              }}
+              disabled={bulkDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

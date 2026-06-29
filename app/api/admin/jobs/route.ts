@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
-import { desc, eq, sql } from "drizzle-orm"
+import { desc, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { requireRole } from "@/lib/utils/auth"
 
-const bulkDeleteSchema = z.object({
-  status: z.enum(["pending", "approved", "rejected", "expired"]),
-})
+const bulkDeleteSchema = z.union([
+  z.object({ status: z.enum(["pending", "approved", "rejected", "expired"]) }),
+  z.object({ ids: z.array(z.string().uuid()).min(1) }),
+])
 
 export async function GET() {
   try {
@@ -69,9 +70,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
+    const condition =
+      "ids" in parsed.data
+        ? inArray(jobs.id, parsed.data.ids)
+        : eq(jobs.status, parsed.data.status)
+
     const deleted = await db
       .delete(jobs)
-      .where(eq(jobs.status, parsed.data.status))
+      .where(condition)
       .returning({ id: jobs.id })
 
     return NextResponse.json({ success: true, deleted: deleted.length })

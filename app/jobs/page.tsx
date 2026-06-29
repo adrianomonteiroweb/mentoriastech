@@ -20,14 +20,17 @@ import {
   SlidersHorizontal,
   Clock,
   ChevronDown,
+  List,
+  Layers,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { DonateWidget } from "@/components/donate-widget";
 import { JobShareForm } from "@/components/jobs/job-share-form";
+import { JobsMatch } from "@/components/jobs/jobs-match";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -153,6 +156,7 @@ export default function JobsPage() {
   const [activeType, setActiveType] = useState<string>("all");
   const [activeScope, setActiveScope] = useState<string>("all");
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [onlySaved, setOnlySaved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -221,6 +225,8 @@ export default function JobsPage() {
         setActiveType("all");
         setActiveScope("all");
         setActiveCategory("all");
+        setOnlySaved(false);
+        updatePreference("jobsViewMode", "list");
         setExpandedJobs((prev) => {
           const expanded = new Set(prev);
           expanded.add(next);
@@ -341,11 +347,30 @@ export default function JobsPage() {
     });
   }
 
+  const hiddenJobIds = useMemo(
+    () => new Set(preferences.hiddenJobIds),
+    [preferences.hiddenJobIds],
+  );
+
+  function hideJob(jobId: string) {
+    if (preferences.hiddenJobIds.includes(jobId)) return;
+    updatePreference("hiddenJobIds", [...preferences.hiddenJobIds, jobId]);
+  }
+
+  function restoreHiddenJobs() {
+    updatePreference("hiddenJobIds", []);
+  }
+
+  function setViewMode(mode: "list" | "match") {
+    updatePreference("jobsViewMode", mode);
+  }
+
   function resetFilters() {
     setActiveTab("all");
     setActiveType("all");
     setActiveScope("all");
     setActiveCategory("all");
+    setOnlySaved(false);
   }
 
   function toggleJobFilters() {
@@ -359,6 +384,8 @@ export default function JobsPage() {
   }
 
   const filtered = jobs.filter((job) => {
+    if (hiddenJobIds.has(job.id)) return false;
+    if (onlySaved && !hasAction(job.id, "liked")) return false;
     if (activeTab !== "all" && job.level !== activeTab) return false;
     if (activeType !== "all" && job.job_type !== activeType) return false;
     if (activeScope === "national" && job.is_international) return false;
@@ -367,6 +394,9 @@ export default function JobsPage() {
       return false;
     return true;
   });
+
+  const viewMode = preferences.jobsViewMode;
+  const hiddenCount = preferences.hiddenJobIds.length;
 
   if (loading) {
     return (
@@ -378,8 +408,13 @@ export default function JobsPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-10 sm:px-6 md:py-16">
-      <div className="flex w-full max-w-3xl flex-col gap-8">
+    <main className="flex min-h-screen flex-col items-center px-4 py-6 sm:px-6 md:py-12">
+      <div
+        className={cn(
+          "flex w-full max-w-3xl flex-col",
+          viewMode === "match" ? "gap-4" : "gap-6",
+        )}
+      >
         <div className="flex flex-col gap-2">
           <Link
             href="/"
@@ -390,108 +425,150 @@ export default function JobsPage() {
           </Link>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-col gap-2">
-              <h1 className="text-2xl font-semibold text-foreground">
+              <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
                 Curadoria de Vagas
               </h1>
-              <p className="text-base leading-relaxed text-muted-foreground">
-                Vagas compartilhadas para a comunidade de mentorados.
-              </p>
+              {viewMode === "list" && (
+                <p className="hidden text-sm leading-relaxed text-muted-foreground sm:block">
+                  Vagas compartilhadas para a comunidade de mentorados.
+                </p>
+              )}
             </div>
-            {isAuthenticated ? (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setShareOpen(true)}
-                className="min-h-10 shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-                Indicar vaga
-              </Button>
-            ) : (
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="min-h-10 shrink-0"
-              >
-                <Link href="/login">
-                  <Plus className="h-4 w-4" />
-                  Indicar vaga
-                </Link>
-              </Button>
-            )}
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <a
-            href="#vagas"
-            className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-md px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="Ir direto para a lista de vagas"
-          >
-            Ir para as vagas
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
-          </a>
-          <AdBanner />
-        </div>
-
         {hydrated && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div
+              className="inline-flex rounded-lg border border-border bg-card p-0.5 text-sm font-medium"
+              role="group"
+              aria-label="Modo de visualização"
+            >
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                aria-pressed={viewMode === "list"}
+                className={cn(
+                  "inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
+                  viewMode === "list"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <List className="h-4 w-4" />
+                Lista
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("match")}
+                aria-pressed={viewMode === "match"}
+                className={cn(
+                  "inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 py-1.5 transition-colors",
+                  viewMode === "match"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Layers className="h-4 w-4" />
+                Match
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => setShareOpen(true)}
+                  title="Indicar vaga"
+                  aria-label="Indicar vaga"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Indicar</span>
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  title="Indicar vaga"
+                  aria-label="Indicar vaga"
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Indicar</span>
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setOnlySaved((prev) => !prev)}
+                aria-pressed={onlySaved}
+                className={cn(
+                  "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                  onlySaved
+                    ? "bg-rose-500/15 text-rose-400"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+                )}
+              >
+                <Heart className={cn("h-4 w-4", onlySaved && "fill-current")} />
+                Salvas
+              </button>
+              {hiddenCount > 0 && (
+                <button
+                  type="button"
+                  onClick={restoreHiddenJobs}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  title="Mostrar novamente as vagas que você escondeu"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Restaurar escondidas ({hiddenCount})
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {viewMode === "list" && <AdBanner />}
+
+        {hydrated && viewMode === "list" && (
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={toggleJobFilters}
               aria-expanded={preferences.showJobFilters}
               className={cn(
-                "flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
+                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
                 preferences.showJobFilters
-                  ? "border-primary/30 bg-primary/5"
-                  : "border-border bg-card hover:border-primary/30 hover:bg-primary/5",
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-card text-foreground hover:border-primary/40",
               )}
             >
-              <SlidersHorizontal
-                className="h-5 w-5 shrink-0 text-primary"
-                aria-hidden="true"
-              />
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-sm font-semibold text-foreground">
-                  {preferences.showJobFilters
-                    ? "Ocultar filtros"
-                    : "Filtrar vagas"}
-                </span>
-                {!preferences.showJobFilters && (
-                  <span className="text-xs text-muted-foreground">
-                    Por nível, modelo, alcance e categoria
-                  </span>
-                )}
-              </div>
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              {preferences.showJobFilters ? "Ocultar filtros" : "Filtrar"}
               <ChevronDown
                 className={cn(
-                  "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                  "h-3.5 w-3.5 text-muted-foreground transition-transform",
                   preferences.showJobFilters && "rotate-180",
                 )}
                 aria-hidden="true"
               />
             </button>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  updatePreference("showTips", !preferences.showTips)
-                }
-                className="min-h-10"
-              >
-                <Lightbulb className="h-4 w-4" />
-                {preferences.showTips
-                  ? "Ocultar dicas extras"
-                  : "Mostrar dicas extras"}
-              </Button>
-            </div>
+            <button
+              type="button"
+              onClick={() => updatePreference("showTips", !preferences.showTips)}
+              aria-pressed={preferences.showTips}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                preferences.showTips
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border bg-card text-foreground hover:border-primary/40",
+              )}
+            >
+              <Lightbulb className="h-4 w-4" />
+              {preferences.showTips ? "Ocultar dicas" : "Dicas"}
+            </button>
           </div>
         )}
 
-        {hydrated && preferences.showJobFilters && (
+        {hydrated && viewMode === "list" && preferences.showJobFilters && (
           <div className="flex flex-col gap-4 rounded-lg border border-border bg-card/50 p-3 sm:p-4">
             <div role="group" aria-label="Filtrar por nível">
               <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -590,9 +667,22 @@ export default function JobsPage() {
           </div>
         )}
 
-        <RandomTipCard placement="jobs" />
+        {viewMode === "list" && preferences.showTips && (
+          <RandomTipCard placement="jobs" />
+        )}
 
         <div id="vagas" className="scroll-mt-6 flex flex-col gap-3">
+          {viewMode === "match" ? (
+            <JobsMatch
+              jobs={filtered}
+              isLiked={(id) => hasAction(id, "liked")}
+              onLike={(id) => toggleAction(id, "liked")}
+              onHide={hideJob}
+              onApply={(id) => trackJobEvent(id, "click")}
+              onSwitchToList={() => setViewMode("list")}
+            />
+          ) : (
+            <>
           {filtered.map((job) => (
             <div
               key={job.id}
@@ -993,13 +1083,16 @@ export default function JobsPage() {
 
           {filtered.length === 0 && (
             <p className="py-8 text-center text-base text-muted-foreground">
-              Nenhuma vaga disponível
-              {activeTab !== "all" ? " neste nível" : " no momento"}.
+              {onlySaved
+                ? "Você ainda não salvou nenhuma vaga."
+                : `Nenhuma vaga disponível${activeTab !== "all" ? " neste nível" : " no momento"}.`}
             </p>
+          )}
+            </>
           )}
         </div>
 
-        <DonateWidget />
+        {viewMode === "list" && <DonateWidget />}
       </div>
 
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
