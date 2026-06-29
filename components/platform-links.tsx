@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 import {
   ArrowRight,
   BookOpenCheck,
@@ -8,10 +8,22 @@ import {
   FileText,
   Route,
   Sparkles,
-} from "lucide-react"
-import { trackPageEvent } from "@/lib/track-page"
+} from "lucide-react";
+import { trackPageEvent } from "@/lib/track-page";
 
 const links = [
+  {
+    label: "Vagas",
+    description: "Oportunidades em tecnologia para seu próximo passo",
+    href: "/jobs",
+    icon: BriefcaseBusiness,
+  },
+  {
+    label: "Conteúdos",
+    description: "Guias, artigos e materiais para estudar com foco",
+    href: "/content",
+    icon: BookOpenCheck,
+  },
   {
     label: "Ferramentas",
     description: "Ferramentas de IA grátis para currículo e carreira",
@@ -25,24 +37,12 @@ const links = [
     icon: Route,
   },
   {
-    label: "Conteúdos",
-    description: "Guias, artigos e materiais para estudar com foco",
-    href: "/content",
-    icon: BookOpenCheck,
-  },
-  {
-    label: "Vagas",
-    description: "Oportunidades em tecnologia para seu próximo passo",
-    href: "/jobs",
-    icon: BriefcaseBusiness,
-  },
-  {
     label: "Minhas Mentorias",
     description: "Veja e baixe as anotações das suas mentorias",
     href: "/minhas-mentorias",
     icon: FileText,
   },
-]
+];
 
 export function PlatformLinks() {
   return (
@@ -67,5 +67,5 @@ export function PlatformLinks() {
         </Link>
       ))}
     </section>
-  )
+  );
 }
