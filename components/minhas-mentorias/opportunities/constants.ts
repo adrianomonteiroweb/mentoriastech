@@ -119,6 +119,10 @@ export const JOB_LEVEL_LABELS: Record<string, string> = {
   junior: "Junior",
   mid: "Pleno",
   senior: "Senior",
+  staff: "Staff",
+  senior_staff: "Senior Staff",
+  principal: "Principal",
+  distinguished: "Distinguished",
   trainee: "Trainee",
 }
 

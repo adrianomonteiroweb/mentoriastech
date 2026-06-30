@@ -32,7 +32,7 @@ const shareSchema = z
     recommendation_note: z.string().min(10).max(2000),
     company: z.string().max(150).optional(),
     active_hours: jobActiveHoursSchema.default(0),
-    level: z.enum(["internship", "junior", "mid", "senior"]).optional(),
+    level: z.enum(["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"]).optional(),
   })
   .strict()
 

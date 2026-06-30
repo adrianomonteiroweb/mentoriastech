@@ -26,7 +26,7 @@ const createSchema = z.object({
   city: z.string().optional().or(z.literal("")),
   state: z.string().optional().or(z.literal("")),
   work_model: z.enum(["remote", "hybrid", "onsite"]).optional(),
-  job_level: z.enum(["internship", "junior", "mid", "senior", "trainee"]).optional(),
+  job_level: z.enum(["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished", "trainee"]).optional(),
   salary_range: z.string().optional().or(z.literal("")),
   contact_name: z.string().optional().or(z.literal("")),
   contact_role: z.string().optional().or(z.literal("")),

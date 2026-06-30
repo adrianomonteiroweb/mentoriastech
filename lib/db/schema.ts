@@ -443,7 +443,7 @@ export const jobs = pgTable("jobs", {
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] })
     .notNull()
     .default("remote"),
-  level: text("level", { enum: ["internship", "junior", "mid", "senior"] })
+  level: text("level", { enum: ["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"] })
     .notNull()
     .default("junior"),
   category: text("category").notNull().default("other"),
@@ -452,9 +452,8 @@ export const jobs = pgTable("jobs", {
   isInternational: boolean("is_international").notNull().default(false),
   requiredLanguage: text("required_language"),
   languageLevel: text("language_level", {
-    enum: ["basic", "intermediate", "advanced", "fluent"],
+    enum: ["a1", "a2", "b1", "b2", "c1", "c2", "basic", "intermediate", "advanced", "fluent"],
   }),
-  // Apenas para vagas internacionais: resumo (tabela "Item/Detalhes") e observação.
   summary: text("summary"),
   importantNote: text("important_note"),
   status: text("status", {
@@ -787,7 +786,7 @@ export const opportunities = pgTable("opportunities", {
     .default("medium"),
   workModel: text("work_model", { enum: ["remote", "hybrid", "onsite"] }),
   jobLevel: text("job_level", {
-    enum: ["internship", "junior", "mid", "senior", "trainee"],
+    enum: ["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished", "trainee"],
   }),
   salaryRange: text("salary_range"),
   contactName: text("contact_name"),
@@ -878,7 +877,7 @@ export const studyPlans = pgTable("study_plans", {
     ],
   }),
   seniority: text("seniority", {
-    enum: ["internship", "trainee", "junior", "mid", "senior"],
+    enum: ["internship", "trainee", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"],
   }),
   languages: jsonb("languages").$type<string[]>(),
   frameworks: jsonb("frameworks").$type<string[]>(),

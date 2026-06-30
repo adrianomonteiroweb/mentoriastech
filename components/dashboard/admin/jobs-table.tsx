@@ -149,8 +149,11 @@ export function JobsTable({
     setEditingJob(job)
   }
 
-  const getJobLevelLabel = (level: JobWithCounts["level"]) =>
-    level === "internship" ? "Estágio" : level === "junior" ? "Júnior" : level === "mid" ? "Pleno" : "Sênior"
+  const levelLabels: Record<string, string> = {
+    internship: "Estágio", junior: "Júnior", mid: "Pleno", senior: "Sênior",
+    staff: "Staff", senior_staff: "Senior Staff", principal: "Principal", distinguished: "Distinguished",
+  }
+  const getJobLevelLabel = (level: JobWithCounts["level"]) => levelLabels[level] || level
 
   const getJobStatusLabel = (status: JobWithCounts["status"]) =>
     status === "approved" ? "Aprovada" : status === "pending" ? "Pendente" : status === "rejected" ? "Rejeitada" : "Expirada"
@@ -205,6 +208,10 @@ export function JobsTable({
     { value: "junior", label: "Júnior" },
     { value: "mid", label: "Pleno" },
     { value: "senior", label: "Sênior" },
+    { value: "staff", label: "Staff" },
+    { value: "senior_staff", label: "Senior Staff" },
+    { value: "principal", label: "Principal" },
+    { value: "distinguished", label: "Distinguished" },
   ]
   const categoryOptions = mergeJobCategoryOptions(jobs.map((j) => j.category))
 
@@ -491,7 +498,7 @@ export function JobsTable({
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <Badge variant="outline" className="text-xs">
-                    {job.level === "internship" ? "Estágio" : job.level === "junior" ? "Júnior" : job.level === "mid" ? "Pleno" : "Sênior"}
+                    {getJobLevelLabel(job.level)}
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">

@@ -57,13 +57,13 @@ interface Job {
   recommendation_note: string | null;
   location: string | null;
   job_type: "remote" | "hybrid" | "onsite";
-  level: "internship" | "junior" | "mid" | "senior";
+  level: string;
   category: JobCategory;
   salary_range: string | null;
   application_url: string | null;
   is_international: boolean;
   required_language: string | null;
-  language_level: "basic" | "intermediate" | "advanced" | "fluent" | null;
+  language_level: string | null;
   summary: string | null;
   important_note: string | null;
   like_count: number;
@@ -85,6 +85,12 @@ const JOB_TYPE_COLORS: Record<string, string> = {
 };
 
 const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
+  a1: "A1",
+  a2: "A2",
+  b1: "B1",
+  b2: "B2",
+  c1: "C1",
+  c2: "C2",
   basic: "Básico",
   intermediate: "Intermediário",
   advanced: "Avançado",
@@ -97,6 +103,10 @@ const LEVEL_TABS = [
   { key: "junior", label: "Júnior" },
   { key: "mid", label: "Pleno" },
   { key: "senior", label: "Sênior" },
+  { key: "staff", label: "Staff" },
+  { key: "senior_staff", label: "Senior Staff" },
+  { key: "principal", label: "Principal" },
+  { key: "distinguished", label: "Distinguished" },
 ] as const;
 
 const TYPE_TABS = [
@@ -736,13 +746,7 @@ export default function JobsPage() {
                     {JOB_TYPE_LABELS[job.job_type] || job.job_type}
                   </span>
                   <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                    {job.level === "internship"
-                      ? "Estágio"
-                      : job.level === "junior"
-                        ? "Júnior"
-                        : job.level === "mid"
-                          ? "Pleno"
-                          : "Sênior"}
+                    {LEVEL_TABS.find((t) => t.key === job.level)?.label || job.level}
                   </span>
                   {job.category && job.category !== "other" && (
                     <span className="rounded-full bg-orange-400/15 px-2.5 py-1 text-xs font-medium text-orange-300">
@@ -794,9 +798,8 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Resumo da vaga (internacional) */}
-              {job.is_international &&
-                job.summary &&
+              {/* Resumo da vaga */}
+              {job.summary &&
                 (() => {
                   const rows = parseSummaryRows(job.summary);
                   if (rows.length === 0) return null;
@@ -829,8 +832,8 @@ export default function JobsPage() {
                   );
                 })()}
 
-              {/* Observação importante (internacional) */}
-              {job.is_international && job.important_note && (
+              {/* Observação importante */}
+              {job.important_note && (
                 <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
                   <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5" />

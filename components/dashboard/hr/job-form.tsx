@@ -20,6 +20,29 @@ import {
 import { getJobActiveHours, MAX_JOB_ACTIVE_HOURS } from "@/lib/job-active-time"
 import type { Job } from "@/lib/types/database"
 
+const SALARY_CURRENCIES = [
+  { value: "BRL", symbol: "R$", placeholder: "5.000 - 8.000" },
+  { value: "USD", symbol: "US$", placeholder: "5,000 - 8,000" },
+  { value: "EUR", symbol: "€", placeholder: "5.000 - 8.000" },
+  { value: "GBP", symbol: "£", placeholder: "5,000 - 8,000" },
+  { value: "CAD", symbol: "CA$", placeholder: "5,000 - 8,000" },
+  { value: "AUD", symbol: "AU$", placeholder: "5,000 - 8,000" },
+  { value: "CHF", symbol: "CHF", placeholder: "5'000 - 8'000" },
+  { value: "JPY", symbol: "¥", placeholder: "500,000 - 800,000" },
+] as const
+
+function parseSalaryCurrency(raw: string): { currency: string; amount: string } {
+  const v = raw.trim()
+  const sorted = [...SALARY_CURRENCIES].sort((a, b) => b.symbol.length - a.symbol.length)
+  for (const c of sorted) {
+    if (v.startsWith(c.symbol)) {
+      const stripped = v.replaceAll(c.symbol, "").replace(/\s+/g, " ").trim()
+      return { currency: c.value, amount: stripped }
+    }
+  }
+  return { currency: "BRL", amount: v }
+}
+
 interface JobFormProps {
   onSuccess?: (job?: Job) => void
   job?: Job
@@ -69,7 +92,9 @@ export function JobForm({
   const [customCategoryName, setCustomCategoryName] = useState(
     initialUsesCustomCategory ? getJobCategoryLabel(initialCategory) : "",
   )
-  const [salaryRange, setSalaryRange] = useState(job?.salary_range || "")
+  const parsedSalary = job?.salary_range ? parseSalaryCurrency(job.salary_range) : null
+  const [salaryCurrency, setSalaryCurrency] = useState(parsedSalary?.currency || "BRL")
+  const [salaryRange, setSalaryRange] = useState(parsedSalary?.amount || "")
   const [applicationUrl, setApplicationUrl] = useState(job?.application_url || "")
   const [isInternational, setIsInternational] = useState(job?.is_international || false)
   const [requiredLanguage, setRequiredLanguage] = useState(job?.required_language || "")
@@ -178,13 +203,13 @@ export function JobForm({
           job_type: jobType,
           level,
           category: categoryForSubmit,
-          salary_range: salaryRange || undefined,
+          salary_range: salaryRange ? `${SALARY_CURRENCIES.find((c) => c.value === salaryCurrency)?.symbol || "R$"} ${salaryRange}` : undefined,
           application_url: applicationUrl || undefined,
           is_international: isInternational,
           required_language: isInternational && requiredLanguage ? requiredLanguage : undefined,
           language_level: isInternational && languageLevel ? languageLevel : undefined,
-          summary: isInternational ? summary.trim() : "",
-          important_note: isInternational ? importantNote.trim() : "",
+          summary: summary.trim() || undefined,
+          important_note: importantNote.trim() || undefined,
           ...(!isEditing || activeHoursChanged
             ? { active_hours: Number(activeHours) }
             : {}),
@@ -351,6 +376,10 @@ export function JobForm({
               <SelectItem value="junior">Junior</SelectItem>
               <SelectItem value="mid">Pleno</SelectItem>
               <SelectItem value="senior">Senior</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
+              <SelectItem value="senior_staff">Senior Staff</SelectItem>
+              <SelectItem value="principal">Principal</SelectItem>
+              <SelectItem value="distinguished">Distinguished</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -381,7 +410,17 @@ export function JobForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="salary">Faixa salarial</Label>
-        <Input id="salary" value={salaryRange} onChange={(e) => setSalaryRange(e.target.value)} placeholder="R$ 5.000 - R$ 8.000" />
+        <div className="flex gap-2">
+          <Select value={salaryCurrency} onValueChange={setSalaryCurrency}>
+            <SelectTrigger className="w-[90px] shrink-0"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {SALARY_CURRENCIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>{c.symbol}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input id="salary" className="flex-1" value={salaryRange} onChange={(e) => setSalaryRange(e.target.value)} placeholder={SALARY_CURRENCIES.find((c) => c.value === salaryCurrency)?.placeholder || "5.000 - 8.000"} />
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
@@ -401,6 +440,12 @@ export function JobForm({
               <Select value={languageLevel} onValueChange={setLanguageLevel}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="a1">A1 — Iniciante</SelectItem>
+                  <SelectItem value="a2">A2 — Elementar</SelectItem>
+                  <SelectItem value="b1">B1 — Intermediário</SelectItem>
+                  <SelectItem value="b2">B2 — Intermediário Superior</SelectItem>
+                  <SelectItem value="c1">C1 — Avançado</SelectItem>
+                  <SelectItem value="c2">C2 — Proficiente</SelectItem>
                   <SelectItem value="basic">Básico</SelectItem>
                   <SelectItem value="intermediate">Intermediário</SelectItem>
                   <SelectItem value="advanced">Avançado</SelectItem>
@@ -425,33 +470,33 @@ export function JobForm({
               Cole aqui o texto original em inglês. Ele será exibido como descrição principal, com a tradução (português) disponível em destaque.
             </p>
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="summary">Resumo da vaga</Label>
-            <Textarea
-              id="summary"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={8}
-              placeholder={`Um item por linha, no formato "Rótulo: Valor". Ex.:\nCargo: AI Engineer II\nModalidade: Tempo integral\nExperiência: 3–5 anos\nSalário: US$ 3.333–6.000/mês`}
-            />
-            <p className="text-xs text-muted-foreground">
-              Cada linha vira uma linha da tabela (Item / Detalhes). Aceita também colar uma tabela separada por tabulação.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="important-note">Observação importante</Label>
-            <Textarea
-              id="important-note"
-              value={importantNote}
-              onChange={(e) => setImportantNote(e.target.value)}
-              rows={4}
-              placeholder="Contexto e destaque sobre o perfil buscado na vaga..."
-            />
-          </div>
         </div>
       )}
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="summary">Resumo da vaga</Label>
+        <Textarea
+          id="summary"
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
+          rows={8}
+          placeholder={`Um item por linha, no formato "Rótulo: Valor". Ex.:\nCargo: AI Engineer II\nModalidade: Tempo integral\nExperiência: 3–5 anos\nSalário: US$ 3.333–6.000/mês`}
+        />
+        <p className="text-xs text-muted-foreground">
+          Cada linha vira uma linha da tabela (Item / Detalhes). Aceita também colar uma tabela separada por tabulação.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="important-note">Observação importante</Label>
+        <Textarea
+          id="important-note"
+          value={importantNote}
+          onChange={(e) => setImportantNote(e.target.value)}
+          rows={4}
+          placeholder="Contexto e destaque sobre o perfil buscado na vaga..."
+        />
+      </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="appUrl">Link para candidatura (LinkedIn ou site)</Label>

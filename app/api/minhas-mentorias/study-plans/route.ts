@@ -21,7 +21,7 @@ const createSchema = z.object({
   title: z.string().trim().max(160).optional().or(z.literal("")),
   role_type: z.string().trim().min(1, "Informe a posição-alvo."),
   stack: z.enum(["fullstack", "backend", "frontend", "mobile", "data", "devops", "outro"]).optional(),
-  seniority: z.enum(["internship", "trainee", "junior", "mid", "senior"]).optional(),
+  seniority: z.enum(["internship", "trainee", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"]).optional(),
   languages: z.array(z.string().trim().min(1)).max(20).optional(),
   frameworks: z.array(z.string().trim().min(1)).max(20).optional(),
   strengths: z.string().trim().max(4000).optional().or(z.literal("")),

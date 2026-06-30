@@ -18,7 +18,7 @@ const updateSchema = z.object({
   state: z.string().optional().or(z.literal("")),
   priority: z.enum(["high", "medium", "low"]).optional(),
   work_model: z.enum(["remote", "hybrid", "onsite"]).optional().nullable(),
-  job_level: z.enum(["internship", "junior", "mid", "senior", "trainee"]).optional().nullable(),
+  job_level: z.enum(["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished", "trainee"]).optional().nullable(),
   salary_range: z.string().optional().or(z.literal("")),
   contact_name: z.string().optional().or(z.literal("")),
   contact_role: z.string().optional().or(z.literal("")),

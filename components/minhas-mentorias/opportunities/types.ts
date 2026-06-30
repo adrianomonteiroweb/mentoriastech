@@ -21,7 +21,7 @@ export type OpportunityPriority = "high" | "medium" | "low"
 
 export type WorkModel = "remote" | "hybrid" | "onsite"
 
-export type JobLevel = "internship" | "junior" | "mid" | "senior" | "trainee"
+export type JobLevel = "internship" | "junior" | "mid" | "senior" | "staff" | "senior_staff" | "principal" | "distinguished" | "trainee"
 
 export type InterviewType = "rh" | "technical" | "manager"
 

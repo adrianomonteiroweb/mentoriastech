@@ -110,9 +110,19 @@ const JOB_LEVEL_LABELS: Record<string, string> = {
   junior: "Junior",
   mid: "Pleno",
   senior: "Senior",
+  staff: "Staff",
+  senior_staff: "Senior Staff",
+  principal: "Principal",
+  distinguished: "Distinguished",
 }
 
 const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
+  a1: "A1",
+  a2: "A2",
+  b1: "B1",
+  b2: "B2",
+  c1: "C1",
+  c2: "C2",
   basic: "Basico",
   intermediate: "Intermediario",
   advanced: "Avancado",
