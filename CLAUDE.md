@@ -173,9 +173,15 @@ GOOGLE_REDIRECT_URI             # Opcional, recomendado em produção. URI fixa 
                                 # idêntica à cadastrada no Google Cloud Console (evita redirect_uri_mismatch
                                 # atrás de proxy/Vercel). Ex.: https://seu-dominio.com/api/admin/calendar/auth
 
-# Google Gemini (melhoria de currículo com IA)
+# Google Gemini (melhoria de currículo com IA + transcrição de mentorias)
 GEMINI_API_KEY                  # API key do Google AI Studio (obrigatória p/ a ferramenta)
 GEMINI_MODEL                    # Opcional, default gemini-2.5-flash
+
+# Cron de transcrição de mentorias (GET /api/cron/transcribe-sessions)
+CRON_SECRET                     # Bearer do cron. A Vercel injeta Authorization: Bearer ${CRON_SECRET}
+                                # nas execuções agendadas em vercel.json. Sem a var, o endpoint fica
+                                # desabilitado (401). Cron configurado p/ rodar de hora em hora —
+                                # no plano Hobby a Vercel limita a 1x/dia. Gere com: openssl rand -base64 32
 
 # Pagar.me (PIX — mentorias pagas)
 PAGARME_SECRET_KEY              # Secret key (sk_test_... ou sk_live_...)

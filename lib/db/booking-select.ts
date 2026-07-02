@@ -26,6 +26,16 @@ export const bookingSelect = {
   menteeStrengths: bookings.menteeStrengths,
   menteeGrowthAreas: bookings.menteeGrowthAreas,
   adminNotes: bookings.adminNotes,
+  // Colunas de IA lidas via to_jsonb p/ não quebrar instalações sem a migração.
+  aiTranscript: sql<Booking["ai_transcript"]>`
+    to_jsonb(bookings) ->> 'ai_transcript'
+  `,
+  aiSummary: sql<Booking["ai_summary"]>`
+    to_jsonb(bookings) ->> 'ai_summary'
+  `,
+  aiTranscriptStatus: sql<Booking["ai_transcript_status"]>`
+    to_jsonb(bookings) ->> 'ai_transcript_status'
+  `,
   mentorshipChecklist: sql<Booking["mentorship_checklist"]>`
     to_jsonb(bookings) -> 'mentorship_checklist'
   `,
@@ -61,6 +71,9 @@ export function isOptionalBookingMetadataPersistenceError(error: unknown) {
     message.includes("mentorship_checklist") ||
     message.includes("origin_category") ||
     message.includes("origin_description") ||
-    message.includes("paid_mentorship_id")
+    message.includes("paid_mentorship_id") ||
+    message.includes("ai_transcript") ||
+    message.includes("ai_summary") ||
+    message.includes("ai_transcript_status")
   )
 }

@@ -5,7 +5,7 @@ import { db, pageEvents } from "@/lib/db"
 import { getSession } from "@/lib/utils/auth"
 
 const trackSchema = z.object({
-  event: z.enum(["visit", "click"]),
+  event: z.enum(["visit", "click", "tool_view"]),
   path: z
     .string()
     .min(1)

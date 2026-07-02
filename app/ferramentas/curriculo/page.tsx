@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { ResumeImprover } from "@/components/minhas-mentorias/resume-improver"
+import { ToolViewTracker } from "@/components/tool-view-tracker"
 import { SITE_URL } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -26,5 +27,10 @@ export const metadata: Metadata = {
 }
 
 export default function FerramentaCurriculoPage() {
-  return <ResumeImprover variant="public" />
+  return (
+    <>
+      <ToolViewTracker tool="resume" />
+      <ResumeImprover variant="public" />
+    </>
+  )
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { LinkedInImprover } from "@/components/minhas-mentorias/linkedin-improver"
+import { ToolViewTracker } from "@/components/tool-view-tracker"
 import { SITE_URL } from "@/lib/site"
 
 export const metadata: Metadata = {
@@ -26,5 +27,10 @@ export const metadata: Metadata = {
 }
 
 export default function FerramentaLinkedInPage() {
-  return <LinkedInImprover variant="public" />
+  return (
+    <>
+      <ToolViewTracker tool="linkedin" />
+      <LinkedInImprover variant="public" />
+    </>
+  )
 }

@@ -12,6 +12,7 @@ export interface MenteeBookingItem {
   menteeStrengths: string | null
   menteeGrowthAreas: string | null
   adminNotes: string | null
+  aiSummary: string | null
   notes: string | null
   guestName: string | null
   googleMeetUrl: string | null
@@ -39,6 +40,8 @@ export async function getMenteeBookingsByEmail(
       menteeStrengths: bookings.menteeStrengths,
       menteeGrowthAreas: bookings.menteeGrowthAreas,
       adminNotes: bookings.adminNotes,
+      // Lê via to_jsonb p/ não quebrar caso a migração de IA ainda não tenha rodado.
+      aiSummary: sql<string | null>`to_jsonb(bookings) ->> 'ai_summary'`,
       notes: bookings.notes,
       guestName: bookings.guestName,
       googleMeetUrl: bookings.googleMeetUrl,
@@ -89,6 +92,8 @@ export async function getAllMenteeBookingsByEmail(
       menteeStrengths: bookings.menteeStrengths,
       menteeGrowthAreas: bookings.menteeGrowthAreas,
       adminNotes: bookings.adminNotes,
+      // Lê via to_jsonb p/ não quebrar caso a migração de IA ainda não tenha rodado.
+      aiSummary: sql<string | null>`to_jsonb(bookings) ->> 'ai_summary'`,
       notes: bookings.notes,
       guestName: bookings.guestName,
       googleMeetUrl: bookings.googleMeetUrl,
@@ -133,6 +138,8 @@ export async function getMenteeBookingByIdForEmail(
       menteeStrengths: bookings.menteeStrengths,
       menteeGrowthAreas: bookings.menteeGrowthAreas,
       adminNotes: bookings.adminNotes,
+      // Lê via to_jsonb p/ não quebrar caso a migração de IA ainda não tenha rodado.
+      aiSummary: sql<string | null>`to_jsonb(bookings) ->> 'ai_summary'`,
       notes: bookings.notes,
       guestName: bookings.guestName,
       googleMeetUrl: bookings.googleMeetUrl,

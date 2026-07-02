@@ -16,6 +16,10 @@ import {
   type LinkedInChecklistItem,
 } from "@/lib/linkedin/checklist"
 import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
+import {
+  TRANSCRIPTION_PROMPT,
+  composeMeetingSummaryPrompt,
+} from "@/lib/meeting-ai-prompt"
 
 const DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -696,5 +700,194 @@ export async function generateStudyPlan({
     return text
   } catch (error) {
     throw toResumeAIError(error, "Falha ao gerar o plano de estudos com IA")
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Transcrição + resumo de mentorias (a partir do áudio gravado)
+// -----------------------------------------------------------------------------
+
+// Acima deste tamanho, o áudio vai pela Files API em vez de inlineData base64
+// (o limite prático de request inline do Gemini é ~20MB).
+const INLINE_AUDIO_MAX_BYTES = 18 * 1024 * 1024
+
+type AudioPart =
+  | { inlineData: { mimeType: string; data: string } }
+  | { fileData: { fileUri: string; mimeType: string } }
+
+/**
+ * Monta a "part" de áudio para o Gemini: inlineData (base64) para áudios
+ * pequenos; Files API (upload + espera ficar ACTIVE) para áudios grandes.
+ */
+async function buildAudioPart(
+  ai: GoogleGenAI,
+  { bytes, mimeType }: { bytes: ArrayBuffer; mimeType: string },
+): Promise<AudioPart> {
+  if (bytes.byteLength <= INLINE_AUDIO_MAX_BYTES) {
+    return {
+      inlineData: { mimeType, data: Buffer.from(bytes).toString("base64") },
+    }
+  }
+
+  const blob = new Blob([bytes], { type: mimeType })
+  let file = await ai.files.upload({ file: blob, config: { mimeType } })
+
+  // Aguarda o processamento do arquivo (state PROCESSING -> ACTIVE).
+  for (let attempt = 0; attempt < 30 && file.state !== "ACTIVE"; attempt++) {
+    if (file.state === "FAILED") {
+      throw new ResumeAIError("Falha ao processar o áudio enviado para a IA.")
+    }
+    await sleep(2000)
+    if (!file.name) break
+    file = await ai.files.get({ name: file.name })
+  }
+
+  if (file.state !== "ACTIVE" || !file.uri) {
+    throw new ResumeAIError("O áudio demorou demais para ser processado pela IA. Tente novamente.")
+  }
+
+  return { fileData: { fileUri: file.uri, mimeType: file.mimeType || mimeType } }
+}
+
+/**
+ * Transcreve um áudio (ArrayBuffer) para texto em pt-BR, com turnos de fala.
+ */
+export async function transcribeAudio({
+  audio,
+  mimeType,
+}: {
+  audio: ArrayBuffer
+  mimeType: string
+}): Promise<string> {
+  const { ai, model } = getClient()
+
+  const audioPart = await buildAudioPart(ai, { bytes: audio, mimeType })
+
+  const config: Record<string, unknown> = {
+    systemInstruction: TRANSCRIPTION_PROMPT,
+    temperature: 0,
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await generateContentWithRetry(ai, {
+      model,
+      contents: [
+        {
+          role: "user",
+          parts: [audioPart, { text: "Transcreva o áudio anexado seguindo as regras." }],
+        },
+      ],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhuma transcrição. Tente novamente.")
+    }
+    return text
+  } catch (error) {
+    throw toResumeAIError(error, "Falha ao transcrever o áudio da mentoria")
+  }
+}
+
+export interface MentorshipSummary {
+  resumo: string
+  topicos_discutidos: string
+  pontos_fortes: string
+  areas_desenvolvimento: string
+  proximos_passos: string
+}
+
+function toStringField(value: unknown): string {
+  if (typeof value === "string") return value.trim()
+  if (Array.isArray(value)) {
+    return value
+      .filter((v) => typeof v === "string" && v.trim())
+      .map((v) => `- ${(v as string).trim()}`)
+      .join("\n")
+  }
+  return ""
+}
+
+function normalizeMentorshipSummary(parsed: Record<string, unknown>): MentorshipSummary {
+  return {
+    resumo: toStringField(parsed.resumo),
+    topicos_discutidos: toStringField(parsed.topicos_discutidos),
+    pontos_fortes: toStringField(parsed.pontos_fortes),
+    areas_desenvolvimento: toStringField(parsed.areas_desenvolvimento),
+    proximos_passos: toStringField(parsed.proximos_passos),
+  }
+}
+
+/**
+ * Resume uma transcrição de mentoria em um objeto estruturado (pt-BR).
+ */
+export async function summarizeMentorshipTranscript({
+  transcript,
+  topicName,
+  menteeName,
+  customPrompt,
+}: {
+  transcript: string
+  topicName?: string | null
+  menteeName?: string | null
+  customPrompt?: string | null
+}): Promise<MentorshipSummary> {
+  const { ai, model } = getClient()
+
+  const systemInstruction = composeMeetingSummaryPrompt(customPrompt)
+
+  const context: string[] = []
+  if (menteeName) context.push(`Mentorado: ${menteeName}`)
+  if (topicName) context.push(`Tema da mentoria: ${topicName}`)
+
+  const userText = [
+    context.length ? `${context.join("\n")}\n` : "",
+    "Transcrição da sessão de mentoria:",
+    "",
+    transcript,
+    "",
+    "Gere agora o JSON do resumo seguindo estritamente as regras.",
+  ].join("\n")
+
+  const config: Record<string, unknown> = {
+    systemInstruction,
+    temperature: 0.3,
+    responseMimeType: "application/json",
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await generateContentWithRetry(ai, {
+      model,
+      contents: [{ role: "user", parts: [{ text: userText }] }],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+
+    // Tolerante a falhas: sem JSON válido, joga todo o texto no "resumo".
+    try {
+      const parsed = JSON.parse(text) as Record<string, unknown>
+      return normalizeMentorshipSummary(parsed)
+    } catch {
+      return {
+        resumo: text,
+        topicos_discutidos: "",
+        pontos_fortes: "",
+        areas_desenvolvimento: "",
+        proximos_passos: "",
+      }
+    }
+  } catch (error) {
+    throw toResumeAIError(error, "Falha ao resumir a mentoria com IA")
   }
 }

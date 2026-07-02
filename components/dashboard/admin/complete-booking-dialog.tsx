@@ -29,6 +29,7 @@ import {
 import { CheckSquare, Loader2, Paperclip } from "lucide-react"
 import { BookingAttachments } from "@/components/dashboard/admin/booking-attachments"
 import { BookingTasksManager } from "@/components/dashboard/admin/booking-tasks-manager"
+import { BookingTranscription } from "@/components/dashboard/admin/booking-transcription"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   createMentorshipChecklistSnapshot,
@@ -598,9 +599,17 @@ export function CompleteBookingDialog({
               )}
             </TabsContent>
 
-            <TabsContent value="materiais" className="mt-0">
+            <TabsContent value="materiais" className="mt-0 grid gap-4">
               {activeBooking ? (
-                <BookingAttachments bookingId={activeBooking.id} onCountChange={setAttachmentCount} />
+                <>
+                  <BookingAttachments bookingId={activeBooking.id} onCountChange={setAttachmentCount} />
+                  <BookingTranscription
+                    bookingId={activeBooking.id}
+                    initialStatus={booking?.ai_transcript_status}
+                    initialSummary={booking?.ai_summary}
+                    initialTranscript={booking?.ai_transcript}
+                  />
+                </>
               ) : (
                 <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />

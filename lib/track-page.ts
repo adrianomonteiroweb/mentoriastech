@@ -1,7 +1,7 @@
 // Helper de tracking para páginas públicas (visitas e clicks).
 // Dispara um beacon para /api/track/page sem nunca quebrar a UX.
 
-export type PageEventType = "visit" | "click"
+export type PageEventType = "visit" | "click" | "tool_view"
 
 export async function trackPageEvent(
   event: PageEventType,

@@ -208,6 +208,12 @@ export const bookings = pgTable("bookings", {
   menteeStrengths: text("mentee_strengths"),
   menteeGrowthAreas: text("mentee_growth_areas"),
   adminNotes: text("admin_notes"),
+  // Transcrição e resumo gerados por IA (Gemini) a partir do áudio da mentoria.
+  aiTranscript: text("ai_transcript"),
+  aiSummary: text("ai_summary"),
+  aiTranscriptStatus: text("ai_transcript_status", {
+    enum: ["pending", "processing", "done", "failed"],
+  }),
   mentorshipChecklist: jsonb("mentorship_checklist").$type<
     { id: string; label: string; checked: boolean }[]
   >(),

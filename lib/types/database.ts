@@ -175,6 +175,8 @@ export type PublicPaidMentorship = Omit<
 // -----------------------------------------------------------------------------
 // Bookings
 // -----------------------------------------------------------------------------
+export type AITranscriptStatus = "pending" | "processing" | "done" | "failed"
+
 export interface Booking {
   id: string
   mentor_id: string | null
@@ -196,6 +198,9 @@ export interface Booking {
   mentee_strengths: string | null
   mentee_growth_areas: string | null
   admin_notes: string | null
+  ai_transcript: string | null
+  ai_summary: string | null
+  ai_transcript_status: AITranscriptStatus | null
   mentorship_checklist: MentorshipChecklistSnapshotItem[] | null
   origin_category: OriginCategory | null
   origin_description: string | null
@@ -605,6 +610,41 @@ export interface TopContent {
   views: number
 }
 
+export interface PeriodValues {
+  today: number
+  week: number
+  month: number
+  prevMonth: number
+}
+
+export interface ToolPeriodStats {
+  clicks: PeriodValues
+  uses: PeriodValues
+}
+
+export interface AdminStatsTimeSeries {
+  mentorias: {
+    completed: PeriodValues
+    pending: PeriodValues
+    mentees: PeriodValues
+    total: PeriodValues
+  }
+  receita: {
+    revenueCents: PeriodValues
+    paidConversion: PeriodValues
+  }
+  publico: {
+    visits: PeriodValues
+    clicks: PeriodValues
+    newMentees: PeriodValues
+    adsConversion: PeriodValues
+  }
+  ferramentas: {
+    resume: ToolPeriodStats
+    linkedin: ToolPeriodStats
+  }
+}
+
 export interface AdminStats {
   totalBookings: number
   pendingBookings: number
@@ -623,22 +663,20 @@ export interface AdminStats {
   minhasMentoriasLinkedinToolUses: number
   minhasMentoriasOpportunityToolUses: number
   minhasMentoriasResumeJobToolUses: number
-  // Indicadores de negócio
-  adsConversionRate: number // % (clicks/views de anúncios)
-  paidConversionRate: number // % (clicks/views de mentorias pagas)
-  monthlyPaidRevenueCents: number // receita confirmada no mês atual
-  totalPaidRevenueCents: number // receita confirmada acumulada
-  avgTicketCents: number // ticket médio de pagamentos confirmados
-  newMenteesThisMonth: number // novos mentorados no mês atual
-  completionRate: number // % (concluídas / total de agendamentos)
-  // Tráfego da página pública
+  adsConversionRate: number
+  paidConversionRate: number
+  monthlyPaidRevenueCents: number
+  totalPaidRevenueCents: number
+  avgTicketCents: number
+  newMenteesThisMonth: number
+  completionRate: number
   publicVisits: number
   publicClicks: number
-  publicConversionRate: number // % (clicks/visitas)
-  visitsToday: number // visitas hoje (fuso de São Paulo)
-  visitsThisWeek: number // visitas na semana atual (desde segunda)
-  visitsThisMonth: number // visitas no mês atual
-  // Mentorias mais pedidas
+  publicConversionRate: number
+  visitsToday: number
+  visitsThisWeek: number
+  visitsThisMonth: number
   mostRequestedPaid: MostRequestedMentorship | null
   mostRequestedFree: MostRequestedMentorship | null
+  timeSeries: AdminStatsTimeSeries
 }

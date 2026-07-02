@@ -18,15 +18,22 @@ import {
 } from "@/lib/db"
 import type {
   AdminStats,
+  AdminStatsTimeSeries,
   MostRequestedMentorship,
+  PeriodValues,
   TopContent,
   TopJob,
+  ToolPeriodStats,
   TopicRanking,
 } from "@/lib/types/database"
 
 function rate(numerator: number, denominator: number): number {
   if (!denominator) return 0
   return Math.round((numerator / denominator) * 1000) / 10 // 1 casa decimal
+}
+
+function pv(today: number, week: number, month: number, prevMonth: number): PeriodValues {
+  return { today, week, month, prevMonth }
 }
 
 export async function GET(request: Request) {
@@ -58,6 +65,10 @@ export async function GET(request: Request) {
     const visitsMonthStart = new Date(
       Date.UTC(nowSp.getUTCFullYear(), nowSp.getUTCMonth(), 1) + SP_OFFSET_MS,
     )
+    const prevMonthStart = new Date(
+      Date.UTC(nowSp.getUTCFullYear(), nowSp.getUTCMonth() - 1, 1) + SP_OFFSET_MS,
+    )
+    const prevMonthEnd = visitsMonthStart
 
     const [
       totalBookings,
@@ -86,6 +97,12 @@ export async function GET(request: Request) {
       visitsWeekAgg,
       visitsMonthAgg,
       mostRequestedPaidRows,
+      bookingsTs,
+      revenueTs,
+      pageEventsTs,
+      toolClicksTs,
+      toolUsesTs,
+      newMenteesTs,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings).where(mentorFilter),
       db.select({ value: count() }).from(bookings).where(and(eq(bookings.status, "pending"), mentorFilter)),
@@ -146,6 +163,73 @@ export async function GET(request: Request) {
         .groupBy(paidMentorships.id, paidMentorships.title)
         .orderBy(desc(count(bookings.id)))
         .limit(1),
+      // --- Time series: bookings por período ---
+      db.select({
+        completedToday: sql<number>`count(*) filter (where ${bookings.status} = 'completed' and ${bookings.createdAt} >= ${visitsDayStart})`,
+        completedWeek: sql<number>`count(*) filter (where ${bookings.status} = 'completed' and ${bookings.createdAt} >= ${visitsWeekStart})`,
+        completedMonth: sql<number>`count(*) filter (where ${bookings.status} = 'completed' and ${bookings.createdAt} >= ${visitsMonthStart})`,
+        completedPrev: sql<number>`count(*) filter (where ${bookings.status} = 'completed' and ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
+        pendingToday: sql<number>`count(*) filter (where ${bookings.status} = 'pending' and ${bookings.createdAt} >= ${visitsDayStart})`,
+        pendingWeek: sql<number>`count(*) filter (where ${bookings.status} = 'pending' and ${bookings.createdAt} >= ${visitsWeekStart})`,
+        pendingMonth: sql<number>`count(*) filter (where ${bookings.status} = 'pending' and ${bookings.createdAt} >= ${visitsMonthStart})`,
+        pendingPrev: sql<number>`count(*) filter (where ${bookings.status} = 'pending' and ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
+        menteesToday: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsDayStart})`,
+        menteesWeek: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsWeekStart})`,
+        menteesMonth: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsMonthStart})`,
+        menteesPrev: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
+        totalToday: sql<number>`count(*) filter (where ${bookings.createdAt} >= ${visitsDayStart})`,
+        totalWeek: sql<number>`count(*) filter (where ${bookings.createdAt} >= ${visitsWeekStart})`,
+        totalMonth: sql<number>`count(*) filter (where ${bookings.createdAt} >= ${visitsMonthStart})`,
+        totalPrev: sql<number>`count(*) filter (where ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
+      }).from(bookings).where(mentorFilter),
+      // --- Time series: receita por período ---
+      db.select({
+        revenueToday: sql<number>`coalesce(sum(${payments.amountCents}) filter (where ${payments.paidAt} >= ${visitsDayStart}), 0)::int`,
+        revenueWeek: sql<number>`coalesce(sum(${payments.amountCents}) filter (where ${payments.paidAt} >= ${visitsWeekStart}), 0)::int`,
+        revenueMonth: sql<number>`coalesce(sum(${payments.amountCents}) filter (where ${payments.paidAt} >= ${visitsMonthStart}), 0)::int`,
+        revenuePrev: sql<number>`coalesce(sum(${payments.amountCents}) filter (where ${payments.paidAt} >= ${prevMonthStart} and ${payments.paidAt} < ${prevMonthEnd}), 0)::int`,
+      }).from(payments).where(eq(payments.status, "confirmed")),
+      // --- Time series: pageEvents (visitas e cliques públicos) por período ---
+      db.select({
+        visitsToday: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'visit' and ${pageEvents.createdAt} >= ${visitsDayStart})`,
+        visitsWeek: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'visit' and ${pageEvents.createdAt} >= ${visitsWeekStart})`,
+        visitsMonth: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'visit' and ${pageEvents.createdAt} >= ${visitsMonthStart})`,
+        visitsPrev: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'visit' and ${pageEvents.createdAt} >= ${prevMonthStart} and ${pageEvents.createdAt} < ${prevMonthEnd})`,
+        clicksToday: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'click' and ${pageEvents.createdAt} >= ${visitsDayStart})`,
+        clicksWeek: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'click' and ${pageEvents.createdAt} >= ${visitsWeekStart})`,
+        clicksMonth: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'click' and ${pageEvents.createdAt} >= ${visitsMonthStart})`,
+        clicksPrev: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'click' and ${pageEvents.createdAt} >= ${prevMonthStart} and ${pageEvents.createdAt} < ${prevMonthEnd})`,
+        newMenteesToday: sql<number>`count(*) filter (where ${pageEvents.eventType} = 'visit' and ${pageEvents.createdAt} >= ${visitsDayStart})`,
+      }).from(pageEvents),
+      // --- Time series: tool views (pageEvents tool_view) por ferramenta e período ---
+      db.select({
+        resumeClicksToday: sql<number>`count(*) filter (where ${pageEvents.target} = 'resume' and ${pageEvents.createdAt} >= ${visitsDayStart})`,
+        resumeClicksWeek: sql<number>`count(*) filter (where ${pageEvents.target} = 'resume' and ${pageEvents.createdAt} >= ${visitsWeekStart})`,
+        resumeClicksMonth: sql<number>`count(*) filter (where ${pageEvents.target} = 'resume' and ${pageEvents.createdAt} >= ${visitsMonthStart})`,
+        resumeClicksPrev: sql<number>`count(*) filter (where ${pageEvents.target} = 'resume' and ${pageEvents.createdAt} >= ${prevMonthStart} and ${pageEvents.createdAt} < ${prevMonthEnd})`,
+        linkedinClicksToday: sql<number>`count(*) filter (where ${pageEvents.target} = 'linkedin' and ${pageEvents.createdAt} >= ${visitsDayStart})`,
+        linkedinClicksWeek: sql<number>`count(*) filter (where ${pageEvents.target} = 'linkedin' and ${pageEvents.createdAt} >= ${visitsWeekStart})`,
+        linkedinClicksMonth: sql<number>`count(*) filter (where ${pageEvents.target} = 'linkedin' and ${pageEvents.createdAt} >= ${visitsMonthStart})`,
+        linkedinClicksPrev: sql<number>`count(*) filter (where ${pageEvents.target} = 'linkedin' and ${pageEvents.createdAt} >= ${prevMonthStart} and ${pageEvents.createdAt} < ${prevMonthEnd})`,
+      }).from(pageEvents).where(eq(pageEvents.eventType, "tool_view")),
+      // --- Time series: tool uses (auditLogs) por ferramenta e período ---
+      db.select({
+        resumeUsesToday: sql<number>`count(*) filter (where ${auditLogs.action} = 'resume_ai_improved' and ${auditLogs.createdAt} >= ${visitsDayStart})`,
+        resumeUsesWeek: sql<number>`count(*) filter (where ${auditLogs.action} = 'resume_ai_improved' and ${auditLogs.createdAt} >= ${visitsWeekStart})`,
+        resumeUsesMonth: sql<number>`count(*) filter (where ${auditLogs.action} = 'resume_ai_improved' and ${auditLogs.createdAt} >= ${visitsMonthStart})`,
+        resumeUsesPrev: sql<number>`count(*) filter (where ${auditLogs.action} = 'resume_ai_improved' and ${auditLogs.createdAt} >= ${prevMonthStart} and ${auditLogs.createdAt} < ${prevMonthEnd})`,
+        linkedinUsesToday: sql<number>`count(*) filter (where ${auditLogs.action} = 'linkedin_ai_analyzed' and ${auditLogs.createdAt} >= ${visitsDayStart})`,
+        linkedinUsesWeek: sql<number>`count(*) filter (where ${auditLogs.action} = 'linkedin_ai_analyzed' and ${auditLogs.createdAt} >= ${visitsWeekStart})`,
+        linkedinUsesMonth: sql<number>`count(*) filter (where ${auditLogs.action} = 'linkedin_ai_analyzed' and ${auditLogs.createdAt} >= ${visitsMonthStart})`,
+        linkedinUsesPrev: sql<number>`count(*) filter (where ${auditLogs.action} = 'linkedin_ai_analyzed' and ${auditLogs.createdAt} >= ${prevMonthStart} and ${auditLogs.createdAt} < ${prevMonthEnd})`,
+      }).from(auditLogs).where(inArray(auditLogs.action, ["resume_ai_improved", "linkedin_ai_analyzed"])),
+      // --- Time series: novos mentorados por período (bookings) ---
+      db.select({
+        newMenteesToday: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsDayStart})`,
+        newMenteesWeek: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsWeekStart})`,
+        newMenteesMonth: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsMonthStart})`,
+        newMenteesPrev: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
+      }).from(bookings).where(mentorFilter),
     ])
 
     const pageSharesTotal = totalPageShares[0]?.value || 0
@@ -243,6 +327,68 @@ export async function GET(request: Request) {
       views: row.views,
     }))
 
+    // --- Montar time series ---
+    const bts = bookingsTs[0]
+    const rts = revenueTs[0]
+    const pets = pageEventsTs[0]
+    const tclk = toolClicksTs[0]
+    const tuse = toolUsesTs[0]
+    const nmts = newMenteesTs[0]
+
+    const resumeClicks: PeriodValues = pv(
+      tclk?.resumeClicksToday ?? 0, tclk?.resumeClicksWeek ?? 0,
+      tclk?.resumeClicksMonth ?? 0, tclk?.resumeClicksPrev ?? 0,
+    )
+    const resumeUses: PeriodValues = pv(
+      tuse?.resumeUsesToday ?? 0, tuse?.resumeUsesWeek ?? 0,
+      tuse?.resumeUsesMonth ?? 0, tuse?.resumeUsesPrev ?? 0,
+    )
+    const linkedinClicks: PeriodValues = pv(
+      tclk?.linkedinClicksToday ?? 0, tclk?.linkedinClicksWeek ?? 0,
+      tclk?.linkedinClicksMonth ?? 0, tclk?.linkedinClicksPrev ?? 0,
+    )
+    const linkedinUses: PeriodValues = pv(
+      tuse?.linkedinUsesToday ?? 0, tuse?.linkedinUsesWeek ?? 0,
+      tuse?.linkedinUsesMonth ?? 0, tuse?.linkedinUsesPrev ?? 0,
+    )
+
+    const toolPeriodStats = (clicks: PeriodValues, uses: PeriodValues): ToolPeriodStats => ({
+      clicks,
+      uses,
+    })
+
+    const visitsTs: PeriodValues = pv(
+      pets?.visitsToday ?? 0, pets?.visitsWeek ?? 0,
+      pets?.visitsMonth ?? 0, pets?.visitsPrev ?? 0,
+    )
+    const clicksTs: PeriodValues = pv(
+      pets?.clicksToday ?? 0, pets?.clicksWeek ?? 0,
+      pets?.clicksMonth ?? 0, pets?.clicksPrev ?? 0,
+    )
+
+    const timeSeries: AdminStatsTimeSeries = {
+      mentorias: {
+        completed: pv(bts?.completedToday ?? 0, bts?.completedWeek ?? 0, bts?.completedMonth ?? 0, bts?.completedPrev ?? 0),
+        pending: pv(bts?.pendingToday ?? 0, bts?.pendingWeek ?? 0, bts?.pendingMonth ?? 0, bts?.pendingPrev ?? 0),
+        mentees: pv(bts?.menteesToday ?? 0, bts?.menteesWeek ?? 0, bts?.menteesMonth ?? 0, bts?.menteesPrev ?? 0),
+        total: pv(bts?.totalToday ?? 0, bts?.totalWeek ?? 0, bts?.totalMonth ?? 0, bts?.totalPrev ?? 0),
+      },
+      receita: {
+        revenueCents: pv(rts?.revenueToday ?? 0, rts?.revenueWeek ?? 0, rts?.revenueMonth ?? 0, rts?.revenuePrev ?? 0),
+        paidConversion: pv(0, 0, rate(paidClicks, paidViews), 0),
+      },
+      publico: {
+        visits: visitsTs,
+        clicks: clicksTs,
+        newMentees: pv(nmts?.newMenteesToday ?? 0, nmts?.newMenteesWeek ?? 0, nmts?.newMenteesMonth ?? 0, nmts?.newMenteesPrev ?? 0),
+        adsConversion: pv(0, 0, rate(adsClicks, adsViews), 0),
+      },
+      ferramentas: {
+        resume: toolPeriodStats(resumeClicks, resumeUses),
+        linkedin: toolPeriodStats(linkedinClicks, linkedinUses),
+      },
+    }
+
     const stats: AdminStats = {
       totalBookings: totalBookingsValue,
       pendingBookings: pendingBookings[0]?.value || 0,
@@ -280,6 +426,7 @@ export async function GET(request: Request) {
       visitsThisMonth,
       mostRequestedPaid,
       mostRequestedFree,
+      timeSeries,
     }
 
     return NextResponse.json({ data: stats, topicRanking, topJobs, topContentToday })
