@@ -1,0 +1,22 @@
+name: Transcribe sessions (hourly)
+
+# Substitui o Vercel Cron: o plano Hobby só permite cron diário, e este job
+# precisa rodar de hora em hora para drenar a fila de transcrições (o endpoint
+# processa em lotes pequenos por causa do free tier do Gemini). Dispara o mesmo
+# endpoint que a Vercel disparava; ele valida o CRON_SECRET internamente.
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger transcribe-sessions endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --retry 2 --max-time 320 \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "https://www.mentoriastech.com.br/api/cron/transcribe-sessions"
