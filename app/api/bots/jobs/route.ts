@@ -62,7 +62,11 @@ function botOnly(handler: (request: Request) => Promise<NextResponse>) {
 // GET — vagas aprovadas (com link) para o bot verificar o status na origem
 // ---------------------------------------------------------------------------
 
-export const GET = botOnly(async () => {
+export const GET = botOnly(async (request) => {
+  const url = new URL(request.url)
+  const status =
+    url.searchParams.get("status") === "pending" ? "pending" : "approved"
+
   const rows = await db
     .select({
       id: jobs.id,
@@ -73,7 +77,7 @@ export const GET = botOnly(async () => {
       location: jobs.location,
     })
     .from(jobs)
-    .where(and(eq(jobs.status, "approved"), isNotNull(jobs.applicationUrl)))
+    .where(and(eq(jobs.status, status), isNotNull(jobs.applicationUrl)))
 
   return NextResponse.json({ data: rows })
 })
