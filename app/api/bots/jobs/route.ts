@@ -69,11 +69,58 @@ export const GET = botOnly(async () => {
       application_url: jobs.applicationUrl,
       title: jobs.title,
       company: jobs.company,
+      description: jobs.description,
+      location: jobs.location,
     })
     .from(jobs)
     .where(and(eq(jobs.status, "approved"), isNotNull(jobs.applicationUrl)))
 
   return NextResponse.json({ data: rows })
+})
+
+// ---------------------------------------------------------------------------
+// PATCH — atualiza description, location e is_international de uma vaga
+// ---------------------------------------------------------------------------
+
+const patchBodySchema = z
+  .object({
+    id: z.string().uuid(),
+    description: z.string().min(1).max(10000),
+    location: z.string().min(1).max(500),
+    is_international: z.boolean(),
+  })
+  .strict()
+
+export const PATCH = botOnly(async (request) => {
+  const body = await request.json().catch(() => null)
+
+  const parsed = patchBodySchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados inválidos", details: parsed.error.flatten() },
+      { status: 400 },
+    )
+  }
+
+  const [updated] = await db
+    .update(jobs)
+    .set({
+      description: parsed.data.description,
+      location: parsed.data.location,
+      isInternational: parsed.data.is_international,
+      updatedAt: new Date(),
+    })
+    .where(eq(jobs.id, parsed.data.id))
+    .returning({ id: jobs.id })
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Vaga não encontrada" },
+      { status: 404 },
+    )
+  }
+
+  return NextResponse.json({ ok: true, id: updated.id })
 })
 
 // ---------------------------------------------------------------------------
