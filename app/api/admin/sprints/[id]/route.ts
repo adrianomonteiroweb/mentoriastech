@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { db, profiles, simCompanies, simSprintTasks, simSprints } from "@/lib/db"
 import {
+  deleteSprintAndCancelApplication,
   getSprintScoreTotal,
   getUnreadCounts,
   toSimSprintApi,
@@ -136,6 +137,46 @@ export async function PATCH(
     })
 
     return NextResponse.json({ data: toSimSprintApi(data) })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const mentor = await requireMentorAccess()
+    const { id } = await params
+
+    const [sprint] = await db
+      .select()
+      .from(simSprints)
+      .where(eq(simSprints.id, id))
+      .limit(1)
+
+    if (!sprint) {
+      return NextResponse.json(
+        { error: "Sprint nao encontrada" },
+        { status: 404 },
+      )
+    }
+
+    const result = await deleteSprintAndCancelApplication(id)
+
+    await logAuditEvent({
+      actorId: mentor.id,
+      targetUserId: sprint.profileId,
+      action: "sim_sprint_inscription_cancelled",
+      route: `/api/admin/sprints/${id}`,
+      request,
+      metadata: { applicationId: result.applicationId },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

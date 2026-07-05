@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Code2, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Code2, Loader2, Trash2 } from "lucide-react"
 import { MentoriasShell } from "@/components/minhas-mentorias/layout/mentorias-shell"
 import { SprintHeader } from "./sprint-header"
 import { SprintKanban } from "./sprint-kanban"
@@ -48,6 +49,7 @@ function pickIdeTask(tasks: SimSprintTaskApi[]): SimSprintTaskApi | null {
 }
 
 export function SprintHub({ email, sprintId }: Props) {
+  const router = useRouter()
   const [sprint, setSprint] = useState<SimSprintHubApi | null>(null)
   const [loading, setLoading] = useState(true)
   const [unread, setUnread] = useState(0)
@@ -58,6 +60,8 @@ export function SprintHub({ email, sprintId }: Props) {
     evaluation: SimEvaluationResult
     scoreDelta: number
   } | null>(null)
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/minhas-mentorias/sprints/${sprintId}`)
@@ -151,7 +155,26 @@ export function SprintHub({ email, sprintId }: Props) {
     )
   }
 
+  async function handleCancelInscription() {
+    setCancelling(true)
+    try {
+      const res = await fetch(`/api/minhas-mentorias/sprints/${sprintId}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        toast.error(json?.error || "Erro ao cancelar inscrição")
+        return
+      }
+      toast.success("Inscrição cancelada")
+      router.push("/minhas-mentorias/sprint")
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   const isActive = sprint.status === "active"
+  const canCancel = sprint.status === "active" || sprint.status === "completed"
 
   return (
     <>
@@ -159,8 +182,19 @@ export function SprintHub({ email, sprintId }: Props) {
       <div className="mx-auto max-w-5xl px-4 py-4 flex flex-col gap-4">
         <SprintHeader sprint={sprint} />
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
           <ScrumOnboarding />
+          {canCancel && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setCancelOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-1" aria-hidden="true" />
+              Cancelar inscrição
+            </Button>
+          )}
         </div>
 
         <Tabs defaultValue="quadro" className="w-full">
@@ -259,6 +293,32 @@ export function SprintHub({ email, sprintId }: Props) {
             </div>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancelar inscrição</DialogTitle>
+              <DialogDescription>
+                Isso vai apagar sua sprint e todos os dados (tasks, mensagens,
+                pontuação, arquivos). Você poderá se candidatar novamente depois.
+                Essa ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCancelOpen(false)}>
+                Voltar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={cancelling}
+                onClick={handleCancelInscription}
+              >
+                {cancelling && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Confirmar exclusão
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog
           open={Boolean(evaluationResult)}

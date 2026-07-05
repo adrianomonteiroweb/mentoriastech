@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Code2, Flag, Loader2, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Code2, Flag, Loader2, Plus, Trash2 } from "lucide-react"
 import { SprintHeader } from "@/components/minhas-mentorias/sprint/sprint-header"
 import { SprintKanban } from "@/components/minhas-mentorias/sprint/sprint-kanban"
 import { DailyChat } from "@/components/minhas-mentorias/sprint/daily-chat"
@@ -48,6 +49,7 @@ function pickIdeTask(tasks: SimSprintTaskApi[]): SimSprintTaskApi | null {
 }
 
 export function SprintDetailAdmin({ sprintId, basePath }: Props) {
+  const router = useRouter()
   const [sprint, setSprint] = useState<SprintDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState("quadro")
@@ -58,6 +60,8 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
   const [closing, setClosing] = useState(false)
   const [scoreKey, setScoreKey] = useState(0)
   const [ideTaskId, setIdeTaskId] = useState<string | null>(null)
+  const [cancelInscriptionOpen, setCancelInscriptionOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/sprints/${sprintId}`)
@@ -196,6 +200,24 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
     }
   }
 
+  async function handleCancelInscription() {
+    setCancelling(true)
+    try {
+      const res = await fetch(`/api/admin/sprints/${sprintId}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        toast.error(json?.error || "Erro ao cancelar inscrição")
+        return
+      }
+      toast.success("Inscrição cancelada e dados apagados")
+      router.push(basePath)
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16" role="status" aria-label="Carregando sprint">
@@ -231,28 +253,41 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
             {sprint.mentee?.full_name || sprint.mentee?.email}
           </span>
         </p>
-        {isActive && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {isActive && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[40px]"
+                onClick={() => setNewTaskOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
+                Nova task
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="min-h-[40px]"
+                onClick={() => setCloseOpen(true)}
+              >
+                <Flag className="h-4 w-4 mr-1" aria-hidden="true" />
+                Encerrar sprint
+              </Button>
+            </>
+          )}
+          {(isActive || sprint?.status === "completed") && (
             <Button
               variant="outline"
               size="sm"
-              className="min-h-[40px]"
-              onClick={() => setNewTaskOpen(true)}
+              className="min-h-[40px] text-destructive border-destructive/30 hover:bg-destructive/10"
+              onClick={() => setCancelInscriptionOpen(true)}
             >
-              <Plus className="h-4 w-4 mr-1" aria-hidden="true" />
-              Nova task
+              <Trash2 className="h-4 w-4 mr-1" aria-hidden="true" />
+              Cancelar inscrição
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="min-h-[40px]"
-              onClick={() => setCloseOpen(true)}
-            >
-              <Flag className="h-4 w-4 mr-1" aria-hidden="true" />
-              Encerrar sprint
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <SprintHeader sprint={sprint} />
@@ -399,6 +434,32 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
             <Button disabled={closing} onClick={() => handleClose("completed")}>
               {closing && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Concluir sprint
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelInscriptionOpen} onOpenChange={setCancelInscriptionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar inscrição</DialogTitle>
+            <DialogDescription>
+              Isso vai apagar a sprint e todos os dados (tasks, mensagens,
+              pontuação, arquivos). A candidatura voltará ao estado cancelado.
+              Essa ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelInscriptionOpen(false)}>
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={cancelling}
+              onClick={handleCancelInscription}
+            >
+              {cancelling && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Confirmar exclusão
             </Button>
           </DialogFooter>
         </DialogContent>

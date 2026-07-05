@@ -2,12 +2,14 @@ import { asc, eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { db, simCompanies, simSprintTasks } from "@/lib/db"
 import {
+  deleteSprintAndCancelApplication,
   getSprintOwnedByProfile,
   getSprintScoreTotal,
   getUnreadCounts,
   toSimSprintApi,
   toSimSprintTaskApi,
 } from "@/lib/db/sim"
+import { logAuditEvent } from "@/lib/audit"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { ensureProfileForMenteeEmail } from "@/lib/utils/mentee-resume"
 
@@ -83,6 +85,41 @@ export async function GET(
           : null,
       },
     })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await requireMenteeAccess()
+    const profile = await ensureProfileForMenteeEmail(session.email)
+    const { id } = await params
+
+    const sprint = await getSprintOwnedByProfile(id, profile.id)
+    if (!sprint) {
+      return NextResponse.json(
+        { error: "Sprint nao encontrada" },
+        { status: 404 },
+      )
+    }
+
+    const result = await deleteSprintAndCancelApplication(id)
+
+    await logAuditEvent({
+      actorId: profile.id,
+      action: "sim_sprint_inscription_cancelled",
+      route: `/api/minhas-mentorias/sprints/${id}`,
+      request,
+      metadata: { applicationId: result.applicationId },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

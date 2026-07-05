@@ -660,3 +660,33 @@ export async function createSprintFromApplication(params: {
 
   return sprintId
 }
+
+// ---------------------------------------------------------------------------
+// Cancelar inscrição → apagar sprint e marcar candidatura como cancelada
+// ---------------------------------------------------------------------------
+
+export async function deleteSprintAndCancelApplication(
+  sprintId: string,
+): Promise<{ applicationId: string | null }> {
+  const [sprint] = await db
+    .select({ applicationId: simSprints.applicationId })
+    .from(simSprints)
+    .where(eq(simSprints.id, sprintId))
+    .limit(1)
+
+  if (!sprint) return { applicationId: null }
+
+  const deleteSprint = db.delete(simSprints).where(eq(simSprints.id, sprintId))
+
+  if (sprint.applicationId) {
+    const cancelApp = db
+      .update(simApplications)
+      .set({ status: "cancelled" as const, updatedAt: new Date() })
+      .where(eq(simApplications.id, sprint.applicationId))
+    await db.batch([deleteSprint, cancelApp])
+  } else {
+    await deleteSprint
+  }
+
+  return { applicationId: sprint.applicationId }
+}
