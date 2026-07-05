@@ -54,6 +54,8 @@ interface Props {
   disabled?: boolean
   onRead?: () => void
   onScoreChanged?: () => void
+  /** Preenche a altura do container (usado dentro da IDE) em vez de max-h fixo. */
+  fill?: boolean
 }
 
 /**
@@ -68,6 +70,7 @@ export function DailyChat({
   disabled,
   onRead,
   onScoreChanged,
+  fill,
 }: Props) {
   const [messages, setMessages] = useState<SimDailyMessageApi[]>([])
   const [loading, setLoading] = useState(true)
@@ -153,9 +156,11 @@ export function DailyChat({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={`flex flex-col gap-3 ${fill ? "h-full" : ""}`}>
       <div
-        className="flex max-h-[55vh] min-h-[200px] flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-card p-3"
+        className={`flex flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-card p-3 ${
+          fill ? "min-h-0 flex-1" : "max-h-[55vh] min-h-[200px]"
+        }`}
         role="log"
         aria-label="Conversa da daily"
       >

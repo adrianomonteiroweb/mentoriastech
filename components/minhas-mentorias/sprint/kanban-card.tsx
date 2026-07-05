@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowRightLeft, GripVertical } from "lucide-react"
+import { ArrowRightLeft, Code2, GripVertical } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,6 +32,8 @@ interface Props {
   disabled?: boolean
   onMove: (taskId: string, toStatus: SimTaskStatus) => void
   onOpen: (task: SimSprintTaskApi) => void
+  /** Abre a IDE de execução para esta task (mentee). */
+  onEnterIde?: (task: SimSprintTaskApi) => void
 }
 
 /**
@@ -44,6 +46,7 @@ export function KanbanCard({
   disabled,
   onMove,
   onOpen,
+  onEnterIde,
 }: Props) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -83,7 +86,19 @@ export function KanbanCard({
           </span>
         </div>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
+          {onEnterIde && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 px-2 text-xs"
+              onClick={() => onEnterIde(task)}
+              aria-label={`Abrir Task ${task.task_number} na IDE`}
+            >
+              <Code2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              IDE
+            </Button>
+          )}
           {!disabled && allowedTargets.length > 0 && (
             <>
               <DropdownMenu>

@@ -1,10 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Check, Code2, Loader2 } from "lucide-react"
 import { CodeEditor } from "./code-editor"
 import { FileTabs } from "./file-tabs"
-import { FileTree, type WorkspaceEntry } from "./file-tree"
+import { FileTree } from "./file-tree"
+import { useSprintWorkspace } from "./use-sprint-workspace"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -25,9 +26,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
-
-type SaveState = "idle" | "saving" | "saved" | "error"
 
 interface Props {
   /** GET árvore; POST criar; DELETE ?path= (ignorados quando readOnly) */
@@ -39,15 +37,11 @@ interface Props {
 
 /**
  * Workspace estilo IDE: árvore de arquivos + abas + Monaco.
- * Saves são por arquivo com debounce de 1s e indicador "Salvando…/Salvo ✓".
+ * A lógica de arquivos/save vive em `useSprintWorkspace` (compartilhada com a
+ * IDE de execução de task). Aqui ficam só o layout em card e os diálogos.
  */
 export function WorkspacePanel({ treeEndpoint, fileEndpoint, readOnly }: Props) {
-  const [entries, setEntries] = useState<WorkspaceEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tabs, setTabs] = useState<string[]>([])
-  const [activePath, setActivePath] = useState<string | null>(null)
-  const [contents, setContents] = useState<Record<string, string>>({})
-  const [saveState, setSaveState] = useState<SaveState>("idle")
+  const ws = useSprintWorkspace({ treeEndpoint, fileEndpoint, readOnly })
   const [creating, setCreating] = useState<{
     parent: string | null
     isFolder: boolean
@@ -57,134 +51,23 @@ export function WorkspacePanel({ treeEndpoint, fileEndpoint, readOnly }: Props) 
     path: string
     isFolder: boolean
   } | null>(null)
-  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-
-  const loadTree = useCallback(async () => {
-    const res = await fetch(treeEndpoint)
-    const json = await res.json()
-    if (res.ok) setEntries(json.data || [])
-    setLoading(false)
-  }, [treeEndpoint])
-
-  useEffect(() => {
-    loadTree()
-  }, [loadTree])
-
-  // Limpa debounces pendentes ao desmontar
-  useEffect(() => {
-    const timers = saveTimers.current
-    return () => {
-      for (const timer of Object.values(timers)) clearTimeout(timer)
-    }
-  }, [])
-
-  async function openFile(path: string) {
-    if (!(path in contents)) {
-      const res = await fetch(
-        `${fileEndpoint}?path=${encodeURIComponent(path)}`,
-      )
-      const json = await res.json()
-      if (!res.ok) {
-        toast.error(json.error || "Erro ao abrir arquivo")
-        return
-      }
-      setContents((current) => ({ ...current, [path]: json.data.content }))
-    }
-    setTabs((current) =>
-      current.includes(path) ? current : [...current, path],
-    )
-    setActivePath(path)
-  }
-
-  function closeTab(path: string) {
-    setTabs((current) => {
-      const next = current.filter((tab) => tab !== path)
-      if (activePath === path) {
-        setActivePath(next[next.length - 1] ?? null)
-      }
-      return next
-    })
-  }
-
-  function handleChange(path: string, value: string) {
-    setContents((current) => ({ ...current, [path]: value }))
-    if (readOnly) return
-    setSaveState("saving")
-    clearTimeout(saveTimers.current[path])
-    saveTimers.current[path] = setTimeout(async () => {
-      const res = await fetch(fileEndpoint, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, content: value }),
-      })
-      if (!res.ok) {
-        const json = await res.json().catch(() => null)
-        toast.error(json?.error || "Erro ao salvar arquivo")
-        setSaveState("error")
-        return
-      }
-      setSaveState("saved")
-      // Atualiza tamanho na árvore sem refetch
-      setEntries((current) =>
-        current.map((entry) =>
-          entry.path === path ? { ...entry, size: value.length } : entry,
-        ),
-      )
-    }, 1000)
-  }
 
   async function handleCreate() {
     if (!creating || !newName.trim()) return
-    const name = newName.trim()
-    const path = creating.parent ? `${creating.parent}/${name}` : name
-    const res = await fetch(treeEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, is_folder: creating.isFolder }),
-    })
-    const json = await res.json()
-    if (!res.ok) {
-      toast.error(json.error || "Erro ao criar")
-      return
-    }
-    setCreating(null)
-    setNewName("")
-    await loadTree()
-    if (!creating.isFolder) {
-      setContents((current) => ({ ...current, [path]: "" }))
-      setTabs((current) => [...current, path])
-      setActivePath(path)
+    const ok = await ws.createEntry(creating.parent, newName.trim(), creating.isFolder)
+    if (ok) {
+      setCreating(null)
+      setNewName("")
     }
   }
 
   async function handleDelete() {
     if (!deleting) return
-    const res = await fetch(
-      `${treeEndpoint}?path=${encodeURIComponent(deleting.path)}`,
-      { method: "DELETE" },
-    )
-    const json = await res.json().catch(() => null)
-    if (!res.ok) {
-      toast.error(json?.error || "Erro ao excluir")
-      setDeleting(null)
-      return
-    }
-    // Fecha abas do arquivo/pasta excluídos
-    setTabs((current) => {
-      const next = current.filter(
-        (tab) =>
-          tab !== deleting.path && !tab.startsWith(`${deleting.path}/`),
-      )
-      if (activePath && !next.includes(activePath)) {
-        setActivePath(next[next.length - 1] ?? null)
-      }
-      return next
-    })
-    setDeleting(null)
-    loadTree()
+    const ok = await ws.deleteEntry(deleting.path)
+    if (ok) setDeleting(null)
   }
 
-  if (loading) {
+  if (ws.loading) {
     return (
       <div className="flex items-center justify-center py-12" role="status" aria-label="Carregando workspace">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -206,19 +89,19 @@ export function WorkspacePanel({ treeEndpoint, fileEndpoint, readOnly }: Props) 
         </p>
         {!readOnly && (
           <p className="text-xs text-muted-foreground" aria-live="polite">
-            {saveState === "saving" && (
+            {ws.saveState === "saving" && (
               <span className="flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
                 Salvando…
               </span>
             )}
-            {saveState === "saved" && (
+            {ws.saveState === "saved" && (
               <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
                 <Check className="h-3 w-3" aria-hidden="true" />
                 Salvo
               </span>
             )}
-            {saveState === "error" && (
+            {ws.saveState === "error" && (
               <span className="text-destructive">Erro ao salvar</span>
             )}
           </p>
@@ -228,10 +111,10 @@ export function WorkspacePanel({ treeEndpoint, fileEndpoint, readOnly }: Props) 
       <div className="flex flex-col md:flex-row">
         <aside className="max-h-[240px] shrink-0 overflow-y-auto border-b border-border p-2 md:max-h-[60vh] md:w-64 md:border-b-0 md:border-r">
           <FileTree
-            entries={entries}
-            selectedPath={activePath}
+            entries={ws.entries}
+            selectedPath={ws.activePath}
             readOnly={readOnly}
-            onSelect={openFile}
+            onSelect={ws.openFile}
             onCreate={(parent, isFolder) => {
               setCreating({ parent, isFolder })
               setNewName("")
@@ -242,24 +125,24 @@ export function WorkspacePanel({ treeEndpoint, fileEndpoint, readOnly }: Props) 
 
         <div className="flex min-w-0 flex-1 flex-col">
           <FileTabs
-            tabs={tabs}
-            activePath={activePath}
-            onActivate={setActivePath}
-            onClose={closeTab}
+            tabs={ws.tabs}
+            activePath={ws.activePath}
+            onActivate={ws.setActivePath}
+            onClose={ws.closeTab}
           />
           <div className="h-[50vh] md:h-[60vh]">
-            {activePath != null && contents[activePath] !== undefined ? (
+            {ws.activePath != null && ws.contents[ws.activePath] !== undefined ? (
               <CodeEditor
-                path={activePath}
-                value={contents[activePath]}
+                path={ws.activePath}
+                value={ws.contents[ws.activePath]}
                 readOnly={readOnly}
-                onChange={(value) => handleChange(activePath, value)}
+                onChange={(value) => ws.handleChange(ws.activePath!, value)}
               />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center px-4">
                 <Code2 className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
                 <p className="text-base text-muted-foreground">
-                  {entries.length === 0 && !readOnly
+                  {ws.entries.length === 0 && !readOnly
                     ? "Crie a estrutura do projeto conforme o documento do Tech Lead."
                     : "Selecione um arquivo para abrir no editor."}
                 </p>

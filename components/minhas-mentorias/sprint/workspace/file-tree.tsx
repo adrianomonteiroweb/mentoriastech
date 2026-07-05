@@ -5,6 +5,8 @@ import {
   ChevronDown,
   ChevronRight,
   File,
+  FileCode,
+  FileJson,
   FilePlus,
   Folder,
   FolderPlus,
@@ -16,6 +18,15 @@ export interface WorkspaceEntry {
   path: string
   is_folder: boolean
   size?: number
+}
+
+/** Ícone por extensão (mesma lógica usada nas abas), com cores do tema. */
+export function fileIcon(name: string) {
+  if (name.endsWith(".json"))
+    return <FileJson className="h-4 w-4 shrink-0 text-yellow-500/90" aria-hidden="true" />
+  if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(name))
+    return <FileCode className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+  return <File className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 }
 
 interface TreeNode {
@@ -147,7 +158,7 @@ export function FileTree({
                 <Folder className="h-4 w-4 shrink-0 text-primary/70" aria-hidden="true" />
               </>
             ) : (
-              <File className="h-4 w-4 shrink-0 ml-[18px] text-muted-foreground" aria-hidden="true" />
+              <span className="ml-[18px] flex shrink-0">{fileIcon(node.name)}</span>
             )}
             <span className="truncate">{node.name}</span>
           </button>

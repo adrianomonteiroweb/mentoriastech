@@ -1,6 +1,7 @@
 "use client"
 
 import { X } from "lucide-react"
+import { fileIcon } from "./file-tree"
 
 interface Props {
   tabs: string[]
@@ -14,7 +15,7 @@ export function FileTabs({ tabs, activePath, onActivate, onClose }: Props) {
 
   return (
     <div
-      className="flex gap-1 overflow-x-auto border-b border-border bg-secondary/30 px-1 pt-1"
+      className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-border bg-secondary/40 scrollbar-none"
       role="tablist"
       aria-label="Arquivos abertos"
     >
@@ -24,18 +25,19 @@ export function FileTabs({ tabs, activePath, onActivate, onClose }: Props) {
         return (
           <div
             key={path}
-            className={`flex shrink-0 items-center gap-1 rounded-t-md border border-b-0 px-2 ${
+            className={`group flex shrink-0 items-center gap-1.5 border-r border-border pl-3 pr-1.5 ${
               active
-                ? "border-border bg-card text-foreground"
-                : "border-transparent bg-transparent text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground"
+                : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
             }`}
           >
+            {fileIcon(name)}
             <button
               type="button"
               role="tab"
               aria-selected={active}
               onClick={() => onActivate(path)}
-              className="min-h-[36px] text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              className="whitespace-nowrap text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
               title={path}
             >
               {name}
@@ -43,10 +45,10 @@ export function FileTabs({ tabs, activePath, onActivate, onClose }: Props) {
             <button
               type="button"
               onClick={() => onClose(path)}
-              className="rounded p-0.5 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label={`Fechar ${name}`}
             >
-              <X className="h-3 w-3" aria-hidden="true" />
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         )

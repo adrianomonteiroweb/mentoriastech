@@ -11,6 +11,7 @@ import { CompanyDocs } from "./company-docs"
 import { ScorePanel } from "./score-panel"
 import { EvaluationChecklist } from "./evaluation-checklist"
 import { WorkspacePanel } from "./workspace/workspace-panel"
+import { SprintIde } from "./ide/sprint-ide"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -38,6 +39,7 @@ export function SprintHub({ email, sprintId }: Props) {
   const [sprint, setSprint] = useState<SimSprintHubApi | null>(null)
   const [loading, setLoading] = useState(true)
   const [unread, setUnread] = useState(0)
+  const [ideTaskId, setIdeTaskId] = useState<string | null>(null)
   const [evaluationResult, setEvaluationResult] = useState<{
     evaluation: SimEvaluationResult
     scoreDelta: number
@@ -57,7 +59,11 @@ export function SprintHub({ email, sprintId }: Props) {
     load()
   }, [load])
 
-  async function handleMove(taskId: string, toStatus: SimTaskStatus) {
+  async function handleMove(
+    taskId: string,
+    toStatus: SimTaskStatus,
+    showEvaluationDialog = true,
+  ) {
     if (!sprint) return
     const previous = sprint
     // Otimista: aplica local e desfaz se a API recusar
@@ -84,8 +90,10 @@ export function SprintHub({ email, sprintId }: Props) {
       return
     }
 
-    // Feedback imediato: avaliação automática do envio para review
-    if (json?.evaluation) {
+    // Feedback imediato: avaliação automática do envio para review.
+    // Na IDE o resultado aparece no próprio painel Avaliação, então o
+    // diálogo é suprimido para não sobrepor a interface imersiva.
+    if (showEvaluationDialog && json?.evaluation) {
       setEvaluationResult({
         evaluation: json.evaluation,
         scoreDelta: json.score_delta ?? 0,
@@ -131,6 +139,7 @@ export function SprintHub({ email, sprintId }: Props) {
   const isActive = sprint.status === "active"
 
   return (
+    <>
     <MentoriasShell email={email} title={sprint.company?.name || "Sprint"}>
       <div className="mx-auto max-w-5xl px-4 py-4 flex flex-col gap-4">
         <SprintHeader sprint={sprint} />
@@ -165,6 +174,7 @@ export function SprintHub({ email, sprintId }: Props) {
               role="mentee"
               disabled={!isActive}
               onMove={handleMove}
+              onEnterIde={(task) => setIdeTaskId(task.id)}
             />
           </TabsContent>
 
@@ -228,5 +238,23 @@ export function SprintHub({ email, sprintId }: Props) {
         </Dialog>
       </div>
     </MentoriasShell>
+
+    {ideTaskId && (
+      <SprintIde
+        sprint={sprint}
+        activeTaskId={ideTaskId}
+        role="mentee"
+        disabled={!isActive}
+        treeEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/workspace`}
+        fileEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/workspace/file`}
+        dailyEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/mensagens`}
+        unread={unread}
+        onExit={() => setIdeTaskId(null)}
+        onActiveTaskChange={(id) => setIdeTaskId(id)}
+        onMove={(taskId, toStatus) => handleMove(taskId, toStatus, false)}
+        onDailyRead={() => setUnread(0)}
+      />
+    )}
+    </>
   )
 }

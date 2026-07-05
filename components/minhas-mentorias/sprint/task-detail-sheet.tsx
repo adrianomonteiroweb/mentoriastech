@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRightLeft, RefreshCw, Send, ShieldCheck } from "lucide-react"
+import { ArrowRightLeft, Code2, RefreshCw, Send, ShieldCheck } from "lucide-react"
 import { EvaluationChecklist } from "./evaluation-checklist"
 import { SimMarkdown } from "./sim-markdown"
 import { TASK_TYPE_LABELS } from "./kanban-card"
@@ -28,6 +28,8 @@ interface Props {
   onMove: (taskId: string, toStatus: SimTaskStatus) => void
   /** Mentor: reexecuta a avaliação automática da task */
   onReevaluate?: (taskId: string) => void
+  /** Mentee: abre a IDE de execução para a task */
+  onEnterIde?: (task: SimSprintTaskApi) => void
 }
 
 /** Detalhe da task: critérios em markdown + ações de movimentação (sem trocar de página). */
@@ -38,6 +40,7 @@ export function TaskDetailSheet({
   onClose,
   onMove,
   onReevaluate,
+  onEnterIde,
 }: Props) {
   const allowedTargets = task
     ? getAllowedTransitions(role, task.status)
@@ -57,12 +60,14 @@ export function TaskDetailSheet({
               <SheetTitle className="text-lg">
                 Task #{task.task_number} — {task.title}
               </SheetTitle>
-              <SheetDescription className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{TASK_TYPE_LABELS[task.task_type]}</Badge>
-                <Badge variant={task.status === "done" ? "default" : "secondary"}>
-                  {SIM_TASK_STATUS_LABELS[task.status]}
-                </Badge>
-                <span className="text-sm tabular-nums">{task.points} pontos</span>
+              <SheetDescription asChild>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{TASK_TYPE_LABELS[task.task_type]}</Badge>
+                  <Badge variant={task.status === "done" ? "default" : "secondary"}>
+                    {SIM_TASK_STATUS_LABELS[task.status]}
+                  </Badge>
+                  <span className="text-sm tabular-nums">{task.points} pontos</span>
+                </div>
               </SheetDescription>
             </SheetHeader>
 
@@ -75,6 +80,16 @@ export function TaskDetailSheet({
                 </p>
               )}
             </div>
+
+            {onEnterIde && (
+              <Button
+                className="mb-4 min-h-[48px] w-full"
+                onClick={() => onEnterIde(task)}
+              >
+                <Code2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                Abrir na IDE
+              </Button>
+            )}
 
             {task.has_rules && !task.last_evaluation && (
               <p className="mb-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">

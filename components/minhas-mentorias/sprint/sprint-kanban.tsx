@@ -37,6 +37,8 @@ interface Props {
   onMove: (taskId: string, toStatus: SimTaskStatus) => void
   /** Mentor: reexecuta a avaliação automática (repassado ao detalhe da task) */
   onReevaluate?: (taskId: string) => void
+  /** Mentee: abre a IDE de execução para a task (só quando disponível). */
+  onEnterIde?: (task: SimSprintTaskApi) => void
 }
 
 function KanbanColumn({
@@ -72,7 +74,14 @@ function KanbanColumn({
   )
 }
 
-export function SprintKanban({ tasks, role, disabled, onMove, onReevaluate }: Props) {
+export function SprintKanban({
+  tasks,
+  role,
+  disabled,
+  onMove,
+  onReevaluate,
+  onEnterIde,
+}: Props) {
   const [announcement, setAnnouncement] = useState("")
   const [selectedTask, setSelectedTask] = useState<SimSprintTaskApi | null>(null)
   const [confirmReview, setConfirmReview] = useState<{
@@ -173,6 +182,7 @@ export function SprintKanban({ tasks, role, disabled, onMove, onReevaluate }: Pr
                       disabled={disabled}
                       onMove={requestMove}
                       onOpen={setSelectedTask}
+                      onEnterIde={onEnterIde}
                     />
                   ))
                 )}
@@ -191,6 +201,14 @@ export function SprintKanban({ tasks, role, disabled, onMove, onReevaluate }: Pr
           setSelectedTask(null)
           requestMove(taskId, toStatus)
         }}
+        onEnterIde={
+          onEnterIde
+            ? (task) => {
+                setSelectedTask(null)
+                onEnterIde(task)
+              }
+            : undefined
+        }
         onReevaluate={
           onReevaluate
             ? (taskId) => {

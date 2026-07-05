@@ -8,6 +8,7 @@ import { SprintKanban } from "@/components/minhas-mentorias/sprint/sprint-kanban
 import { DailyChat } from "@/components/minhas-mentorias/sprint/daily-chat"
 import { ScorePanel } from "@/components/minhas-mentorias/sprint/score-panel"
 import { WorkspacePanel } from "@/components/minhas-mentorias/sprint/workspace/workspace-panel"
+import { SprintIde } from "@/components/minhas-mentorias/sprint/ide/sprint-ide"
 import { TemplateTaskForm, type TaskFormValues } from "./template-task-form"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,6 +44,7 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
   const [finalScore, setFinalScore] = useState("")
   const [closing, setClosing] = useState(false)
   const [scoreKey, setScoreKey] = useState(0)
+  const [ideTaskId, setIdeTaskId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/sprints/${sprintId}`)
@@ -171,6 +173,7 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
   const isActive = sprint.status === "active"
 
   return (
+    <>
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
@@ -235,6 +238,7 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
             disabled={!isActive}
             onMove={handleMove}
             onReevaluate={handleReevaluate}
+            onEnterIde={(task) => setIdeTaskId(task.id)}
           />
         </TabsContent>
 
@@ -334,5 +338,21 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
         </DialogContent>
       </Dialog>
     </div>
+
+    {ideTaskId && (
+      <SprintIde
+        sprint={sprint}
+        activeTaskId={ideTaskId}
+        role="mentor"
+        disabled={!isActive}
+        treeEndpoint={`/api/admin/sprints/${sprintId}/workspace`}
+        fileEndpoint={`/api/admin/sprints/${sprintId}/workspace`}
+        dailyEndpoint={`/api/admin/sprints/${sprintId}/mensagens`}
+        onExit={() => setIdeTaskId(null)}
+        onActiveTaskChange={(id) => setIdeTaskId(id)}
+        onMove={handleMove}
+      />
+    )}
+    </>
   )
 }
