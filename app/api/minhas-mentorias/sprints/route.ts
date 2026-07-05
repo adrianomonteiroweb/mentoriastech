@@ -1,0 +1,64 @@
+import { desc, eq, sql } from "drizzle-orm"
+import { NextResponse } from "next/server"
+import { db, simCompanies, simSprints } from "@/lib/db"
+import {
+  getScoreTotals,
+  getTaskCounts,
+  getUnreadCounts,
+  toSimSprintApi,
+} from "@/lib/db/sim"
+import { requireMenteeAccess } from "@/lib/utils/mentee-access"
+import { ensureProfileForMenteeEmail } from "@/lib/utils/mentee-resume"
+
+export const dynamic = "force-dynamic"
+
+/** Minhas sprints (ativa primeiro) com progresso e não-lidas do mentor. */
+export async function GET() {
+  try {
+    const session = await requireMenteeAccess()
+    const profile = await ensureProfileForMenteeEmail(session.email)
+
+    const rows = await db
+      .select({
+        sprint: simSprints,
+        companyName: simCompanies.name,
+        companyArchetype: simCompanies.archetype,
+      })
+      .from(simSprints)
+      .leftJoin(simCompanies, eq(simSprints.companyId, simCompanies.id))
+      .where(eq(simSprints.profileId, profile.id))
+      .orderBy(
+        sql`case when ${simSprints.status} = 'active' then 0 else 1 end`,
+        desc(simSprints.startedAt),
+      )
+
+    const sprintIds = rows.map((row) => row.sprint.id)
+    const [scores, taskCounts, unread] = await Promise.all([
+      getScoreTotals(sprintIds),
+      getTaskCounts(sprintIds),
+      getUnreadCounts(sprintIds, "mentor"),
+    ])
+
+    return NextResponse.json({
+      data: rows.map((row) =>
+        toSimSprintApi(row.sprint, {
+          company: row.sprint.companyId
+            ? {
+                id: row.sprint.companyId,
+                name: row.companyName || "",
+                archetype: row.companyArchetype || "startup",
+              }
+            : null,
+          total_score: scores.get(row.sprint.id) ?? 0,
+          done_count: taskCounts.get(row.sprint.id)?.done ?? 0,
+          task_count: taskCounts.get(row.sprint.id)?.total ?? 0,
+          unread_count: unread.get(row.sprint.id) ?? 0,
+        }),
+      ),
+    })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}

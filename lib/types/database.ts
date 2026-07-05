@@ -2,6 +2,14 @@
 
 export type { SelectionProcessChecklistItem } from "@/lib/selection-process-checklist"
 import type { SelectionProcessChecklistItem } from "@/lib/selection-process-checklist"
+export type {
+  SimEvaluationResult,
+  SimEvaluationRule,
+} from "@/lib/sim/evaluation-types"
+import type {
+  SimEvaluationResult,
+  SimEvaluationRule,
+} from "@/lib/sim/evaluation-types"
 
 export type UserRole = "admin" | "mentor" | "mentee" | "hr"
 export type SlotType = "free" | "paid" | "private"
@@ -679,4 +687,184 @@ export interface AdminStats {
   mostRequestedPaid: MostRequestedMentorship | null
   mostRequestedFree: MostRequestedMentorship | null
   timeSeries: AdminStatsTimeSeries
+}
+
+// -----------------------------------------------------------------------------
+// SPRINT SIMULATOR — tipos da API (snake_case, consumidos pelos componentes)
+// -----------------------------------------------------------------------------
+
+export type SimCompanyArchetype = "startup" | "saas" | "enterprise"
+export type SimTaskStatus = "backlog" | "todo" | "doing" | "review" | "done"
+export type SimTaskType =
+  | "feature"
+  | "bug"
+  | "refactor"
+  | "architecture"
+  | "increment"
+export type SimApplicationStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+export type SimSprintStatus = "active" | "completed" | "cancelled"
+export type SimAuthorRole = "mentee" | "mentor"
+export type SimScoreSource = "auto" | "manual"
+export type SimScoreCategory =
+  | "structure"
+  | "code"
+  | "tests"
+  | "architecture"
+  | "communication"
+  | "general"
+
+export interface SimCompanyApi {
+  id: string
+  name: string
+  archetype: SimCompanyArchetype
+  description: string | null
+  product_description: string | null
+  client_description: string | null
+  service_description: string | null
+  process_description: string | null
+  po_doc_markdown: string | null
+  pm_doc_markdown: string | null
+  tech_lead_doc_markdown: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SimTemplateTaskApi {
+  id: string
+  template_id: string
+  title: string
+  description: string | null
+  task_type: SimTaskType
+  points: number
+  initial_status: "backlog" | "todo"
+  sort_order: number
+  evaluation_rules?: SimEvaluationRule[] | null
+  created_at: string
+}
+
+export interface SimSprintTemplateApi {
+  id: string
+  company_id: string
+  title: string
+  objective: string | null
+  level: number
+  duration_days: number
+  is_active: boolean
+  sort_order: number
+  created_at: string
+  company?: Pick<SimCompanyApi, "id" | "name" | "archetype"> | null
+  tasks?: SimTemplateTaskApi[]
+  task_count?: number
+  my_application_status?: SimApplicationStatus | null
+}
+
+export interface SimApplicationApi {
+  id: string
+  profile_id: string
+  template_id: string
+  message: string | null
+  status: SimApplicationStatus
+  reviewed_at: string | null
+  review_note: string | null
+  created_at: string
+  template?: Pick<
+    SimSprintTemplateApi,
+    "id" | "title" | "level" | "duration_days"
+  > | null
+  company?: Pick<SimCompanyApi, "id" | "name" | "archetype"> | null
+  mentee?: { id: string; full_name: string | null; email: string } | null
+}
+
+export interface SimSprintTaskApi {
+  id: string
+  sprint_id: string
+  task_number: number
+  title: string
+  description: string | null
+  task_type: SimTaskType
+  points: number
+  status: SimTaskStatus
+  sort_order: number
+  has_rules: boolean
+  last_evaluation: SimEvaluationResult | null
+  submitted_at: string | null
+  approved_at: string | null
+  created_at: string
+}
+
+export interface SimScoreEventApi {
+  id: string
+  sprint_id: string
+  task_id: string | null
+  message_id: string | null
+  source: SimScoreSource
+  category: SimScoreCategory
+  delta: number
+  reason: string
+  sprint_day: number
+  created_at: string
+}
+
+export interface SimDailyMessageApi {
+  id: string
+  sprint_id: string
+  author_role: SimAuthorRole
+  author_name: string | null
+  body: string
+  task_id: string | null
+  task_number: number | null
+  sprint_day: number
+  read_at: string | null
+  created_at: string
+  score_event?: Pick<
+    SimScoreEventApi,
+    "id" | "delta" | "reason" | "category"
+  > | null
+}
+
+export interface SimSprintApi {
+  id: string
+  profile_id: string
+  title: string
+  objective: string | null
+  duration_days: number
+  current_day: number
+  status: SimSprintStatus
+  started_at: string
+  ended_at: string | null
+  final_score: number | null
+  final_feedback: string | null
+  created_at: string
+  company?: Pick<SimCompanyApi, "id" | "name" | "archetype"> | null
+  total_score?: number
+  done_count?: number
+  task_count?: number
+  unread_count?: number
+}
+
+export interface SimSprintHubApi extends SimSprintApi {
+  tasks: SimSprintTaskApi[]
+  company_docs: Pick<
+    SimCompanyApi,
+    | "name"
+    | "archetype"
+    | "description"
+    | "product_description"
+    | "client_description"
+    | "service_description"
+    | "process_description"
+    | "po_doc_markdown"
+    | "pm_doc_markdown"
+    | "tech_lead_doc_markdown"
+  > | null
+}
+
+export interface SimSprintMonitorRowApi extends SimSprintApi {
+  mentee: { id: string; full_name: string | null; email: string } | null
+  last_activity_at: string | null
 }

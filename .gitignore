@@ -6,6 +6,8 @@ __v0_jsx-dev-runtime.ts
 # Common ignores
 node_modules/
 .next/
+# Monaco: gerado por scripts/copy-monaco.mjs (postinstall)
+/public/monaco/
 .env
 .env*.local
 .DS_Store

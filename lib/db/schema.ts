@@ -14,6 +14,10 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp";
+import type {
+  SimEvaluationResult,
+  SimEvaluationRule,
+} from "@/lib/sim/evaluation-types";
 
 // -----------------------------------------------------------------------------
 // PROFILES — perfis de usuário (auth + dados)
@@ -1183,6 +1187,325 @@ export const trackEnrollmentPhases = pgTable("track_enrollment_phases", {
 });
 
 // -----------------------------------------------------------------------------
+// SIM_COMPANIES — Sprint Simulator: empresa fictícia (hub com produto, cliente,
+// serviço, processo e docs de PO/PM/Tech Lead)
+// -----------------------------------------------------------------------------
+export const simCompanies = pgTable("sim_companies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  archetype: text("archetype", { enum: ["startup", "saas", "enterprise"] })
+    .notNull()
+    .default("startup"),
+  description: text("description"),
+  productDescription: text("product_description"),
+  clientDescription: text("client_description"),
+  serviceDescription: text("service_description"),
+  processDescription: text("process_description"),
+  poDocMarkdown: text("po_doc_markdown"),
+  pmDocMarkdown: text("pm_doc_markdown"),
+  techLeadDocMarkdown: text("tech_lead_doc_markdown"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_SPRINT_TEMPLATES — "vaga" publicada: template de sprint de uma empresa
+// -----------------------------------------------------------------------------
+export const simSprintTemplates = pgTable("sim_sprint_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => simCompanies.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  objective: text("objective"),
+  level: integer("level").notNull().default(1),
+  durationDays: integer("duration_days").notNull().default(10),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_TEMPLATE_TASKS — tasks do template (com regras de avaliação da Fase 2)
+// -----------------------------------------------------------------------------
+export const simTemplateTasks = pgTable("sim_template_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  templateId: uuid("template_id")
+    .notNull()
+    .references(() => simSprintTemplates.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  taskType: text("task_type", {
+    enum: ["feature", "bug", "refactor", "architecture", "increment"],
+  })
+    .notNull()
+    .default("feature"),
+  points: integer("points").notNull().default(10),
+  initialStatus: text("initial_status", { enum: ["backlog", "todo"] })
+    .notNull()
+    .default("backlog"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  evaluationRules: jsonb("evaluation_rules").$type<SimEvaluationRule[]>(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_APPLICATIONS — candidatura do mentorado a uma vaga fictícia
+// -----------------------------------------------------------------------------
+export const simApplications = pgTable(
+  "sim_applications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => simSprintTemplates.id, { onDelete: "cascade" }),
+    message: text("message"),
+    status: text("status", {
+      enum: ["pending", "approved", "rejected", "cancelled"],
+    })
+      .notNull()
+      .default("pending"),
+    reviewedBy: uuid("reviewed_by").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    reviewNote: text("review_note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_sim_applications_pending_unique")
+      .on(table.profileId, table.templateId)
+      .where(sql`${table.status} = 'pending'`),
+  ],
+);
+
+// -----------------------------------------------------------------------------
+// SIM_SPRINTS — instância de sprint por mentorado (snapshot do template).
+// Dia corrente é derivado de started_at (lib/sim/sprint-day.ts).
+// -----------------------------------------------------------------------------
+export const simSprints = pgTable("sim_sprints", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profiles.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").references(() => simApplications.id, {
+    onDelete: "set null",
+  }),
+  templateId: uuid("template_id").references(() => simSprintTemplates.id, {
+    onDelete: "set null",
+  }),
+  companyId: uuid("company_id").references(() => simCompanies.id, {
+    onDelete: "set null",
+  }),
+  mentorId: uuid("mentor_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  title: text("title").notNull(),
+  objective: text("objective"),
+  durationDays: integer("duration_days").notNull(),
+  status: text("status", { enum: ["active", "completed", "cancelled"] })
+    .notNull()
+    .default("active"),
+  startedAt: timestamp("started_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  finalScore: integer("final_score"),
+  finalFeedback: text("final_feedback"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_SPRINT_TASKS — kanban da sprint (backlog/todo/doing/review/done)
+// -----------------------------------------------------------------------------
+export const simSprintTasks = pgTable("sim_sprint_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sprintId: uuid("sprint_id")
+    .notNull()
+    .references(() => simSprints.id, { onDelete: "cascade" }),
+  templateTaskId: uuid("template_task_id").references(
+    () => simTemplateTasks.id,
+    { onDelete: "set null" },
+  ),
+  taskNumber: integer("task_number").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  taskType: text("task_type", {
+    enum: ["feature", "bug", "refactor", "architecture", "increment"],
+  })
+    .notNull()
+    .default("feature"),
+  points: integer("points").notNull().default(10),
+  status: text("status", {
+    enum: ["backlog", "todo", "doing", "review", "done"],
+  })
+    .notNull()
+    .default("backlog"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  evaluationRules: jsonb("evaluation_rules").$type<SimEvaluationRule[]>(),
+  lastEvaluation: jsonb("last_evaluation").$type<SimEvaluationResult>(),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_TASK_TRANSITIONS — histórico de movimentação (monitor + timeline)
+// -----------------------------------------------------------------------------
+export const simTaskTransitions = pgTable("sim_task_transitions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  taskId: uuid("task_id")
+    .notNull()
+    .references(() => simSprintTasks.id, { onDelete: "cascade" }),
+  sprintId: uuid("sprint_id")
+    .notNull()
+    .references(() => simSprints.id, { onDelete: "cascade" }),
+  fromStatus: text("from_status").notNull(),
+  toStatus: text("to_status").notNull(),
+  actorRole: text("actor_role", { enum: ["mentee", "mentor"] }).notNull(),
+  actorId: uuid("actor_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  sprintDay: integer("sprint_day").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_DAILY_MESSAGES — daily assíncrona (chat mentor ↔ mentorado)
+// -----------------------------------------------------------------------------
+export const simDailyMessages = pgTable("sim_daily_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sprintId: uuid("sprint_id")
+    .notNull()
+    .references(() => simSprints.id, { onDelete: "cascade" }),
+  authorRole: text("author_role", { enum: ["mentee", "mentor"] }).notNull(),
+  authorId: uuid("author_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  body: text("body").notNull(),
+  taskId: uuid("task_id").references(() => simSprintTasks.id, {
+    onDelete: "set null",
+  }),
+  sprintDay: integer("sprint_day").notNull(),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_SCORE_EVENTS — ledger de pontuação (auto + manual, motivo obrigatório).
+// Total da sprint = SUM(delta) WHERE superseded_at IS NULL.
+// -----------------------------------------------------------------------------
+export const simScoreEvents = pgTable("sim_score_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sprintId: uuid("sprint_id")
+    .notNull()
+    .references(() => simSprints.id, { onDelete: "cascade" }),
+  taskId: uuid("task_id").references(() => simSprintTasks.id, {
+    onDelete: "set null",
+  }),
+  messageId: uuid("message_id").references(() => simDailyMessages.id, {
+    onDelete: "set null",
+  }),
+  source: text("source", { enum: ["auto", "manual"] }).notNull(),
+  category: text("category", {
+    enum: [
+      "structure",
+      "code",
+      "tests",
+      "architecture",
+      "communication",
+      "general",
+    ],
+  })
+    .notNull()
+    .default("general"),
+  delta: integer("delta").notNull(),
+  reason: text("reason").notNull(),
+  sprintDay: integer("sprint_day").notNull(),
+  supersededAt: timestamp("superseded_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// SIM_WORKSPACE_FILES — arquivos do workspace Monaco (Fase 2)
+// -----------------------------------------------------------------------------
+export const simWorkspaceFiles = pgTable(
+  "sim_workspace_files",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sprintId: uuid("sprint_id")
+      .notNull()
+      .references(() => simSprints.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    isFolder: boolean("is_folder").notNull().default(false),
+    content: text("content").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_sim_workspace_files_path_unique").on(
+      table.sprintId,
+      table.path,
+    ),
+  ],
+);
+
+// -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
 export type Profile = typeof profiles.$inferSelect;
@@ -1243,3 +1566,22 @@ export type TrackEnrollment = typeof trackEnrollments.$inferSelect;
 export type NewTrackEnrollment = typeof trackEnrollments.$inferInsert;
 export type TrackEnrollmentPhase = typeof trackEnrollmentPhases.$inferSelect;
 export type NewTrackEnrollmentPhase = typeof trackEnrollmentPhases.$inferInsert;
+export type SimCompany = typeof simCompanies.$inferSelect;
+export type NewSimCompany = typeof simCompanies.$inferInsert;
+export type SimSprintTemplate = typeof simSprintTemplates.$inferSelect;
+export type NewSimSprintTemplate = typeof simSprintTemplates.$inferInsert;
+export type SimTemplateTask = typeof simTemplateTasks.$inferSelect;
+export type NewSimTemplateTask = typeof simTemplateTasks.$inferInsert;
+export type SimApplication = typeof simApplications.$inferSelect;
+export type NewSimApplication = typeof simApplications.$inferInsert;
+export type SimSprint = typeof simSprints.$inferSelect;
+export type NewSimSprint = typeof simSprints.$inferInsert;
+export type SimSprintTask = typeof simSprintTasks.$inferSelect;
+export type NewSimSprintTask = typeof simSprintTasks.$inferInsert;
+export type SimTaskTransition = typeof simTaskTransitions.$inferSelect;
+export type SimDailyMessage = typeof simDailyMessages.$inferSelect;
+export type NewSimDailyMessage = typeof simDailyMessages.$inferInsert;
+export type SimScoreEvent = typeof simScoreEvents.$inferSelect;
+export type NewSimScoreEvent = typeof simScoreEvents.$inferInsert;
+export type SimWorkspaceFile = typeof simWorkspaceFiles.$inferSelect;
+export type NewSimWorkspaceFile = typeof simWorkspaceFiles.$inferInsert;

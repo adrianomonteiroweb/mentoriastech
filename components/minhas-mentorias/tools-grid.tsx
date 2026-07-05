@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route } from "lucide-react"
+import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route, SquareKanban } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 const TOOLS = [
@@ -37,6 +37,13 @@ const TOOLS = [
     title: "Plano de Estudos",
     description: "Trilha de aprendizado personalizada para acelerar sua evolução",
     badge: "IA",
+  },
+  {
+    href: "/minhas-mentorias/sprint",
+    icon: SquareKanban,
+    title: "Simulador de Sprint",
+    description: "Viva uma sprint real em uma empresa fictícia: kanban, daily com o Tech Lead e pontuação",
+    badge: "Novo",
   },
 ] as const
 
