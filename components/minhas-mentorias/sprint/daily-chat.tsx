@@ -1,7 +1,16 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, MessageSquarePlus, Send, TrendingDown, TrendingUp } from "lucide-react"
+import {
+  AlertTriangle,
+  ClipboardList,
+  HelpCircle,
+  Loader2,
+  MessageSquarePlus,
+  Send,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -20,17 +29,67 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import type {
   SimDailyMessageApi,
+  SimDailyMessageKind,
   SimScoreCategory,
   SimSprintTaskApi,
 } from "@/lib/types/database"
 import type { SimActorRole } from "@/lib/sim/task-transitions"
 
-const QUICK_PROMPTS = [
-  "Hoje vou trabalhar em: ",
-  "Estou bloqueado em: ",
-  "Dúvida: ",
-  "Concluí: ",
-]
+/**
+ * Os 3 tipos de mensagem da daily (os 3 pilares do standup do SCRUM +
+ * a dúvida do contexto de mentoria). Só Impedimento e Dúvida vão para o
+ * inbox do mentor; Progresso é documentação e fica só na timeline.
+ */
+const KIND_META: Record<
+  SimDailyMessageKind,
+  {
+    label: string
+    icon: typeof ClipboardList
+    placeholder: string
+    /** Micro-explicação (ensina o pilar do SCRUM em 1 linha). */
+    hint: string
+    /** Classe de cor do badge/seletor ativo. */
+    tone: string
+  }
+> = {
+  daily: {
+    label: "Progresso",
+    icon: ClipboardList,
+    placeholder: "O que você fez e o que fará hoje…",
+    hint: "Sua daily: documente avanços e o próximo passo. Não precisa de resposta.",
+    tone: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30",
+  },
+  impediment: {
+    label: "Impedimento",
+    icon: AlertTriangle,
+    placeholder: "O que está te travando? Descreva o bloqueio…",
+    hint: "Algo te bloqueia? Sinalize cedo — o Tech Lead recebe no inbox.",
+    tone: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/30",
+  },
+  doubt: {
+    label: "Dúvida",
+    icon: HelpCircle,
+    placeholder: "Sua pergunta ao Tech Lead…",
+    hint: "Uma pergunta pontual pro Tech Lead — aparece no inbox dele.",
+    tone: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30",
+  },
+}
+
+const KIND_ORDER: SimDailyMessageKind[] = ["daily", "impediment", "doubt"]
+
+/** Badge do tipo de mensagem (mostrado nas bolhas de Impedimento/Dúvida). */
+function KindBadge({ kind }: { kind: SimDailyMessageKind }) {
+  const meta = KIND_META[kind]
+  const Icon = meta.icon
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${meta.tone}`}
+    >
+      <Icon className="h-2.5 w-2.5" aria-hidden="true" />
+      {meta.label}
+    </span>
+  )
+}
 
 const CATEGORY_LABELS: Record<SimScoreCategory, string> = {
   structure: "Estrutura",
@@ -39,6 +98,7 @@ const CATEGORY_LABELS: Record<SimScoreCategory, string> = {
   architecture: "Arquitetura",
   communication: "Comunicação",
   general: "Geral",
+  agile: "Metodologia Ágil",
 }
 
 interface Adjustment {
@@ -54,6 +114,8 @@ interface Props {
   disabled?: boolean
   onRead?: () => void
   onScoreChanged?: () => void
+  /** Chamado após enviar uma mensagem com sucesso (ex.: atualizar rituais). */
+  onSent?: () => void
   /** Preenche a altura do container (usado dentro da IDE) em vez de max-h fixo. */
   fill?: boolean
 }
@@ -70,11 +132,13 @@ export function DailyChat({
   disabled,
   onRead,
   onScoreChanged,
+  onSent,
   fill,
 }: Props) {
   const [messages, setMessages] = useState<SimDailyMessageApi[]>([])
   const [loading, setLoading] = useState(true)
   const [body, setBody] = useState("")
+  const [kind, setKind] = useState<SimDailyMessageKind>("daily")
   const [taskId, setTaskId] = useState<string>("")
   const [sending, setSending] = useState(false)
   const [adjustment, setAdjustment] = useState<Adjustment | null>(null)
@@ -119,6 +183,7 @@ export function DailyChat({
       const payload: Record<string, unknown> = {
         body: body.trim(),
         task_id: taskId || null,
+        kind: role === "mentee" ? kind : "daily",
       }
       if (role === "mentor" && adjustment) {
         payload.adjustment = adjustment
@@ -135,10 +200,12 @@ export function DailyChat({
       }
       setBody("")
       setTaskId("")
+      setKind("daily")
       if (adjustment) {
         setAdjustment(null)
         onScoreChanged?.()
       }
+      onSent?.()
       await load(false)
     } finally {
       setSending(false)
@@ -195,13 +262,19 @@ export function DailyChat({
                       mine ? "self-end items-end" : "self-start items-start"
                     }`}
                   >
-                    <p className="text-xs font-medium text-muted-foreground px-1">
-                      {message.author_role === "mentor"
-                        ? "Tech Lead"
-                        : message.author_name || "Mentorado"}
-                      {message.task_number != null &&
-                        ` · sobre a Task #${message.task_number}`}
-                    </p>
+                    <div className="flex items-center gap-1.5 px-1">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {message.author_role === "mentor"
+                          ? "Tech Lead"
+                          : message.author_name || "Mentorado"}
+                        {message.task_number != null &&
+                          ` · sobre a Task #${message.task_number}`}
+                      </p>
+                      {message.author_role === "mentee" &&
+                        message.kind !== "daily" && (
+                          <KindBadge kind={message.kind} />
+                        )}
+                    </div>
                     <div
                       className={`rounded-2xl px-4 py-2.5 text-base leading-relaxed whitespace-pre-wrap break-words ${
                         mine
@@ -241,20 +314,37 @@ export function DailyChat({
       {!disabled && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3">
           {role === "mentee" && (
-            <div
-              className="flex gap-2 overflow-x-auto pb-1"
-              aria-label="Sugestões de mensagem"
-            >
-              {QUICK_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setBody((current) => current || prompt)}
-                  className="shrink-0 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors min-h-[36px]"
-                >
-                  {prompt.replace(": ", "")}
-                </button>
-              ))}
+            <div className="flex flex-col gap-1.5">
+              <div
+                className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-secondary/40 p-1"
+                role="group"
+                aria-label="Tipo de mensagem"
+              >
+                {KIND_ORDER.map((k) => {
+                  const meta = KIND_META[k]
+                  const Icon = meta.icon
+                  const active = kind === k
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setKind(k)}
+                      aria-pressed={active}
+                      className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? `border ${meta.tone}`
+                          : "border border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                      {meta.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="px-1 text-[11px] text-muted-foreground">
+                {KIND_META[kind].hint}
+              </p>
             </div>
           )}
 
@@ -263,7 +353,7 @@ export function DailyChat({
             onChange={(e) => setBody(e.target.value)}
             placeholder={
               role === "mentee"
-                ? "Escreva sua daily: progresso, bloqueios, dúvidas…"
+                ? KIND_META[kind].placeholder
                 : "Responda como Tech Lead: dicas, feedback, direcionamento…"
             }
             rows={3}

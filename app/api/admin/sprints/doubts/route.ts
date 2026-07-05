@@ -1,11 +1,12 @@
-import { and, asc, eq, isNull } from "drizzle-orm"
+import { and, asc, eq, inArray, isNull } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { db, profiles, simDailyMessages, simSprints } from "@/lib/db"
 import { requireMentorAccess } from "@/lib/utils/auth"
 
 /**
- * Inbox de dúvidas: mensagens de mentorados ainda não lidas pelo mentor,
- * em sprints ativas, agrupadas por sprint (mais antigas primeiro).
+ * Inbox do mentor: só o que precisa de resposta — dúvidas e impedimentos ainda
+ * não lidos, em sprints ativas, agrupados por sprint (mais antigos primeiro).
+ * Registros de progresso (kind "daily") NÃO entram aqui — ficam só na timeline.
  */
 export async function GET() {
   try {
@@ -25,6 +26,7 @@ export async function GET() {
       .where(
         and(
           eq(simDailyMessages.authorRole, "mentee"),
+          inArray(simDailyMessages.kind, ["doubt", "impediment"]),
           isNull(simDailyMessages.readAt),
           eq(simSprints.status, "active"),
         ),
@@ -40,6 +42,7 @@ export async function GET() {
         mentee_email: string
         messages: {
           id: string
+          kind: string
           body: string
           sprint_day: number
           created_at: string
@@ -61,6 +64,7 @@ export async function GET() {
       }
       group.messages.push({
         id: row.message.id,
+        kind: row.message.kind,
         body: row.message.body,
         sprint_day: row.message.sprintDay,
         created_at:

@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Code2, Loader2 } from "lucide-react"
 import { MentoriasShell } from "@/components/minhas-mentorias/layout/mentorias-shell"
 import { SprintHeader } from "./sprint-header"
 import { SprintKanban } from "./sprint-kanban"
+import { SprintRituals } from "./sprint-rituals"
+import { ScrumOnboarding } from "./scrum-onboarding"
 import { DailyChat } from "./daily-chat"
 import { CompanyDocs } from "./company-docs"
 import { ScorePanel } from "./score-panel"
 import { EvaluationChecklist } from "./evaluation-checklist"
-import { WorkspacePanel } from "./workspace/workspace-panel"
 import { SprintIde } from "./ide/sprint-ide"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +28,7 @@ import { toast } from "sonner"
 import type {
   SimEvaluationResult,
   SimSprintHubApi,
+  SimSprintTaskApi,
   SimTaskStatus,
 } from "@/lib/types/database"
 
@@ -35,11 +37,23 @@ interface Props {
   sprintId: string
 }
 
+/** Task inicial ao abrir a IDE pela aba: a em andamento → senão a próxima → senão a 1ª. */
+function pickIdeTask(tasks: SimSprintTaskApi[]): SimSprintTaskApi | null {
+  return (
+    tasks.find((t) => t.status === "doing") ??
+    tasks.find((t) => t.status === "todo") ??
+    tasks[0] ??
+    null
+  )
+}
+
 export function SprintHub({ email, sprintId }: Props) {
   const [sprint, setSprint] = useState<SimSprintHubApi | null>(null)
   const [loading, setLoading] = useState(true)
   const [unread, setUnread] = useState(0)
   const [ideTaskId, setIdeTaskId] = useState<string | null>(null)
+  // Recarrega os rituais (eventos ágeis) quando o mentee mexe no quadro/daily.
+  const [ritualsKey, setRitualsKey] = useState(0)
   const [evaluationResult, setEvaluationResult] = useState<{
     evaluation: SimEvaluationResult
     scoreDelta: number
@@ -100,6 +114,7 @@ export function SprintHub({ email, sprintId }: Props) {
       })
     }
 
+    setRitualsKey((key) => key + 1)
     load()
   }
 
@@ -144,6 +159,10 @@ export function SprintHub({ email, sprintId }: Props) {
       <div className="mx-auto max-w-5xl px-4 py-4 flex flex-col gap-4">
         <SprintHeader sprint={sprint} />
 
+        <div className="flex justify-end">
+          <ScrumOnboarding />
+        </div>
+
         <Tabs defaultValue="quadro" className="w-full">
           <TabsList className="w-full justify-start overflow-x-auto h-auto p-1">
             <TabsTrigger value="quadro" className="min-h-[44px] text-sm">
@@ -163,12 +182,21 @@ export function SprintHub({ email, sprintId }: Props) {
             <TabsTrigger value="pontuacao" className="min-h-[44px] text-sm">
               Pontuação
             </TabsTrigger>
-            <TabsTrigger value="workspace" className="min-h-[44px] text-sm">
-              Workspace
+            <TabsTrigger value="ide" className="min-h-[44px] text-sm gap-1.5">
+              <Code2 className="h-4 w-4" aria-hidden="true" />
+              IDE
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="quadro" className="mt-4">
+          <TabsContent value="quadro" className="mt-4 flex flex-col gap-4">
+            {sprint.tasks.length > 0 && (
+              <SprintRituals
+                tasks={sprint.tasks}
+                currentDay={sprint.current_day}
+                scoreEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/pontuacao`}
+                refreshKey={ritualsKey}
+              />
+            )}
             <SprintKanban
               tasks={sprint.tasks}
               role="mentee"
@@ -185,6 +213,7 @@ export function SprintHub({ email, sprintId }: Props) {
               tasks={sprint.tasks}
               disabled={!isActive}
               onRead={() => setUnread(0)}
+              onSent={() => setRitualsKey((key) => key + 1)}
             />
           </TabsContent>
 
@@ -200,12 +229,34 @@ export function SprintHub({ email, sprintId }: Props) {
             />
           </TabsContent>
 
-          <TabsContent value="workspace" className="mt-4">
-            <WorkspacePanel
-              treeEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/workspace`}
-              fileEndpoint={`/api/minhas-mentorias/sprints/${sprintId}/workspace/file`}
-              readOnly={!isActive}
-            />
+          <TabsContent value="ide" className="mt-4">
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                <Code2 className="h-7 w-7 text-primary" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Programe sua task na IDE
+                </h3>
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                  Editor completo com seus arquivos, o enunciado da task, a daily
+                  com o Tech Lead e a avaliação automática — tudo em tela cheia.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                disabled={sprint.tasks.length === 0}
+                onClick={() => setIdeTaskId(pickIdeTask(sprint.tasks)?.id ?? null)}
+              >
+                <Code2 className="mr-2 h-4 w-4" aria-hidden="true" />
+                Abrir IDE
+              </Button>
+              {sprint.tasks.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma task na sprint ainda.
+                </p>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
 

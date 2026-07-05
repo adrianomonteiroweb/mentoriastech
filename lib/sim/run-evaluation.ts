@@ -54,6 +54,8 @@ export async function runTaskEvaluation(params: {
     .set({ lastEvaluation: evaluation, updatedAt: now })
     .where(eq(simSprintTasks.id, task.id))
 
+  // Só supersede eventos da avaliação de código (category "general"); os
+  // eventos ágeis (category "agile") também têm taskId e NÃO podem ser apagados.
   await db
     .update(simScoreEvents)
     .set({ supersededAt: now })
@@ -61,6 +63,7 @@ export async function runTaskEvaluation(params: {
       and(
         eq(simScoreEvents.taskId, task.id),
         eq(simScoreEvents.source, "auto"),
+        eq(simScoreEvents.category, "general"),
         isNull(simScoreEvents.supersededAt),
       ),
     )

@@ -1,11 +1,29 @@
 "use client"
 
-import { ArrowRightLeft, Code2, RefreshCw, Send, ShieldCheck } from "lucide-react"
+import { useEffect, useState } from "react"
+import {
+  ArrowRightLeft,
+  BookCheck,
+  ChevronDown,
+  Code2,
+  Eye,
+  EyeOff,
+  Loader2,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+} from "lucide-react"
 import { EvaluationChecklist } from "./evaluation-checklist"
 import { SimMarkdown } from "./sim-markdown"
 import { TASK_TYPE_LABELS } from "./kanban-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Sheet,
   SheetContent,
@@ -30,6 +48,11 @@ interface Props {
   onReevaluate?: (taskId: string) => void
   /** Mentee: abre a IDE de execução para a task */
   onEnterIde?: (task: SimSprintTaskApi) => void
+  /** Mentor: salva/edita o gabarito e libera/oculta para o mentorado. */
+  onSolutionChange?: (
+    taskId: string,
+    patch: { solution_markdown?: string; solution_released?: boolean },
+  ) => Promise<void>
 }
 
 /** Detalhe da task: critérios em markdown + ações de movimentação (sem trocar de página). */
@@ -41,10 +64,41 @@ export function TaskDetailSheet({
   onMove,
   onReevaluate,
   onEnterIde,
+  onSolutionChange,
 }: Props) {
   const allowedTargets = task
     ? getAllowedTransitions(role, task.status)
     : []
+
+  const [solutionDraft, setSolutionDraft] = useState("")
+  const [savingSolution, setSavingSolution] = useState(false)
+
+  // Sincroniza o rascunho do gabarito quando troca de task (ou reabre).
+  useEffect(() => {
+    setSolutionDraft(task?.solution_markdown ?? "")
+  }, [task?.id, task?.solution_markdown])
+
+  async function handleSaveSolution() {
+    if (!task || !onSolutionChange) return
+    setSavingSolution(true)
+    try {
+      await onSolutionChange(task.id, { solution_markdown: solutionDraft })
+    } finally {
+      setSavingSolution(false)
+    }
+  }
+
+  async function handleToggleRelease() {
+    if (!task || !onSolutionChange) return
+    setSavingSolution(true)
+    try {
+      await onSolutionChange(task.id, {
+        solution_released: !task.solution_released,
+      })
+    } finally {
+      setSavingSolution(false)
+    }
+  }
 
   return (
     <Sheet
@@ -133,6 +187,93 @@ export function TaskDetailSheet({
                 Executar avaliação automática
               </Button>
             )}
+
+            {/* Gabarito — mentor edita e libera/oculta */}
+            {role === "mentor" && onSolutionChange && (
+              <div className="mb-4 flex flex-col gap-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <BookCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                    Gabarito
+                  </h3>
+                  <Button
+                    variant={task.solution_released ? "default" : "outline"}
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={savingSolution || !solutionDraft.trim()}
+                    onClick={handleToggleRelease}
+                  >
+                    {task.solution_released ? (
+                      <>
+                        <EyeOff className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                        Ocultar
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                        Liberar
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Textarea
+                  rows={5}
+                  maxLength={20_000}
+                  value={solutionDraft}
+                  onChange={(e) => setSolutionDraft(e.target.value)}
+                  placeholder={"Solução de referência em markdown (aceita ```blocos de código```)."}
+                  aria-label="Gabarito da task (markdown)"
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {task.solution_released
+                      ? "Liberado — o mentorado está vendo."
+                      : "Oculto para o mentorado."}
+                  </p>
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs"
+                    disabled={
+                      savingSolution ||
+                      solutionDraft === (task.solution_markdown ?? "")
+                    }
+                    onClick={handleSaveSolution}
+                  >
+                    {savingSolution && (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    )}
+                    Salvar gabarito
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Gabarito — mentee vê só quando liberado */}
+            {role === "mentee" &&
+              task.solution_released &&
+              task.solution_markdown && (
+                <Collapsible className="mb-4">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between min-h-[44px]"
+                    >
+                      <span className="flex items-center gap-2">
+                        <BookCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                        Ver gabarito
+                      </span>
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-3">
+                    <p className="mb-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                      Tente resolver sozinho primeiro — o gabarito é para
+                      comparar e aprender depois.
+                    </p>
+                    <SimMarkdown markdown={task.solution_markdown} />
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
             {!disabled && allowedTargets.length > 0 && (
               <div className="flex flex-col gap-2 border-t border-border pt-4">

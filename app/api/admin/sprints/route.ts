@@ -2,6 +2,7 @@ import { desc, eq, sql } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { db, profiles, simCompanies, simSprints } from "@/lib/db"
 import {
+  getActionableUnreadCounts,
   getLastActivityAt,
   getScoreTotals,
   getTaskCounts,
@@ -37,6 +38,7 @@ export async function GET() {
       getUnreadCounts(sprintIds, "mentee"),
       getLastActivityAt(sprintIds),
     ])
+    const actionable = await getActionableUnreadCounts(sprintIds, "mentee").catch(() => new Map<string, number>())
 
     return NextResponse.json({
       data: rows.map((row) => ({
@@ -52,6 +54,7 @@ export async function GET() {
           done_count: taskCounts.get(row.sprint.id)?.done ?? 0,
           task_count: taskCounts.get(row.sprint.id)?.total ?? 0,
           unread_count: unread.get(row.sprint.id) ?? 0,
+          doubt_count: actionable.get(row.sprint.id) ?? 0,
         }),
         mentee: {
           id: row.sprint.profileId,

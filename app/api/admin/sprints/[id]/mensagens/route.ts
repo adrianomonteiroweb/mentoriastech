@@ -105,6 +105,7 @@ export async function POST(
         sprintId: id,
         authorRole: "mentor",
         authorId: mentor.id,
+        kind: parsed.data.kind,
         body: parsed.data.body,
         taskId: parsed.data.task_id || null,
         sprintDay,

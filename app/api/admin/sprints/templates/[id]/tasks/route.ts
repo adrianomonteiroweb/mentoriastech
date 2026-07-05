@@ -45,6 +45,7 @@ export async function POST(
         initialStatus: parsed.data.initial_status,
         sortOrder: parsed.data.sort_order ?? 0,
         evaluationRules: parsed.data.evaluation_rules ?? null,
+        solutionMarkdown: parsed.data.solution_markdown || null,
       })
       .returning()
 

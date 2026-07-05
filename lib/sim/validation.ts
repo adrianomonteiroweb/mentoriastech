@@ -45,6 +45,13 @@ export const simTemplateTaskSchema = z.object({
     .max(20, "Maximo de 20 regras por task")
     .optional()
     .nullable(),
+  // Gabarito (markdown) — opcional; visível ao mentorado só quando liberado.
+  solution_markdown: z.string().max(20_000).optional().or(z.literal("")),
+})
+
+/** PUT de sprint task (mentor): campos parciais + liberar/ocultar gabarito. */
+export const simSprintTaskUpdateSchema = simTemplateTaskSchema.partial().extend({
+  solution_released: z.boolean().optional(),
 })
 
 // Path do workspace: relativo, sem "..", só caracteres seguros
@@ -86,6 +93,8 @@ export const simMessageSchema = z.object({
     .min(1, "Mensagem nao pode ser vazia")
     .max(4000, "Mensagem muito longa (max 4000 caracteres)"),
   task_id: z.string().uuid().optional().nullable(),
+  // Progresso da daily (default), impedimento ou dúvida.
+  kind: z.enum(["daily", "impediment", "doubt"]).optional().default("daily"),
 })
 
 export const simMentorMessageSchema = simMessageSchema.extend({

@@ -78,6 +78,7 @@ export function toSimTemplateTaskApi(t: SimTemplateTask): SimTemplateTaskApi {
     initial_status: t.initialStatus,
     sort_order: t.sortOrder,
     evaluation_rules: t.evaluationRules ?? null,
+    solution_markdown: t.solutionMarkdown ?? null,
     created_at: toIso(t.createdAt) || "",
   }
 }
@@ -126,7 +127,10 @@ export function toSimApplicationApi(
   }
 }
 
-export function toSimSprintTaskApi(t: SimSprintTask): SimSprintTaskApi {
+export function toSimSprintTaskApi(
+  t: SimSprintTask,
+  opts?: { revealSolution?: boolean },
+): SimSprintTaskApi {
   return {
     id: t.id,
     sprint_id: t.sprintId,
@@ -139,6 +143,10 @@ export function toSimSprintTaskApi(t: SimSprintTask): SimSprintTaskApi {
     sort_order: t.sortOrder,
     has_rules: Boolean(t.evaluationRules && t.evaluationRules.length > 0),
     last_evaluation: t.lastEvaluation ?? null,
+    // Segurança: o conteúdo do gabarito só sai quando revealSolution=true
+    // (mentee: apenas se liberado; mentor: sempre).
+    solution_released: Boolean(t.solutionReleasedAt),
+    solution_markdown: opts?.revealSolution ? (t.solutionMarkdown ?? null) : null,
     submitted_at: toIso(t.submittedAt),
     approved_at: toIso(t.approvedAt),
     created_at: toIso(t.createdAt) || "",
@@ -156,6 +164,7 @@ export function toSimScoreEventApi(e: SimScoreEvent): SimScoreEventApi {
     delta: e.delta,
     reason: e.reason,
     sprint_day: e.sprintDay,
+    event_key: e.eventKey ?? null,
     created_at: toIso(e.createdAt) || "",
   }
 }
@@ -172,6 +181,7 @@ export function toSimDailyMessageApi(
     id: m.id,
     sprint_id: m.sprintId,
     author_role: m.authorRole,
+    kind: m.kind,
     author_name: extras?.author_name ?? null,
     body: m.body,
     task_id: m.taskId,
@@ -191,6 +201,7 @@ export function toSimSprintApi(
     done_count?: number
     task_count?: number
     unread_count?: number
+    doubt_count?: number
   },
 ): SimSprintApi {
   return {
@@ -340,6 +351,31 @@ export async function getUnreadCounts(
         inArray(simDailyMessages.sprintId, sprintIds),
         eq(simDailyMessages.authorRole, authorRole),
         isNull(simDailyMessages.readAt),
+      ),
+    )
+    .groupBy(simDailyMessages.sprintId)
+  for (const row of rows) map.set(row.sprintId, row.count)
+  return map
+}
+
+export async function getActionableUnreadCounts(
+  sprintIds: string[],
+  authorRole: "mentee" | "mentor",
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>()
+  if (sprintIds.length === 0) return map
+  const rows = await db
+    .select({
+      sprintId: simDailyMessages.sprintId,
+      count: sql<number>`count(*)`.mapWith(Number),
+    })
+    .from(simDailyMessages)
+    .where(
+      and(
+        inArray(simDailyMessages.sprintId, sprintIds),
+        eq(simDailyMessages.authorRole, authorRole),
+        isNull(simDailyMessages.readAt),
+        inArray(simDailyMessages.kind, ["doubt", "impediment"]),
       ),
     )
     .groupBy(simDailyMessages.sprintId)
@@ -614,6 +650,7 @@ export async function createSprintFromApplication(params: {
         status: task.initialStatus,
         sortOrder: task.sortOrder,
         evaluationRules: task.evaluationRules,
+        solutionMarkdown: task.solutionMarkdown,
       })),
     )
     await db.batch([approveApplication, insertSprint, insertTasks])

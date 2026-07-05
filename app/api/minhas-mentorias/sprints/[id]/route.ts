@@ -64,7 +64,9 @@ export async function GET(
           task_count: tasks.length,
           unread_count: unread.get(id) ?? 0,
         }),
-        tasks: tasks.map(toSimSprintTaskApi),
+        tasks: tasks.map((t) =>
+          toSimSprintTaskApi(t, { revealSolution: t.solutionReleasedAt != null }),
+        ),
         company_docs: company
           ? {
               name: company.name,

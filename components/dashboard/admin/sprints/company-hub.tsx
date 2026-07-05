@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Building2, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, Building2, ClipboardList, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -106,13 +107,25 @@ export function CompanyHub() {
   const [form, setForm] = useState<FormState>(emptyForm())
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<SimCompanyApi | null>(null)
+  const [templateCounts, setTemplateCounts] = useState<Map<string, number>>(new Map())
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/admin/sprints/companies")
-      const json = await res.json()
-      if (res.ok) setCompanies(json.data || [])
+      const [companiesRes, templatesRes] = await Promise.all([
+        fetch("/api/admin/sprints/companies"),
+        fetch("/api/admin/sprints/templates"),
+      ])
+      const companiesJson = await companiesRes.json()
+      const templatesJson = await templatesRes.json()
+      if (companiesRes.ok) setCompanies(companiesJson.data || [])
+      if (templatesRes.ok) {
+        const counts = new Map<string, number>()
+        for (const t of (templatesJson.data || []) as { company_id?: string }[]) {
+          if (t.company_id) counts.set(t.company_id, (counts.get(t.company_id) ?? 0) + 1)
+        }
+        setTemplateCounts(counts)
+      }
     } finally {
       setLoading(false)
     }
@@ -301,6 +314,14 @@ export function CompanyHub() {
 
   return (
     <div className="flex flex-col gap-4">
+      <Link
+        href="/admin/sprints"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[40px] self-start"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Sprints
+      </Link>
+
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Cada empresa é um contexto completo de sprint: produto, cliente,
@@ -334,6 +355,15 @@ export function CompanyHub() {
                     </Badge>
                     {!company.is_active && (
                       <Badge variant="secondary">Inativa</Badge>
+                    )}
+                    {(templateCounts.get(company.id) ?? 0) > 0 && (
+                      <Link
+                        href="/admin/sprints/templates"
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        <ClipboardList className="h-3 w-3" aria-hidden="true" />
+                        {templateCounts.get(company.id)} {templateCounts.get(company.id) === 1 ? "vaga" : "vagas"}
+                      </Link>
                     )}
                   </div>
                   {company.description && (

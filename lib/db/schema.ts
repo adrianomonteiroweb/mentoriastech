@@ -1262,6 +1262,8 @@ export const simTemplateTasks = pgTable("sim_template_tasks", {
     .default("backlog"),
   sortOrder: integer("sort_order").notNull().default(0),
   evaluationRules: jsonb("evaluation_rules").$type<SimEvaluationRule[]>(),
+  // Gabarito padrão (markdown), copiado p/ a sprint task na instanciação.
+  solutionMarkdown: text("solution_markdown"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -1378,6 +1380,10 @@ export const simSprintTasks = pgTable("sim_sprint_tasks", {
   sortOrder: integer("sort_order").notNull().default(0),
   evaluationRules: jsonb("evaluation_rules").$type<SimEvaluationRule[]>(),
   lastEvaluation: jsonb("last_evaluation").$type<SimEvaluationResult>(),
+  // Gabarito desta instância. released_at NULL = oculto p/ o mentorado;
+  // quando o mentor libera, recebe o timestamp e o mentorado passa a ver.
+  solutionMarkdown: text("solution_markdown"),
+  solutionReleasedAt: timestamp("solution_released_at", { withTimezone: true }),
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdBy: uuid("created_by").references(() => profiles.id, {
@@ -1426,6 +1432,11 @@ export const simDailyMessages = pgTable("sim_daily_messages", {
   authorId: uuid("author_id").references(() => profiles.id, {
     onDelete: "set null",
   }),
+  // Tipo da mensagem: progresso da daily, impedimento ou dúvida.
+  // Só 'doubt'/'impediment' vão para o inbox do mentor; 'daily' fica na timeline.
+  kind: text("kind", { enum: ["daily", "impediment", "doubt"] })
+    .notNull()
+    .default("daily"),
   body: text("body").notNull(),
   taskId: uuid("task_id").references(() => simSprintTasks.id, {
     onDelete: "set null",
@@ -1461,6 +1472,7 @@ export const simScoreEvents = pgTable("sim_score_events", {
       "architecture",
       "communication",
       "general",
+      "agile",
     ],
   })
     .notNull()
@@ -1468,6 +1480,9 @@ export const simScoreEvents = pgTable("sim_score_events", {
   delta: integer("delta").notNull(),
   reason: text("reason").notNull(),
   sprintDay: integer("sprint_day").notNull(),
+  // Chave estável dos eventos ágeis automáticos (ex.: "daily:3", "done:<taskId>").
+  // Único por (sprint_id, event_key) → cada comportamento pontua uma vez só.
+  eventKey: text("event_key"),
   supersededAt: timestamp("superseded_at", { withTimezone: true }),
   createdBy: uuid("created_by").references(() => profiles.id, {
     onDelete: "set null",

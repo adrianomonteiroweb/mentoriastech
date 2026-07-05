@@ -716,6 +716,9 @@ export type SimScoreCategory =
   | "architecture"
   | "communication"
   | "general"
+  | "agile"
+/** Tipo da mensagem na daily: progresso (standup), impedimento ou dúvida. */
+export type SimDailyMessageKind = "daily" | "impediment" | "doubt"
 
 export interface SimCompanyApi {
   id: string
@@ -744,6 +747,7 @@ export interface SimTemplateTaskApi {
   initial_status: "backlog" | "todo"
   sort_order: number
   evaluation_rules?: SimEvaluationRule[] | null
+  solution_markdown: string | null
   created_at: string
 }
 
@@ -792,6 +796,10 @@ export interface SimSprintTaskApi {
   sort_order: number
   has_rules: boolean
   last_evaluation: SimEvaluationResult | null
+  /** Gabarito liberado pelo mentor? (sempre presente; conteúdo só quando liberado) */
+  solution_released: boolean
+  /** Só preenchido quando liberado (mentee) ou p/ o mentor; senão null. */
+  solution_markdown: string | null
   submitted_at: string | null
   approved_at: string | null
   created_at: string
@@ -807,6 +815,7 @@ export interface SimScoreEventApi {
   delta: number
   reason: string
   sprint_day: number
+  event_key: string | null
   created_at: string
 }
 
@@ -814,6 +823,7 @@ export interface SimDailyMessageApi {
   id: string
   sprint_id: string
   author_role: SimAuthorRole
+  kind: SimDailyMessageKind
   author_name: string | null
   body: string
   task_id: string | null
@@ -845,6 +855,7 @@ export interface SimSprintApi {
   done_count?: number
   task_count?: number
   unread_count?: number
+  doubt_count?: number
 }
 
 export interface SimSprintHubApi extends SimSprintApi {

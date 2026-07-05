@@ -12,6 +12,7 @@ const CATEGORY_LABELS: Record<SimScoreCategory, string> = {
   architecture: "Arquitetura",
   communication: "Comunicação",
   general: "Geral",
+  agile: "Metodologia Ágil",
 }
 
 interface ScoreData {

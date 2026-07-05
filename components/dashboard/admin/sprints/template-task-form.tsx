@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, Loader2, ShieldCheck } from "lucide-react"
+import { BookCheck, ChevronDown, Loader2, ShieldCheck } from "lucide-react"
 import { RulesEditor } from "./rules-editor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,6 +41,7 @@ export interface TaskFormValues {
   initial_status: "backlog" | "todo"
   sort_order?: number
   evaluation_rules: SimEvaluationRule[] | null
+  solution_markdown: string
 }
 
 function ruleIsComplete(rule: SimEvaluationRule): boolean {
@@ -82,6 +83,10 @@ export function TemplateTaskForm({ initial, submitLabel, onSubmit }: Props) {
   const [rulesOpen, setRulesOpen] = useState(
     Boolean(initial?.evaluation_rules?.length),
   )
+  const [solution, setSolution] = useState(initial?.solution_markdown ?? "")
+  const [solutionOpen, setSolutionOpen] = useState(
+    Boolean(initial?.solution_markdown),
+  )
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -102,6 +107,7 @@ export function TemplateTaskForm({ initial, submitLabel, onSubmit }: Props) {
         initial_status: initialStatus,
         sort_order: initial?.sort_order,
         evaluation_rules: rules.length > 0 ? rules : null,
+        solution_markdown: solution,
       })
       if (ok && !initial) {
         setTitle("")
@@ -111,6 +117,8 @@ export function TemplateTaskForm({ initial, submitLabel, onSubmit }: Props) {
         setInitialStatus("backlog")
         setRules([])
         setRulesOpen(false)
+        setSolution("")
+        setSolutionOpen(false)
       }
     } finally {
       setSaving(false)
@@ -225,6 +233,38 @@ export function TemplateTaskForm({ initial, submitLabel, onSubmit }: Props) {
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           <RulesEditor value={rules} onChange={setRules} />
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Collapsible open={solutionOpen} onOpenChange={setSolutionOpen}>
+        <CollapsibleTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-between min-h-[44px]"
+          >
+            <span className="flex items-center gap-2">
+              <BookCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+              Gabarito {solution.trim() ? "(preenchido)" : "(opcional)"}
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${solutionOpen ? "rotate-180" : ""}`}
+              aria-hidden="true"
+            />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <Textarea
+            rows={6}
+            maxLength={20_000}
+            value={solution}
+            onChange={(e) => setSolution(e.target.value)}
+            placeholder={"Solução de referência em markdown (aceita ```blocos de código```).\nO mentorado só vê depois que você liberar na task."}
+            aria-label="Gabarito da task (markdown)"
+          />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Fica oculto para o mentorado até você liberar o gabarito na task.
+          </p>
         </CollapsibleContent>
       </Collapsible>
 

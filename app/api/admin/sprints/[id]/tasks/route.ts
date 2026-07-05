@@ -55,6 +55,7 @@ export async function POST(
         status: parsed.data.initial_status,
         sortOrder: parsed.data.sort_order ?? 0,
         evaluationRules: parsed.data.evaluation_rules ?? null,
+        solutionMarkdown: parsed.data.solution_markdown || null,
         createdBy: mentor.id,
       })
       .returning()
@@ -69,7 +70,7 @@ export async function POST(
     })
 
     return NextResponse.json(
-      { data: toSimSprintTaskApi(data) },
+      { data: toSimSprintTaskApi(data, { revealSolution: true }) },
       { status: 201 },
     )
   } catch (error) {

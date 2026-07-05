@@ -8,6 +8,7 @@ import {
   toSimDailyMessageApi,
 } from "@/lib/db/sim"
 import { getSprintDay } from "@/lib/sim/sprint-day"
+import { awardDailyStandup, awardImpediment } from "@/lib/sim/agile-scoring"
 import { simMessageSchema } from "@/lib/sim/validation"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { ensureProfileForMenteeEmail } from "@/lib/utils/mentee-resume"
@@ -101,11 +102,19 @@ export async function POST(
         sprintId: id,
         authorRole: "mentee",
         authorId: profile.id,
+        kind: parsed.data.kind,
         body: parsed.data.body,
         taskId: parsed.data.task_id || null,
         sprintDay: getSprintDay(sprint.startedAt, sprint.durationDays),
       })
       .returning()
+
+    // Pontuação de metodologia ágil (idempotente por dia): fez a daily / sinalizou impedimento.
+    if (parsed.data.kind === "daily") {
+      await awardDailyStandup(sprint)
+    } else if (parsed.data.kind === "impediment") {
+      await awardImpediment(sprint)
+    }
 
     return NextResponse.json(
       {

@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ClipboardList, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
+import Link from "next/link"
+import { ArrowLeft, ClipboardList, Loader2, Pencil, Plus, Trash2 } from "lucide-react"
 import { TemplateTaskForm, type TaskFormValues } from "./template-task-form"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -429,6 +430,14 @@ export function TemplatesManager() {
 
   return (
     <div className="flex flex-col gap-4">
+      <Link
+        href="/admin/sprints"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors min-h-[40px] self-start"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Sprints
+      </Link>
+
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
           Cada vaga é um template de sprint: objetivos, duração e tasks que o
@@ -472,7 +481,13 @@ export function TemplatesManager() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {template.company?.name} · Nível {template.level} ·{" "}
+                    <Link
+                      href="/admin/sprints/empresa"
+                      className="hover:text-primary hover:underline"
+                    >
+                      {template.company?.name}
+                    </Link>
+                    {" · "}Nível {template.level} ·{" "}
                     {template.duration_days} dias · {template.task_count ?? 0} tasks
                   </p>
                 </div>

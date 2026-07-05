@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   DndContext,
   PointerSensor,
@@ -12,6 +12,7 @@ import {
 import { Lightbulb } from "lucide-react"
 import { KanbanCard } from "./kanban-card"
 import { TaskDetailSheet } from "./task-detail-sheet"
+import { ConceptTip } from "./concept-tip"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,15 @@ import {
 } from "@/lib/sim/task-transitions"
 import type { SimSprintTaskApi, SimTaskStatus } from "@/lib/types/database"
 
+/** Explicação de cada coluna do Kanban (ensina o fluxo a quem não conhece SCRUM). */
+const COLUMN_TIPS: Record<SimTaskStatus, string> = {
+  backlog: "Tudo que pode ser feito, ainda não priorizado para agora.",
+  todo: "Priorizado para esta sprint e pronto para você começar.",
+  doing: "Em andamento agora. Mantenha só 1 task aqui — é o WIP limit, que garante foco.",
+  review: "Entregue para revisão: a avaliação automática roda e o Tech Lead confere.",
+  done: "Concluída e aprovada pelo Tech Lead. Cada Done te aproxima da meta da sprint.",
+}
+
 interface Props {
   tasks: SimSprintTaskApi[]
   role: SimActorRole
@@ -39,6 +49,11 @@ interface Props {
   onReevaluate?: (taskId: string) => void
   /** Mentee: abre a IDE de execução para a task (só quando disponível). */
   onEnterIde?: (task: SimSprintTaskApi) => void
+  /** Mentor: salva/edita o gabarito e libera/oculta para o mentorado. */
+  onSolutionChange?: (
+    taskId: string,
+    patch: { solution_markdown?: string; solution_released?: boolean },
+  ) => Promise<void>
 }
 
 function KanbanColumn({
@@ -61,7 +76,12 @@ function KanbanColumn({
       }`}
     >
       <h3 className="flex items-center justify-between text-sm font-semibold text-foreground">
-        {SIM_TASK_STATUS_LABELS[status]}
+        <span className="flex items-center gap-1.5">
+          {SIM_TASK_STATUS_LABELS[status]}
+          <ConceptTip title={SIM_TASK_STATUS_LABELS[status]}>
+            {COLUMN_TIPS[status]}
+          </ConceptTip>
+        </span>
         <span
           className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground tabular-nums"
           aria-hidden="true"
@@ -81,6 +101,7 @@ export function SprintKanban({
   onMove,
   onReevaluate,
   onEnterIde,
+  onSolutionChange,
 }: Props) {
   const [announcement, setAnnouncement] = useState("")
   const [selectedTask, setSelectedTask] = useState<SimSprintTaskApi | null>(null)
@@ -92,6 +113,13 @@ export function SprintKanban({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
+
+  // Mantém o detalhe aberto em sincronia após reload (ex.: salvar/liberar gabarito).
+  useEffect(() => {
+    setSelectedTask((current) =>
+      current ? (tasks.find((t) => t.id === current.id) ?? current) : current,
+    )
+  }, [tasks])
 
   const byStatus = useMemo(() => {
     const map = new Map<SimTaskStatus, SimSprintTaskApi[]>()
@@ -150,8 +178,15 @@ export function SprintKanban({
       {doingCount > 1 && (
         <p className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-600 dark:text-yellow-400">
           <Lightbulb className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Dica do Tech Lead: foque em 1 task por vez — termine antes de puxar a
-          próxima.
+          <span>
+            Dica do Tech Lead: foque em 1 task por vez — termine antes de puxar
+            a próxima.
+          </span>
+          <ConceptTip title="WIP limit" className="text-yellow-600 dark:text-yellow-400">
+            WIP = Work In Progress (trabalho em andamento). Limitar quantas tasks
+            você toca ao mesmo tempo reduz retrabalho e faz o time entregar mais
+            rápido.
+          </ConceptTip>
         </p>
       )}
 
@@ -180,6 +215,7 @@ export function SprintKanban({
                       task={task}
                       allowedTargets={getAllowedTransitions(role, task.status)}
                       disabled={disabled}
+                      role={role}
                       onMove={requestMove}
                       onOpen={setSelectedTask}
                       onEnterIde={onEnterIde}
@@ -217,6 +253,7 @@ export function SprintKanban({
               }
             : undefined
         }
+        onSolutionChange={onSolutionChange}
       />
 
       <AlertDialog

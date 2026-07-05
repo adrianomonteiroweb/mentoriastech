@@ -64,11 +64,11 @@ export function SprintsAdminPanel({ basePath, showManagement }: Props) {
             Candidaturas
           </TabsTrigger>
           <TabsTrigger value="duvidas" className="min-h-[44px] gap-1.5">
-            Dúvidas
+            Dúvidas & impedimentos
             {doubtCount > 0 && (
               <Badge
                 className="h-5 min-w-5 px-1 justify-center"
-                aria-label={`${doubtCount} dúvidas não lidas`}
+                aria-label={`${doubtCount} mensagens aguardando resposta`}
               >
                 {doubtCount}
               </Badge>

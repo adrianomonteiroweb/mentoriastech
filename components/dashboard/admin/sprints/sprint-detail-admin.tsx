@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Flag, Loader2, Plus } from "lucide-react"
+import { ArrowLeft, Code2, Flag, Loader2, Plus } from "lucide-react"
 import { SprintHeader } from "@/components/minhas-mentorias/sprint/sprint-header"
 import { SprintKanban } from "@/components/minhas-mentorias/sprint/sprint-kanban"
 import { DailyChat } from "@/components/minhas-mentorias/sprint/daily-chat"
 import { ScorePanel } from "@/components/minhas-mentorias/sprint/score-panel"
-import { WorkspacePanel } from "@/components/minhas-mentorias/sprint/workspace/workspace-panel"
 import { SprintIde } from "@/components/minhas-mentorias/sprint/ide/sprint-ide"
 import { TemplateTaskForm, type TaskFormValues } from "./template-task-form"
 import { Button } from "@/components/ui/button"
@@ -23,7 +22,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import type { SimSprintHubApi, SimTaskStatus } from "@/lib/types/database"
+import type {
+  SimSprintHubApi,
+  SimSprintTaskApi,
+  SimTaskStatus,
+} from "@/lib/types/database"
 
 interface SprintDetail extends SimSprintHubApi {
   mentee: { id: string; full_name: string | null; email: string } | null
@@ -32,6 +35,16 @@ interface SprintDetail extends SimSprintHubApi {
 interface Props {
   sprintId: string
   basePath: string
+}
+
+/** Task inicial ao abrir a IDE pela aba: a em andamento → senão a próxima → senão a 1ª. */
+function pickIdeTask(tasks: SimSprintTaskApi[]): SimSprintTaskApi | null {
+  return (
+    tasks.find((t) => t.status === "doing") ??
+    tasks.find((t) => t.status === "todo") ??
+    tasks[0] ??
+    null
+  )
 }
 
 export function SprintDetailAdmin({ sprintId, basePath }: Props) {
@@ -57,11 +70,16 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
     load()
   }, [load])
 
-  // Link do inbox de dúvidas abre direto na aba Daily (?tab=daily)
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get("tab")
-    if (wanted === "daily" || wanted === "pontuacao") setTab(wanted)
+    if (wanted === "daily" || wanted === "pontuacao" || wanted === "ide") setTab(wanted)
   }, [])
+
+  useEffect(() => {
+    if (tab === "ide" && sprint && sprint.tasks.length > 0 && !ideTaskId) {
+      setIdeTaskId(pickIdeTask(sprint.tasks)?.id ?? null)
+    }
+  }, [tab, sprint, ideTaskId])
 
   async function handleMove(taskId: string, toStatus: SimTaskStatus) {
     if (!sprint) return
@@ -107,6 +125,30 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
       `Avaliação executada: ${passed}/${total} critérios · ${json.score_delta >= 0 ? "+" : ""}${json.score_delta} pts`,
     )
     setScoreKey((key) => key + 1)
+    load()
+  }
+
+  async function handleSolutionChange(
+    taskId: string,
+    patch: { solution_markdown?: string; solution_released?: boolean },
+  ) {
+    const res = await fetch(`/api/admin/sprints/${sprintId}/tasks/${taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok) {
+      toast.error(json?.error || "Erro ao salvar gabarito")
+      return
+    }
+    toast.success(
+      patch.solution_released === undefined
+        ? "Gabarito salvo"
+        : patch.solution_released
+          ? "Gabarito liberado para o mentorado"
+          : "Gabarito ocultado",
+    )
     load()
   }
 
@@ -226,8 +268,9 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
           <TabsTrigger value="pontuacao" className="min-h-[44px]">
             Pontuação
           </TabsTrigger>
-          <TabsTrigger value="workspace" className="min-h-[44px]">
-            Workspace
+          <TabsTrigger value="ide" className="min-h-[44px] gap-1.5">
+            <Code2 className="h-4 w-4" aria-hidden="true" />
+            IDE
           </TabsTrigger>
         </TabsList>
 
@@ -239,6 +282,7 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
             onMove={handleMove}
             onReevaluate={handleReevaluate}
             onEnterIde={(task) => setIdeTaskId(task.id)}
+            onSolutionChange={handleSolutionChange}
           />
         </TabsContent>
 
@@ -264,12 +308,34 @@ export function SprintDetailAdmin({ sprintId, basePath }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="workspace" className="mt-4">
-          <WorkspacePanel
-            treeEndpoint={`/api/admin/sprints/${sprintId}/workspace`}
-            fileEndpoint={`/api/admin/sprints/${sprintId}/workspace`}
-            readOnly
-          />
+        <TabsContent value="ide" className="mt-4">
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <Code2 className="h-7 w-7 text-primary" aria-hidden="true" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">
+                Abrir o workspace do mentorado na IDE
+              </h3>
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                Veja os arquivos, o enunciado das tasks e a avaliação em tela
+                cheia — a mesma IDE acessível pelo card do quadro.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              disabled={sprint.tasks.length === 0}
+              onClick={() => setIdeTaskId(pickIdeTask(sprint.tasks)?.id ?? null)}
+            >
+              <Code2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Abrir IDE
+            </Button>
+            {sprint.tasks.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma task na sprint ainda.
+              </p>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -7,6 +7,7 @@ import {
   toSimSprintTaskApi,
 } from "@/lib/db/sim"
 import { runTaskEvaluation } from "@/lib/sim/run-evaluation"
+import { awardFlowToReview } from "@/lib/sim/agile-scoring"
 import { simMoveTaskSchema } from "@/lib/sim/validation"
 import { logAuditEvent } from "@/lib/audit"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
@@ -49,6 +50,11 @@ export async function PATCH(
 
     if (!task) {
       return NextResponse.json({ error: "Task nao encontrada" }, { status: 404 })
+    }
+
+    // Pontuação de fluxo do Kanban: conta o WIP em Doing ANTES do move.
+    if (parsed.data.to_status === "review" && task.status !== "review") {
+      await awardFlowToReview({ sprint, taskId })
     }
 
     const updated = await moveSprintTask({

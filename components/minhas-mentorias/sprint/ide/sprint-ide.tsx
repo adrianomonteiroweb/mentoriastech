@@ -3,6 +3,7 @@
 import { useState } from "react"
 import {
   ArrowLeft,
+  BookCheck,
   BookOpen,
   ChevronDown,
   Code2,
@@ -25,6 +26,11 @@ import { TASK_TYPE_LABELS } from "../kanban-card"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Dialog,
   DialogContent,
@@ -246,6 +252,33 @@ export function SprintIde({
                 </p>
               )}
             </div>
+
+            {activeTask.solution_markdown && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-between"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <BookCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                      Ver gabarito
+                    </span>
+                    <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <p className="mb-2 rounded-lg bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                    Tente resolver sozinho primeiro — o gabarito é para comparar
+                    e aprender depois.
+                  </p>
+                  <div className="rounded-lg border border-border bg-card p-3">
+                    <SimMarkdown markdown={activeTask.solution_markdown} />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
 
             {sprint.tasks.length > 1 && (
               <div className="space-y-1.5">

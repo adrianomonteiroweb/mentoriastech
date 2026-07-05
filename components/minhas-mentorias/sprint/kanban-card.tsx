@@ -2,7 +2,7 @@
 
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowRightLeft, Code2, GripVertical } from "lucide-react"
+import { ArrowRightLeft, BookCheck, Code2, GripVertical } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +30,7 @@ interface Props {
   task: SimSprintTaskApi
   allowedTargets: TransitionStatus[]
   disabled?: boolean
+  role?: "mentee" | "mentor"
   onMove: (taskId: string, toStatus: SimTaskStatus) => void
   onOpen: (task: SimSprintTaskApi) => void
   /** Abre a IDE de execução para esta task (mentee). */
@@ -44,6 +45,7 @@ export function KanbanCard({
   task,
   allowedTargets,
   disabled,
+  role,
   onMove,
   onOpen,
   onEnterIde,
@@ -84,6 +86,14 @@ export function KanbanCard({
           <span className="text-xs text-muted-foreground tabular-nums shrink-0">
             {task.points} pts
           </span>
+          {role === "mentor" && task.solution_markdown && (
+            <span
+              title={task.solution_released ? "Gabarito liberado" : "Gabarito salvo (não liberado)"}
+              className={`inline-flex items-center shrink-0 ${task.solution_released ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}
+            >
+              <BookCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-1">

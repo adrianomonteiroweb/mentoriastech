@@ -33,6 +33,8 @@ export async function PUT(
     if (d.sort_order !== undefined) updateData.sortOrder = d.sort_order
     if (d.evaluation_rules !== undefined)
       updateData.evaluationRules = d.evaluation_rules
+    if (d.solution_markdown !== undefined)
+      updateData.solutionMarkdown = d.solution_markdown || null
 
     const [data] = await db
       .update(simTemplateTasks)

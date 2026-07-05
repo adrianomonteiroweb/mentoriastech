@@ -69,7 +69,7 @@ export async function GET(
           full_name: row.menteeName,
           email: row.menteeEmail,
         },
-        tasks: tasks.map(toSimSprintTaskApi),
+        tasks: tasks.map((t) => toSimSprintTaskApi(t, { revealSolution: true })),
         company_docs: row.company
           ? {
               name: row.company.name,
