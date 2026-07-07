@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Geist, Geist_Mono } from 'next/font/google'
 
 import './globals.css'
 import { PWARegister } from '@/components/pwa-register'
@@ -8,8 +8,8 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeColorMeta, ThemeToggle } from '@/components/theme-toggle'
 import { SITE_URL } from '@/lib/site'
 
-const _inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const _jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-jetbrains' })
+const _geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
+const _geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d1117' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a2a44' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -64,7 +64,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${_inter.variable} ${_jetbrains.variable} font-sans antialiased`}>
+      <body className={`${_geistSans.variable} ${_geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

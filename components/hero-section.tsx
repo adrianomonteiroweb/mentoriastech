@@ -1,109 +1,68 @@
-import Link from "next/link";
-import { ArrowRight, Bot, Clock, Code2, GraduationCap } from "lucide-react";
+import { ArrowDown, Check, Gift, ShieldCheck, Sparkles } from "lucide-react";
 
-const highlights = [
-  { label: "Carreira Tech", icon: GraduationCap },
-  { label: "Software", icon: Code2 },
-  { label: "RPA", icon: Bot },
+const DELIVERABLES = [
+  "Análise do LinkedIn",
+  "Revisão de currículo",
+  "Busca de vagas",
+  "Preparo p/ entrevistas",
 ];
-
-function Logo() {
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 64 64"
-        className="h-16 w-16 drop-shadow-lg sm:h-20 sm:w-20"
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient
-            id="hero-bg"
-            x1="0"
-            y1="0"
-            x2="64"
-            y2="64"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0" stopColor="#0d1117" />
-            <stop offset="1" stopColor="#161b22" />
-          </linearGradient>
-          <linearGradient
-            id="hero-fg"
-            x1="0"
-            y1="0"
-            x2="64"
-            y2="64"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0" stopColor="#60a5fa" />
-            <stop offset="1" stopColor="#3b82f6" />
-          </linearGradient>
-        </defs>
-        <rect width="64" height="64" rx="14" fill="url(#hero-bg)" />
-        <g
-          fill="none"
-          stroke="url(#hero-fg)"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M 19 20 L 12 32 L 19 44" />
-          <path d="M 35 20 L 29 44" />
-          <path d="M 45 20 L 52 32 L 45 44" />
-        </g>
-      </svg>
-
-      <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        Mentorias
-        <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-          Tech
-        </span>
-      </h1>
-    </div>
-  );
-}
 
 export function HeroSection() {
   return (
-    <header className="flex flex-col items-center gap-5 text-center">
-      <Logo />
-
-      <div className="flex flex-col items-center gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-          Conecte-se. Cresça. Transforme.
-        </p>
-        <p className="max-w-sm text-sm font-medium leading-relaxed text-foreground/85">
-          Plataforma de mentorias em busca de oportunidades, posicionamento de
-          carreira e evolução em soft e hard skills.
-        </p>
-      </div>
-
-      <div className="grid w-full grid-cols-3 gap-2">
-        {highlights.map(({ label, icon: Icon }) => (
-          <span
-            key={label}
-            className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/60 px-2 text-[11px] font-medium text-secondary-foreground"
-          >
-            <Icon className="h-3.5 w-3.5 text-primary" />
-            {label}
+    <section className="relative overflow-hidden">
+      {/* brilho da marca, apenas decorativo */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+      />
+      <div className="mx-auto max-w-3xl px-4 pb-2 pt-6 sm:px-6 sm:pt-10">
+        {/* Posicionamento */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Mentorias para carreira em tecnologia
           </span>
-        ))}
-      </div>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Gift className="h-3.5 w-3.5 text-primary" />
+            Gratuita
+          </span>
+        </div>
 
-      <div className="flex w-full flex-col items-center gap-2">
-        <Link
+        <h1 className="mt-4 text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          Sua mentoria <span className="text-primary">gratuita</span> para
+          conquistar a vaga em tech
+        </h1>
+        <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
+          Em uma conversa, revisamos juntos seu LinkedIn, seu currículo, sua
+          estratégia de busca de vagas e preparamos você para as entrevistas.
+        </p>
+
+        {/* Entregáveis concretos */}
+        <ul className="mt-4 grid grid-cols-2 gap-2">
+          {DELIVERABLES.map((item) => (
+            <li
+              key={item}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium"
+            >
+              <Check className="h-4 w-4 shrink-0 text-primary" />
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA principal (o dock inferior é o alvo de polegar no mobile) */}
+        <a
           href="#booking"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/15 transition-all duration-200 hover:bg-primary/90 focus-visible:bg-primary/90"
+          className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90"
         >
-          Solicitar mentoria
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <p className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600/90 dark:text-amber-300/90">
-          <Clock className="h-3 w-3" aria-hidden="true" />
-          Poucas vagas gratuitas por mês
+          Solicitar minha mentoria gratuita
+          <ArrowDown className="h-4 w-4" />
+        </a>
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          100% gratuita · sem compromisso
         </p>
       </div>
-    </header>
+    </section>
   );
 }

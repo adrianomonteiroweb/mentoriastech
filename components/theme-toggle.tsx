@@ -20,7 +20,7 @@ import {
 
 const THEME_COLORS = {
   light: "#f8fafc",
-  dark: "#0d1117",
+  dark: "#1a2a44",
 }
 
 const OPTIONS = [

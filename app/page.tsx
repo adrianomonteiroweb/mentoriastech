@@ -1,7 +1,8 @@
 import { PlatformLinks } from "@/components/platform-links";
 import { HeroSection } from "@/components/hero-section";
-import { ShareButton } from "@/components/share-button";
-import { SocialLinks } from "@/components/social-links";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { ThumbDock } from "@/components/thumb-dock";
 import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
 import { FreeSlotsNotice } from "@/components/booking/free-slots-notice";
 import { PageViewTracker } from "@/components/page-view-tracker";
@@ -9,26 +10,21 @@ import { CalendarDays } from "lucide-react";
 
 export default function Page() {
   return (
-    <main className="flex min-h-screen flex-col items-center bg-background px-4 py-8 md:py-14">
+    <>
       <PageViewTracker path="/" />
-      <div className="flex w-full max-w-lg flex-col gap-7">
-        <HeroSection />
+      <SiteHeader />
 
-        <SocialLinks />
+      <main className="pb-6">
+        <HeroSection />
 
         <PlatformLinks />
 
-        <ShareButton
-          path="/"
-          title="MentoriasTech"
-          text="Plataforma de mentorias em tecnologia. Conecte-se. Cresça. Transforme."
-          label="Compartilhe com alguém"
-          tracking={{ type: "page", path: "/", label: "Página principal" }}
-          className="w-full border border-primary/20 bg-primary/10 text-primary hover:bg-primary/15"
-        />
-
-        <div className="flex flex-col gap-5">
-          <div className="flex items-center gap-2">
+        <section
+          id="booking"
+          aria-label="Solicitar mentoria"
+          className="mx-auto w-full max-w-xl scroll-mt-20 px-4 py-6 sm:px-6"
+        >
+          <div className="mb-5 flex items-center gap-2">
             <div className="h-px flex-1 bg-border" />
             <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
@@ -37,11 +33,7 @@ export default function Page() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <section
-            className="scroll-mt-6 rounded-lg border border-primary/20 bg-card p-5 shadow-xl shadow-black/20 sm:p-6"
-            id="booking"
-            aria-label="Solicitar mentoria"
-          >
+          <div className="rounded-2xl border border-primary/20 bg-card p-5 shadow-xl shadow-black/10 sm:p-6">
             <div className="mb-4 flex flex-col gap-1.5 text-center">
               <h2 className="text-lg font-semibold text-foreground">
                 Solicite uma conversa de mentoria
@@ -55,21 +47,12 @@ export default function Page() {
               <FreeSlotsNotice />
             </div>
             <MentorshipRequestTabs />
-          </section>
-        </div>
+          </div>
+        </section>
+      </main>
 
-        <footer className="flex flex-col items-center gap-1 text-center">
-          <p className="text-xs text-muted-foreground">
-            {"MentoriasTech"} &middot; {new Date().getFullYear()}
-          </p>
-          <a
-            href="/login"
-            className="text-[10px] text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-          >
-            Área de admin
-          </a>
-        </footer>
-      </div>
-    </main>
+      <SiteFooter />
+      <ThumbDock />
+    </>
   );
 }
