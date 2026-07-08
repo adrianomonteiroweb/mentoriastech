@@ -101,11 +101,20 @@ export async function GET(request: Request) {
         AND ${bookings.mentorId} = ${actorMentorId}
       )`)
     }
+    const mentorIdParam = searchParams.get("mentorId")?.trim()
+    if (mentorIdParam) {
+      filters.push(sql`EXISTS (
+        SELECT 1 FROM ${bookings}
+        WHERE ${bookings.menteeId} = ${profiles.id}
+        AND ${bookings.mentorId} = ${mentorIdParam}
+      )`)
+    }
     if (search) {
       filters.push(
         or(
           ilike(profiles.fullName, `%${search}%`),
           ilike(profiles.email, `%${search}%`),
+          ilike(profiles.whatsapp, `%${search}%`),
         )!,
       )
     }

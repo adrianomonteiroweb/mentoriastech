@@ -16,28 +16,46 @@ export const dynamic = "force-dynamic"
 
 const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
 
-// O admin escolhe o mentorado (profile_id) e o WhatsApp é obrigatório; o resto
-// tem os mesmos defaults do fluxo do mentorado (defaultJobAlert).
-const createSchema = z.object({
-  profile_id: z.string().uuid("Selecione um mentorado válido."),
+const whatsappField = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/\D/g, ""))
+  .refine((digits) => digits.length >= 10 && digits.length <= 13, {
+    message: "Informe um WhatsApp válido (DDD + número).",
+  })
+
+const alertFields = {
   enabled: z.boolean().default(true),
   name: z.string().trim().max(120).optional().or(z.literal("")),
-  whatsapp: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 10 && digits.length <= 13, {
-      message: "Informe um WhatsApp válido (DDD + número).",
-    }),
+  whatsapp: whatsappField,
   positions: keywordArray.default([]),
   stack: keywordArray.default([]),
   levels: z.array(z.enum(["internship", "junior", "mid", "senior"])).max(4).default([]),
   ignore_words: keywordArray.default([]),
   is_international: z.boolean().default(true),
   daily_limit: z.number().int().min(1).max(50).default(10),
+}
+
+// Mentorado existente: admin escolhe por profile_id.
+const createExistingSchema = z.object({
+  profile_id: z.string().uuid("Selecione um mentorado válido."),
+  ...alertFields,
 })
 
+// Mentorado novo: admin cadastra nome, email e whatsapp inline.
+const createNewMenteeSchema = z.object({
+  new_mentee: z.object({
+    name: z.string().trim().min(1, "Informe o nome.").max(120),
+    email: z.string().trim().email("Informe um email válido.").max(200),
+    whatsapp: whatsappField,
+  }),
+  ...alertFields,
+})
+
+const createSchema = z.union([createExistingSchema, createNewMenteeSchema])
+
 // POST /api/admin/job-alerts — admin inscreve um mentorado no alerta de vagas.
+// Aceita profile_id (mentorado existente) ou new_mentee (cria perfil + inscrição).
 export async function POST(request: Request) {
   try {
     const admin = await requireRole("admin")
@@ -50,20 +68,47 @@ export async function POST(request: Request) {
     }
     const data = parsed.data
 
-    const [existingProfile] = await db
-      .select({ id: profiles.id })
-      .from(profiles)
-      .where(eq(profiles.id, data.profile_id))
-      .limit(1)
+    let profileId: string
 
-    if (!existingProfile) {
-      return NextResponse.json({ error: "Mentorado não encontrado" }, { status: 404 })
+    if ("profile_id" in data) {
+      const [existingProfile] = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(eq(profiles.id, data.profile_id))
+        .limit(1)
+
+      if (!existingProfile) {
+        return NextResponse.json({ error: "Mentorado não encontrado" }, { status: 404 })
+      }
+      profileId = data.profile_id
+    } else {
+      const nm = data.new_mentee
+      const [existing] = await db
+        .select({ id: profiles.id })
+        .from(profiles)
+        .where(eq(profiles.email, nm.email.toLowerCase()))
+        .limit(1)
+
+      if (existing) {
+        profileId = existing.id
+      } else {
+        const [created] = await db
+          .insert(profiles)
+          .values({
+            email: nm.email.toLowerCase(),
+            fullName: nm.name,
+            whatsapp: nm.whatsapp,
+            role: "mentee",
+          })
+          .returning({ id: profiles.id })
+        profileId = created.id
+      }
     }
 
     const [existingSub] = await db
       .select({ id: jobAlertSubscriptions.id })
       .from(jobAlertSubscriptions)
-      .where(eq(jobAlertSubscriptions.profileId, data.profile_id))
+      .where(eq(jobAlertSubscriptions.profileId, profileId))
       .limit(1)
 
     if (existingSub) {
@@ -76,7 +121,7 @@ export async function POST(request: Request) {
     const [inserted] = await db
       .insert(jobAlertSubscriptions)
       .values({
-        profileId: data.profile_id,
+        profileId,
         enabled: data.enabled,
         name: data.name?.trim() || null,
         whatsapp: data.whatsapp,
@@ -118,7 +163,7 @@ export async function POST(request: Request) {
 
     await logAuditEvent({
       actorId: admin.id,
-      targetUserId: data.profile_id,
+      targetUserId: profileId,
       action: "admin_job_alert_created",
       route: new URL(request.url).pathname,
       request,

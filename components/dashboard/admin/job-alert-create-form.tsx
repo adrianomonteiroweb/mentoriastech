@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Loader2, Search } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { Loader2, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { TagInput } from "@/components/minhas-mentorias/shared/tag-input"
@@ -28,10 +28,17 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  const [mentees, setMentees] = useState<Mentee[]>([])
-  const [loadingMentees, setLoadingMentees] = useState(true)
+  const [results, setResults] = useState<Mentee[]>([])
+  const [searchingMentees, setSearchingMentees] = useState(false)
   const [search, setSearch] = useState("")
   const [selectedMentee, setSelectedMentee] = useState<Mentee | null>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Novo mentorado (não existe no sistema)
+  const [isNewMentee, setIsNewMentee] = useState(false)
+  const [newName, setNewName] = useState("")
+  const [newEmail, setNewEmail] = useState("")
+  const [newWhatsapp, setNewWhatsapp] = useState("")
 
   const [enabled, setEnabled] = useState(true)
   const [name, setName] = useState("")
@@ -44,61 +51,94 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
   const [dailyLimit, setDailyLimit] = useState(10)
 
   useEffect(() => {
-    fetch("/api/admin/mentees")
-      .then((r) => r.json())
-      .then((json) => {
-        const list = (json.data || []).map((m: Record<string, unknown>) => ({
-          id: m.id,
-          email: m.email,
-          full_name: m.full_name,
-          whatsapp: m.whatsapp,
-        }))
-        setMentees(list)
-      })
-      .catch(() => setError("Erro ao carregar mentorados."))
-      .finally(() => setLoadingMentees(false))
-  }, [])
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+
+    const q = search.trim()
+    if (!q) {
+      setResults([])
+      setSearchingMentees(false)
+      return
+    }
+
+    setSearchingMentees(true)
+    searchTimer.current = setTimeout(() => {
+      const params = new URLSearchParams({ search: q, pageSize: "20" })
+      fetch(`/api/admin/mentees?${params}`)
+        .then((r) => r.json())
+        .then((json) => {
+          const list = (json.data || []).map((m: Record<string, unknown>) => ({
+            id: m.id as string,
+            email: m.email as string,
+            full_name: m.full_name as string | null,
+            whatsapp: m.whatsapp as string | null,
+          }))
+          setResults(list)
+        })
+        .catch(() => setResults([]))
+        .finally(() => setSearchingMentees(false))
+    }, 300)
+
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current) }
+  }, [search])
 
   function selectMentee(m: Mentee) {
     setSelectedMentee(m)
+    setIsNewMentee(false)
     setName(m.full_name || "")
     setWhatsapp(m.whatsapp || "")
     setSearch("")
+    setResults([])
   }
 
-  const filtered = search.trim()
-    ? mentees.filter((m) => {
-        const q = search.toLowerCase()
-        return (
-          m.email.toLowerCase().includes(q) ||
-          (m.full_name?.toLowerCase().includes(q) ?? false)
-        )
-      })
-    : []
+  function startNewMentee() {
+    setIsNewMentee(true)
+    setSelectedMentee(null)
+    setSearch("")
+    setResults([])
+  }
+
+  function resetSelection() {
+    setSelectedMentee(null)
+    setIsNewMentee(false)
+    setNewName("")
+    setNewEmail("")
+    setNewWhatsapp("")
+    setName("")
+    setWhatsapp("")
+  }
+
+  const canSave = isNewMentee
+    ? newName.trim() && newEmail.trim() && newWhatsapp.trim()
+    : !!selectedMentee
 
   async function save() {
-    if (!selectedMentee) {
-      setError("Selecione um mentorado.")
+    if (!canSave) {
+      setError(isNewMentee ? "Preencha nome, email e WhatsApp." : "Selecione um mentorado.")
       return
     }
     setSaving(true)
     setError("")
     try {
+      const alertFields = {
+        enabled,
+        name: isNewMentee ? newName : name,
+        whatsapp: isNewMentee ? newWhatsapp : whatsapp,
+        positions,
+        stack,
+        levels,
+        ignore_words: ignoreWords,
+        is_international: isInternational,
+        daily_limit: dailyLimit,
+      }
+
+      const body = isNewMentee
+        ? { new_mentee: { name: newName, email: newEmail, whatsapp: newWhatsapp }, ...alertFields }
+        : { profile_id: selectedMentee!.id, ...alertFields }
+
       const res = await fetch("/api/admin/job-alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          profile_id: selectedMentee.id,
-          enabled,
-          name,
-          whatsapp,
-          positions,
-          stack,
-          levels,
-          ignore_words: ignoreWords,
-          is_international: isInternational,
-          daily_limit: dailyLimit,
-        }),
+        body: JSON.stringify(body),
       })
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error || "Erro ao criar inscrição.")
@@ -134,10 +174,51 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => setSelectedMentee(null)}
+              onClick={resetSelection}
             >
               Trocar
             </Button>
+          </div>
+        ) : isNewMentee ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-primary/50 bg-primary/5 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">Novo mentorado</p>
+              <Button size="sm" variant="ghost" onClick={resetSelection}>
+                Trocar
+              </Button>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="new-name" className="text-xs font-medium text-muted-foreground">Nome</label>
+              <input
+                id="new-name"
+                value={newName}
+                onChange={(e) => { setNewName(e.target.value); setName(e.target.value) }}
+                placeholder="Nome completo"
+                className="min-h-10 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="new-email" className="text-xs font-medium text-muted-foreground">Email</label>
+              <input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="min-h-10 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="new-whatsapp" className="text-xs font-medium text-muted-foreground">WhatsApp</label>
+              <input
+                id="new-whatsapp"
+                value={newWhatsapp}
+                onChange={(e) => { setNewWhatsapp(e.target.value); setWhatsapp(e.target.value) }}
+                inputMode="numeric"
+                placeholder="DDD + número (ex: 85986663753)"
+                className="min-h-10 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
           </div>
         ) : (
           <div className="relative">
@@ -145,13 +226,17 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={loadingMentees ? "Carregando mentorados…" : "Buscar por nome ou email…"}
-              disabled={loadingMentees}
+              placeholder="Buscar por nome, email ou WhatsApp…"
               className="min-h-11 w-full rounded-lg border border-border bg-secondary pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            {filtered.length > 0 && (
+            {searchingMentees && search.trim() && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover px-3 py-2 shadow-md">
+                <p className="text-xs text-muted-foreground">Buscando…</p>
+              </div>
+            )}
+            {!searchingMentees && results.length > 0 && (
               <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-md">
-                {filtered.slice(0, 20).map((m) => (
+                {results.map((m) => (
                   <li key={m.id}>
                     <button
                       type="button"
@@ -169,11 +254,21 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
                 ))}
               </ul>
             )}
-            {search.trim() && filtered.length === 0 && !loadingMentees && (
+            {search.trim() && !searchingMentees && results.length === 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
                 Nenhum mentorado encontrado.
               </p>
             )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={startNewMentee}
+              className="mt-2 gap-1.5"
+            >
+              <UserPlus className="h-4 w-4" />
+              Cadastrar novo mentorado
+            </Button>
           </div>
         )}
       </div>
@@ -189,33 +284,35 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
         <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Recebendo vagas" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="jac-name" className="text-sm font-medium text-foreground">
-            Nome
-          </label>
-          <input
-            id="jac-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nome do mentorado"
-            className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
+      {!isNewMentee && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="jac-name" className="text-sm font-medium text-foreground">
+              Nome
+            </label>
+            <input
+              id="jac-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nome do mentorado"
+              className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="jac-whatsapp" className="text-sm font-medium text-foreground">
+              WhatsApp
+            </label>
+            <input
+              id="jac-whatsapp"
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              inputMode="numeric"
+              placeholder="DDD + número (ex: 85986663753)"
+              className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="jac-whatsapp" className="text-sm font-medium text-foreground">
-            WhatsApp
-          </label>
-          <input
-            id="jac-whatsapp"
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-            inputMode="numeric"
-            placeholder="DDD + número (ex: 85986663753)"
-            className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-      </div>
+      )}
 
       <TagSelect
         label="Posições / cargos"
@@ -278,7 +375,7 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={save} disabled={saving || !selectedMentee} className="min-h-11">
+        <Button onClick={save} disabled={saving || !canSave} className="min-h-11">
           {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
           {saving ? "Inscrevendo…" : "Inscrever mentorado"}
         </Button>
