@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BellOff, BellRing, Globe, Pencil, Trash2 } from "lucide-react"
+import { BellOff, BellRing, Globe, Pencil, Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { JobAlertForm } from "@/components/dashboard/admin/job-alert-form"
+import { JobAlertCreateForm } from "@/components/dashboard/admin/job-alert-create-form"
 import { LEVEL_OPTIONS, type AdminJobAlert } from "@/lib/db/job-alerts"
 
 interface JobAlertsTableProps {
@@ -35,6 +36,7 @@ export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [editing, setEditing] = useState<AdminJobAlert | null>(null)
+  const [creating, setCreating] = useState(false)
 
   function load() {
     setLoading(true)
@@ -73,16 +75,27 @@ export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
     load()
   }
 
+  function handleCreateSuccess() {
+    setCreating(false)
+    load()
+  }
+
   const activeCount = items.filter((i) => i.enabled).length
 
   return (
     <div className="flex flex-col gap-2">
-      {!loading && (
-        <p className="text-xs text-muted-foreground">
-          {items.length} inscrito{items.length !== 1 ? "s" : ""} · {activeCount} ativo
-          {activeCount !== 1 ? "s" : ""}
-        </p>
-      )}
+      <div className="flex items-center justify-between">
+        {!loading && (
+          <p className="text-xs text-muted-foreground">
+            {items.length} inscrito{items.length !== 1 ? "s" : ""} · {activeCount} ativo
+            {activeCount !== 1 ? "s" : ""}
+          </p>
+        )}
+        <Button size="sm" onClick={() => setCreating(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          Inscrever mentorado
+        </Button>
+      </div>
       <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
@@ -234,6 +247,17 @@ export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
               subscription={editing}
               onSuccess={handleEditSuccess}
             />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Inscrever mentorado</DialogTitle>
+          </DialogHeader>
+          {creating && (
+            <JobAlertCreateForm onSuccess={handleCreateSuccess} />
           )}
         </DialogContent>
       </Dialog>
