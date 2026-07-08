@@ -24,6 +24,7 @@ const NAV_ITEMS = [
       "/minhas-mentorias/linkedin",
       "/minhas-mentorias/oportunidades",
       "/minhas-mentorias/plano-de-estudos",
+      "/minhas-mentorias/receber-vagas",
     ],
   },
 ]

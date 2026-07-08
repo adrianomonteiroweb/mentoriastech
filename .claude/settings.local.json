@@ -65,7 +65,8 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
       "Bash(xargs grep -l \"JOBS_SHARE_BOT_TOKEN\\\\|JOBS_BOT_PROFILE_ID\")",
       "Bash(xargs grep -l \"jobs\")",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx next *)"
     ]
   }
 }

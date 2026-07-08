@@ -917,6 +917,51 @@ export const studyPlans = pgTable("study_plans", {
 });
 
 // -----------------------------------------------------------------------------
+// JOB_ALERT_SUBSCRIPTIONS — inscrição do mentorado p/ receber vagas no WhatsApp.
+// O bot search-jobs-linkedin lê estas preferências (via /api/bots/job-alerts) e
+// casa cada vaga do LinkedIn contra elas em memória, pelo TÍTULO da vaga. Uma
+// inscrição por mentorado (profile_id unique).
+// -----------------------------------------------------------------------------
+export const jobAlertSubscriptions = pgTable(
+  "job_alert_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .unique()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    // Liga/desliga o recebimento (padrão habilitado).
+    enabled: boolean("enabled").notNull().default(true),
+    // Canal de entrega: nome exibido + número (dígitos DDD+número; o bot prefixa 55).
+    name: text("name"),
+    whatsapp: text("whatsapp"),
+    // Palavras casadas contra o título da vaga (armazenadas em minúsculas).
+    positions: text("positions").array().notNull().default([]),
+    stack: text("stack").array().notNull().default([]),
+    // Subconjunto de internship|junior|mid|senior (níveis que o bot detecta).
+    levels: text("levels").array().notNull().default([]),
+    // Se qualquer palavra aparecer no título, a vaga é ignorada.
+    ignoreWords: text("ignore_words").array().notNull().default([]),
+    // Ver vagas internacionais (padrão true, como o default do bot).
+    isInternational: boolean("is_international").notNull().default(true),
+    // Máximo de vagas por dia (aplicado pelo bot na Fase B).
+    dailyLimit: integer("daily_limit").notNull().default(10),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    check(
+      "job_alert_subscriptions_daily_limit_range",
+      sql`${table.dailyLimit} BETWEEN 1 AND 50`,
+    ),
+  ],
+);
+
+// -----------------------------------------------------------------------------
 // MESSAGE_TEMPLATES — templates de mensagem do sistema
 // -----------------------------------------------------------------------------
 export const messageTemplates = pgTable("message_templates", {

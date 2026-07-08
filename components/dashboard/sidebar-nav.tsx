@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   Award,
   BarChart3,
+  BellRing,
   BookOpen,
   Briefcase,
   CalendarDays,
@@ -60,6 +61,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Trilhas", href: "/admin/trilhas", icon: Route },
     { label: "Inscrições Trilhas", href: "/admin/trilha-enrollments", icon: ClipboardList },
     { label: "Vagas", href: "/admin/jobs", icon: Briefcase },
+    { label: "Receber Vagas", href: "/admin/job-alerts", icon: BellRing },
     { label: "Sprints", href: "/admin/sprints", icon: SquareKanban },
     { label: "Dicas", href: "/admin/tips", icon: Lightbulb },
     { label: "Anúncios", href: "/admin/ads", icon: Megaphone },

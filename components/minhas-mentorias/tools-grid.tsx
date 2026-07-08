@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route, SquareKanban } from "lucide-react"
+import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route, SquareKanban, BellRing } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 const TOOLS = [
@@ -30,6 +30,13 @@ const TOOLS = [
     title: "Painel de Oportunidades",
     description: "Gerencie suas candidaturas e acompanhe cada processo seletivo",
     badge: undefined,
+  },
+  {
+    href: "/minhas-mentorias/receber-vagas",
+    icon: BellRing,
+    title: "Receber Vagas",
+    description: "Receba vagas no WhatsApp conforme suas posições, stack e nível",
+    badge: "Novo",
   },
   {
     href: "/minhas-mentorias/plano-de-estudos",
