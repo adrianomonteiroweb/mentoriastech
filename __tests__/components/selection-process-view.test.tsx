@@ -49,16 +49,24 @@ describe("SelectionProcessView", () => {
     const user = userEvent.setup()
     render(<SelectionProcessView token="shared-token" />)
 
-    const whatsappLink = await screen.findByRole("link", {
+    const whatsappLinks = await screen.findAllByRole("link", {
       name: "Abrir WhatsApp de Maria Silva",
     })
-    expect(whatsappLink).toHaveAttribute("href", "https://wa.me/5585999999999")
-    expect(whatsappLink).toHaveAttribute("target", "_blank")
+    expect(whatsappLinks).toHaveLength(2)
+    whatsappLinks.forEach((whatsappLink) => {
+      expect(whatsappLink).toHaveAttribute("href", "https://wa.me/5585999999999")
+      expect(whatsappLink).toHaveAttribute("target", "_blank")
+    })
 
-    await user.click(screen.getByRole("button", { name: "Copiar email de Maria Silva" }))
+    expect(screen.getByTestId("selection-process-mobile-list")).toHaveClass("md:hidden")
+    expect(screen.getByTestId("selection-process-desktop-table")).toHaveClass("hidden", "md:block")
+
+    const copyButtons = screen.getAllByRole("button", { name: "Copiar email de Maria Silva" })
+    expect(copyButtons).toHaveLength(2)
+    await user.click(copyButtons[0])
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Email copiado" })).toBeInTheDocument()
+      expect(screen.getAllByRole("button", { name: "Email copiado" })).toHaveLength(2)
     })
     expect(await navigator.clipboard.readText()).toBe("maria@example.com")
   })

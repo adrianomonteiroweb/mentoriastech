@@ -136,10 +136,12 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
   const isEdit = permission === "edit"
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div className="rounded-lg border p-4">
+    <div className="flex flex-col gap-4 p-3 sm:gap-6 sm:p-4 md:p-6">
+      <div className="rounded-lg border p-3 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-lg font-semibold">{process.company} — {process.position}</h2>
+          <h2 className="w-full break-words text-base font-semibold sm:w-auto sm:text-lg">
+            {process.company} — {process.position}
+          </h2>
           <Badge variant={process.status === "open" ? "default" : "outline"}>
             {process.status === "open" ? "Aberto" : "Encerrado"}
           </Badge>
@@ -159,7 +161,118 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
             Nenhum candidato neste processo
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border">
+          <>
+            <div data-testid="selection-process-mobile-list" className="grid gap-3 md:hidden">
+              {process.candidates.map((candidate, index) => {
+                const profile = candidate.profiles
+                const whatsappNumber = profile?.whatsapp
+                  ? formatWhatsAppNumber(profile.whatsapp)
+                  : ""
+
+                return (
+                  <article key={candidate.id} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="break-words text-sm font-semibold">
+                          {profile?.full_name || "Sem nome"}
+                        </h4>
+                        {profile?.email && (
+                          <div className="mt-1 flex min-w-0 items-center gap-1">
+                            <span className="min-w-0 break-all text-xs text-muted-foreground">
+                              {profile.email}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyEmail(profile.email!, candidate.id)}
+                              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              title={copiedCandidateId === candidate.id ? "Email copiado" : "Copiar email"}
+                              aria-label={copiedCandidateId === candidate.id ? "Email copiado" : `Copiar email de ${profile.full_name || "candidato"}`}
+                            >
+                              {copiedCandidateId === candidate.id
+                                ? <Check className="h-4 w-4" />
+                                : <Copy className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        )}
+                        {profile?.whatsapp && whatsappNumber && (
+                          <a
+                            href={`https://wa.me/${whatsappNumber}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-flex min-h-8 w-fit items-center gap-1.5 text-xs text-primary hover:underline"
+                            aria-label={`Abrir WhatsApp de ${profile.full_name || "candidato"}`}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            {profile.whatsapp}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Pontuacao
+                      </p>
+                      <ChecklistPopover
+                        candidateId={candidate.id}
+                        checklist={candidate.checklist}
+                        saving={savingId === candidate.id}
+                        readOnly={!isEdit}
+                        onSave={(checklist) => updateCandidate(candidate.id, { checklist })}
+                      />
+                    </div>
+
+                    <div className="mt-3 border-t pt-3">
+                      <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Observacoes
+                      </p>
+                      {isEdit ? (
+                        <Textarea
+                          defaultValue={candidate.notes || ""}
+                          placeholder="Observacoes sobre o candidato"
+                          className="min-h-20 resize-y text-xs"
+                          onBlur={(e) => {
+                            const notes = e.target.value.trim() || null
+                            if (notes !== (candidate.notes || null)) {
+                              updateCandidate(candidate.id, { notes })
+                            }
+                          }}
+                        />
+                      ) : (
+                        <p className="break-words whitespace-pre-wrap text-xs text-muted-foreground">
+                          {candidate.notes || "—"}
+                        </p>
+                      )}
+                    </div>
+
+                    {(profile?.resume_url || profile?.linkedin_url || profile?.portfolio_url) && (
+                      <div className="mt-3 flex flex-wrap gap-2 border-t pt-3">
+                        {profile?.resume_url && (
+                          <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-xs text-primary hover:bg-accent">
+                            <FileText className="h-3.5 w-3.5" /> Curriculo
+                          </a>
+                        )}
+                        {profile?.linkedin_url && (
+                          <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-xs text-primary hover:bg-accent">
+                            <Linkedin className="h-3.5 w-3.5" /> LinkedIn
+                          </a>
+                        )}
+                        {profile?.portfolio_url && (
+                          <a href={profile.portfolio_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border px-2.5 text-xs text-primary hover:bg-accent">
+                            <ExternalLink className="h-3.5 w-3.5" /> Portfolio
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
+
+            <div data-testid="selection-process-desktop-table" className="hidden overflow-x-auto rounded-md border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -267,7 +380,8 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
                 })}
               </TableBody>
             </Table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>
