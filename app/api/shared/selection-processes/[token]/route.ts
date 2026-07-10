@@ -66,6 +66,7 @@ export async function GET(
         profiles: {
           full_name: profile.full_name,
           email: profile.email,
+          whatsapp: profile.whatsapp,
           linkedin_url: profile.linkedin_url,
           portfolio_url: profile.portfolio_url,
           resume_url: profile.resume_url

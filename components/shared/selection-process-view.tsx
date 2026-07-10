@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChecklistPopover } from "@/components/shared/checklist-popover"
-import { ExternalLink, FileText, Linkedin } from "lucide-react"
+import { Check, Copy, ExternalLink, FileText, Linkedin, MessageCircle } from "lucide-react"
 import type { SelectionProcessChecklistItem, ShareLinkPermission } from "@/lib/types/database"
+import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
 interface SharedCandidate {
   id: string
@@ -21,6 +22,7 @@ interface SharedCandidate {
   profiles?: {
     full_name: string | null
     email: string | null
+    whatsapp: string | null
     linkedin_url: string | null
     portfolio_url: string | null
     resume_url: string | null
@@ -47,6 +49,7 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [copiedCandidateId, setCopiedCandidateId] = useState<string | null>(null)
 
   const loadProcess = useCallback(() => {
     setLoading(true)
@@ -80,6 +83,31 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
       loadProcess()
     } finally {
       setSavingId(null)
+    }
+  }
+
+  async function copyEmail(email: string, candidateId: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(email)
+      } else {
+        const textarea = document.createElement("textarea")
+        textarea.value = email
+        textarea.setAttribute("readonly", "")
+        textarea.style.position = "fixed"
+        textarea.style.left = "-9999px"
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand("copy")
+        document.body.removeChild(textarea)
+      }
+
+      setCopiedCandidateId(candidateId)
+      window.setTimeout(() => {
+        setCopiedCandidateId((current) => (current === candidateId ? null : current))
+      }, 1500)
+    } catch {
+      alert("Nao foi possivel copiar o email.")
     }
   }
 
@@ -145,13 +173,43 @@ export function SelectionProcessView({ token }: SelectionProcessViewProps) {
               <TableBody>
                 {process.candidates.map((candidate, index) => {
                   const profile = candidate.profiles
+                  const whatsappNumber = profile?.whatsapp
+                    ? formatWhatsAppNumber(profile.whatsapp)
+                    : ""
                   return (
                     <TableRow key={candidate.id}>
                       <TableCell className="font-medium">{index + 1}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
                           <span className="font-medium">{profile?.full_name || "Sem nome"}</span>
-                          <span className="text-xs text-muted-foreground">{profile?.email}</span>
+                          {profile?.email && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted-foreground">{profile.email}</span>
+                              <button
+                                type="button"
+                                onClick={() => copyEmail(profile.email!, candidate.id)}
+                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                title={copiedCandidateId === candidate.id ? "Email copiado" : "Copiar email"}
+                                aria-label={copiedCandidateId === candidate.id ? "Email copiado" : `Copiar email de ${profile.full_name || "candidato"}`}
+                              >
+                                {copiedCandidateId === candidate.id
+                                  ? <Check className="h-3.5 w-3.5" />
+                                  : <Copy className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                          )}
+                          {profile?.whatsapp && whatsappNumber && (
+                            <a
+                              href={`https://wa.me/${whatsappNumber}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex w-fit items-center gap-1 text-xs text-primary hover:underline"
+                              aria-label={`Abrir WhatsApp de ${profile.full_name || "candidato"}`}
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              {profile.whatsapp}
+                            </a>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
