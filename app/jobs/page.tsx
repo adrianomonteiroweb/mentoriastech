@@ -798,17 +798,17 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Resumo da vaga */}
               {job.summary &&
                 (() => {
                   const rows = parseSummaryRows(job.summary);
                   if (rows.length === 0) return null;
                   return (
-                    <div className="mb-3 overflow-hidden rounded-lg border border-violet-500/20 bg-violet-500/5">
-                      <p className="border-b border-violet-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-300">
+                    <details className="group/summary mb-3 overflow-hidden rounded-lg border border-violet-500/20 bg-violet-500/5">
+                      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 select-none dark:text-violet-300 [&::-webkit-details-marker]:hidden">
                         Resumo da vaga
-                      </p>
-                      <table className="w-full text-sm">
+                        <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/summary:rotate-180" aria-hidden="true" />
+                      </summary>
+                      <table className="w-full border-t border-violet-500/20 text-sm">
                         <tbody>
                           {rows.map((row, i) => (
                             <tr
@@ -828,21 +828,25 @@ export default function JobsPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </details>
                   );
                 })()}
 
-              {/* Observação importante */}
               {job.important_note && (
-                <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
-                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-300">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    Observação importante
-                  </p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                    {job.important_note}
-                  </p>
-                </div>
+                <details className="group/note mb-3 overflow-hidden rounded-lg border border-amber-500/20 bg-amber-500/5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-amber-600 select-none dark:text-amber-300 [&::-webkit-details-marker]:hidden">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Observação importante
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/note:rotate-180" aria-hidden="true" />
+                  </summary>
+                  <div className="border-t border-amber-500/20 px-3 py-2">
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                      {job.important_note}
+                    </p>
+                  </div>
+                </details>
               )}
 
               {/* Descrição — internacional: original (EN) em destaque + tradução visível */}
