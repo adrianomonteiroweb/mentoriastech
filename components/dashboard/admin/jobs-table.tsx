@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -28,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, Info, MousePointerClick, Pencil, Percent, Share2, Trash2, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, Info, MousePointerClick, Pencil, Percent, Share2, Star, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel, mergeJobCategoryOptions } from "@/lib/job-options"
 import { getJobSource, JOB_SOURCE_LABELS, type JobSource } from "@/lib/job-source"
 import type { JobLevel, JobStatus, JobWithAuthor } from "@/lib/types/database"
@@ -43,21 +44,58 @@ interface JobsTableProps {
   refreshKey?: number
 }
 
+const FAVORITE_COMPANIES_STORAGE_KEY = "admin-jobs-favorite-companies"
+
+function loadFavoriteCompanies(): Set<string> {
+  if (typeof window === "undefined") return new Set()
+  try {
+    const raw = window.localStorage.getItem(FAVORITE_COMPANIES_STORAGE_KEY)
+    if (!raw) return new Set()
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? new Set(parsed.filter((c): c is string => typeof c === "string")) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
 export function JobsTable({
   showAll = false,
   adminMode = false,
   refreshKey = 0,
 }: JobsTableProps) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  // Filtros só existem (e sincronizam com a URL) na visão admin com todas as vagas.
+  const syncUrl = adminMode && showAll
+
+  const readParam = <T extends string>(key: string, allowed: readonly T[], fallback: "all" | T): "all" | T => {
+    if (!syncUrl) return fallback
+    const value = searchParams.get(key)
+    return value && (allowed as readonly string[]).includes(value) ? (value as T) : fallback
+  }
+  const readFreeParam = (key: string) => (syncUrl ? searchParams.get(key) || "all" : "all")
+
   const [jobs, setJobs] = useState<JobWithCounts[]>([])
   const [loading, setLoading] = useState(true)
   const [editingJob, setEditingJob] = useState<JobWithCounts | null>(null)
   const [selectedJob, setSelectedJob] = useState<JobWithCounts | null>(null)
-  const [statusFilter, setStatusFilter] = useState<"all" | JobStatus>("all")
-  const [companyFilter, setCompanyFilter] = useState<string>("all")
-  const [levelFilter, setLevelFilter] = useState<"all" | JobLevel>("all")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [sourceFilter, setSourceFilter] = useState<"all" | JobSource>("all")
-  const [regionFilter, setRegionFilter] = useState<"all" | "brazil" | "international">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | JobStatus>(
+    () => readParam("status", ["pending", "approved", "rejected", "expired"], "all"),
+  )
+  const [companyFilter, setCompanyFilter] = useState<string>(() => readFreeParam("company"))
+  const [levelFilter, setLevelFilter] = useState<"all" | JobLevel>(
+    () => readParam("level", ["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"], "all"),
+  )
+  const [categoryFilter, setCategoryFilter] = useState<string>(() => readFreeParam("category"))
+  const [sourceFilter, setSourceFilter] = useState<"all" | JobSource>(
+    () => readParam("source", ["linkedin", "glassdoor", "other"], "all"),
+  )
+  const [regionFilter, setRegionFilter] = useState<"all" | "brazil" | "international">(
+    () => readParam("region", ["brazil", "international"], "all"),
+  )
+  const [favoriteCompanies, setFavoriteCompanies] = useState<Set<string>>(new Set())
+  const [onlyFavorites, setOnlyFavorites] = useState(() => syncUrl && searchParams.get("fav") === "1")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleteSelectedOpen, setBulkDeleteSelectedOpen] = useState(false)
@@ -73,6 +111,38 @@ export function JobsTable({
   }
 
   useEffect(() => { loadJobs() }, [adminMode, refreshKey])
+
+  useEffect(() => { setFavoriteCompanies(loadFavoriteCompanies()) }, [])
+
+  // Reflete os filtros na URL para que sobrevivam a recarregamentos e sejam compartilháveis.
+  useEffect(() => {
+    if (!syncUrl) return
+    const params = new URLSearchParams()
+    if (statusFilter !== "all") params.set("status", statusFilter)
+    if (companyFilter !== "all") params.set("company", companyFilter)
+    if (levelFilter !== "all") params.set("level", levelFilter)
+    if (categoryFilter !== "all") params.set("category", categoryFilter)
+    if (sourceFilter !== "all") params.set("source", sourceFilter)
+    if (regionFilter !== "all") params.set("region", regionFilter)
+    if (onlyFavorites) params.set("fav", "1")
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, onlyFavorites, syncUrl, pathname, router])
+
+  function toggleFavoriteCompany(company: string) {
+    setFavoriteCompanies((prev) => {
+      const next = new Set(prev)
+      if (next.has(company)) next.delete(company)
+      else next.add(company)
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          FAVORITE_COMPANIES_STORAGE_KEY,
+          JSON.stringify(Array.from(next)),
+        )
+      }
+      return next
+    })
+  }
 
   async function updateStatus(id: string, status: "approved" | "rejected") {
     setSelectedJob(null)
@@ -158,6 +228,26 @@ export function JobsTable({
   }
   const getJobLevelLabel = (level: JobWithCounts["level"]) => levelLabels[level] || level
 
+  function FavoriteStar({ company }: { company: string }) {
+    const isFavorite = favoriteCompanies.has(company)
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleFavoriteCompany(company)
+        }}
+        onKeyDown={(e) => e.stopPropagation()}
+        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted ${isFavorite ? "text-yellow-500" : "text-muted-foreground"}`}
+        title={isFavorite ? `Remover ${company} dos favoritos` : `Favoritar ${company}`}
+        aria-label={isFavorite ? `Remover ${company} dos favoritos` : `Favoritar ${company}`}
+        aria-pressed={isFavorite}
+      >
+        <Star className={`h-3.5 w-3.5 ${isFavorite ? "fill-current" : ""}`} />
+      </button>
+    )
+  }
+
   const getJobStatusLabel = (status: JobWithCounts["status"]) =>
     status === "approved" ? "Aprovada" : status === "pending" ? "Pendente" : status === "rejected" ? "Rejeitada" : "Expirada"
 
@@ -190,6 +280,8 @@ export function JobsTable({
           const isInternational = regionFilter === "international"
           if (j.is_international !== isInternational) return false
         }
+        if (onlyFavorites && !(j.company && favoriteCompanies.has(j.company)))
+          return false
         return true
       })
     : jobs.filter((j) => j.status === "pending")
@@ -248,7 +340,7 @@ export function JobsTable({
       return changed ? next : prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, jobs])
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, onlyFavorites, favoriteCompanies, jobs])
 
   const allVisibleSelected =
     visibleJobs.length > 0 && visibleJobs.every((j) => selectedIds.has(j.id))
@@ -356,6 +448,18 @@ export function JobsTable({
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              size="sm"
+              variant={onlyFavorites ? "default" : "outline"}
+              className="h-8 text-xs"
+              onClick={() => setOnlyFavorites((prev) => !prev)}
+              aria-pressed={onlyFavorites}
+            >
+              <Star
+                className={`mr-1 h-3 w-3 ${onlyFavorites ? "fill-current" : ""}`}
+              />
+              Apenas favoritas ({favoriteCompanies.size})
+            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -436,8 +540,15 @@ export function JobsTable({
                   <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
                     {job.title}
                   </h3>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {job.company || "Empresa não informada"}
+                  <p className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
+                    {job.company ? (
+                      <>
+                        <FavoriteStar company={job.company} />
+                        <span className="truncate">{job.company}</span>
+                      </>
+                    ) : (
+                      "Empresa não informada"
+                    )}
                   </p>
                 </div>
                 <Badge
@@ -535,7 +646,16 @@ export function JobsTable({
                   </TableCell>
                 )}
                 <TableCell className="font-medium">{job.title}</TableCell>
-                <TableCell>{job.company || "—"}</TableCell>
+                <TableCell>
+                  {job.company ? (
+                    <span className="inline-flex items-center gap-1">
+                      <FavoriteStar company={job.company} />
+                      {job.company}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {job.application_url ? (
                     <a
@@ -689,7 +809,16 @@ export function JobsTable({
               <div className="grid gap-3 text-sm">
                 <div>
                   <span className="text-xs text-muted-foreground">Empresa</span>
-                  <p className="font-medium">{selectedJob.company || "Não informada"}</p>
+                  <p className="flex items-center gap-1 font-medium">
+                    {selectedJob.company ? (
+                      <>
+                        <FavoriteStar company={selectedJob.company} />
+                        {selectedJob.company}
+                      </>
+                    ) : (
+                      "Não informada"
+                    )}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   <Badge variant={selectedJob.status === "approved" ? "default" : "outline"} className="text-xs">
