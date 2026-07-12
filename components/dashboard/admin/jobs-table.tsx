@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { AlertTriangle, CheckCircle2, ExternalLink, Eye, Heart, Info, MousePointerClick, Pencil, Percent, Share2, Trash2, XCircle } from "lucide-react"
 import { getJobCategoryLabel, mergeJobCategoryOptions } from "@/lib/job-options"
+import { getJobSource, JOB_SOURCE_LABELS, type JobSource } from "@/lib/job-source"
 import type { JobLevel, JobStatus, JobWithAuthor } from "@/lib/types/database"
 
 interface JobWithCounts extends JobWithAuthor {
@@ -55,6 +56,8 @@ export function JobsTable({
   const [companyFilter, setCompanyFilter] = useState<string>("all")
   const [levelFilter, setLevelFilter] = useState<"all" | JobLevel>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [sourceFilter, setSourceFilter] = useState<"all" | JobSource>("all")
+  const [regionFilter, setRegionFilter] = useState<"all" | "brazil" | "international">("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleteSelectedOpen, setBulkDeleteSelectedOpen] = useState(false)
@@ -181,12 +184,18 @@ export function JobsTable({
         if (levelFilter !== "all" && j.level !== levelFilter) return false
         if (categoryFilter !== "all" && j.category !== categoryFilter)
           return false
+        if (sourceFilter !== "all" && getJobSource(j.application_url) !== sourceFilter)
+          return false
+        if (regionFilter !== "all") {
+          const isInternational = regionFilter === "international"
+          if (j.is_international !== isInternational) return false
+        }
         return true
       })
     : jobs.filter((j) => j.status === "pending")
   const showActions = true
   const columnCount =
-    (showControls ? 1 : 0) + 11 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
+    (showControls ? 1 : 0) + 13 + (adminMode ? 1 : 0) + (showActions ? 1 : 0)
 
   const statusOptions: { value: "all" | JobStatus; label: string }[] = [
     { value: "all", label: "Todos os status" },
@@ -214,6 +223,17 @@ export function JobsTable({
     { value: "distinguished", label: "Distinguished" },
   ]
   const categoryOptions = mergeJobCategoryOptions(jobs.map((j) => j.category))
+  const sourceOptions: { value: "all" | JobSource; label: string }[] = [
+    { value: "all", label: "Todas as origens" },
+    { value: "linkedin", label: "LinkedIn" },
+    { value: "glassdoor", label: "Glassdoor" },
+    { value: "other", label: "Outro" },
+  ]
+  const regionOptions: { value: "all" | "brazil" | "international"; label: string }[] = [
+    { value: "all", label: "Todas as regiões" },
+    { value: "brazil", label: "Brasil" },
+    { value: "international", label: "Internacional" },
+  ]
 
   // Mantém selecionadas apenas as vagas ainda visíveis no filtro atual.
   useEffect(() => {
@@ -228,7 +248,7 @@ export function JobsTable({
       return changed ? next : prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, companyFilter, levelFilter, categoryFilter, jobs])
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, jobs])
 
   const allVisibleSelected =
     visibleJobs.length > 0 && visibleJobs.every((j) => selectedIds.has(j.id))
@@ -300,6 +320,36 @@ export function JobsTable({
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
                 {categoryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={sourceFilter}
+              onValueChange={(value) => setSourceFilter(value as "all" | JobSource)}
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-40">
+                <SelectValue placeholder="Origem" />
+              </SelectTrigger>
+              <SelectContent>
+                {sourceOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={regionFilter}
+              onValueChange={(value) => setRegionFilter(value as "all" | "brazil" | "international")}
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-40">
+                <SelectValue placeholder="Região" />
+              </SelectTrigger>
+              <SelectContent>
+                {regionOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -398,6 +448,12 @@ export function JobsTable({
                 </Badge>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
+                <Badge variant="outline" className="text-[10px]">
+                  {JOB_SOURCE_LABELS[getJobSource(job.application_url)]}
+                </Badge>
+                <Badge variant="outline" className="text-[10px]">
+                  {job.is_international ? "Internacional" : "Brasil"}
+                </Badge>
                 <Badge variant="outline" className="text-[10px] capitalize">
                   {job.job_type}
                 </Badge>
@@ -437,6 +493,8 @@ export function JobsTable({
             <TableHead>Titulo</TableHead>
             <TableHead>Empresa</TableHead>
             <TableHead className="hidden lg:table-cell">Link</TableHead>
+            <TableHead>Origem</TableHead>
+            <TableHead>Região</TableHead>
             <TableHead className="hidden lg:table-cell">Tipo</TableHead>
             <TableHead className="hidden lg:table-cell">Nivel</TableHead>
             <TableHead className="hidden xl:table-cell">Categoria</TableHead>
@@ -492,6 +550,16 @@ export function JobsTable({
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {JOB_SOURCE_LABELS[getJobSource(job.application_url)]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">
+                    {job.is_international ? "Internacional" : "Brasil"}
+                  </Badge>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <Badge variant="outline" className="text-xs capitalize">{job.job_type}</Badge>
@@ -635,6 +703,12 @@ export function JobsTable({
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     {selectedJob.category ? getJobCategoryLabel(selectedJob.category) : "Sem categoria"}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {JOB_SOURCE_LABELS[getJobSource(selectedJob.application_url)]}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {selectedJob.is_international ? "Internacional" : "Brasil"}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-2">

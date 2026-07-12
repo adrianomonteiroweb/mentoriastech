@@ -33,6 +33,7 @@ const shareSchema = z
     company: z.string().max(150).optional(),
     active_hours: jobActiveHoursSchema.default(0),
     level: z.enum(["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"]).optional(),
+    is_international: z.boolean().default(false),
   })
   .strict()
 
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
         level: parsed.data.level ?? "junior",
+        isInternational: parsed.data.is_international,
         sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
         postedBy,
         status: "pending",
