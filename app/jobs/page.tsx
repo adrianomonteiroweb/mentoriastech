@@ -16,7 +16,6 @@ import {
   Languages,
   Lightbulb,
   Plus,
-  Sparkles,
   SlidersHorizontal,
   Clock,
   ChevronDown,
@@ -45,6 +44,7 @@ import {
 } from "@/lib/job-options";
 import { cn } from "@/lib/utils";
 import { formatJobActiveHours, getJobActiveHours } from "@/lib/job-active-time";
+import { parseSummaryRows } from "@/lib/job-summary";
 import type { JobCategory } from "@/lib/types/database";
 
 interface Job {
@@ -121,30 +121,6 @@ const SCOPE_TABS = [
   { key: "national", label: "Nacional" },
   { key: "international", label: "Internacional" },
 ] as const;
-
-function parseSummaryRows(summary: string): { label: string; value: string }[] {
-  return summary
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const tab = line.indexOf("\t");
-      const sep = tab >= 0 ? tab : line.indexOf(":");
-      if (sep === -1) return { label: line, value: "" };
-      return {
-        label: line.slice(0, sep).trim(),
-        value: line.slice(sep + 1).trim(),
-      };
-    })
-    // Ignora um eventual cabeçalho "Item / Detalhes" colado junto.
-    .filter(
-      (row) =>
-        !(
-          row.label.toLowerCase() === "item" &&
-          row.value.toLowerCase() === "detalhes"
-        ),
-    );
-}
 
 function trackJobEvent(jobId: string, event: "view" | "click") {
   fetch(`/api/jobs/${jobId}/track`, {
@@ -418,14 +394,22 @@ export default function JobsPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-6 sm:px-6 md:py-12">
+    <main
+      className={cn(
+        "flex min-h-screen flex-col items-center px-4 sm:px-6",
+        viewMode === "match" ? "py-3 sm:py-6 md:py-12" : "py-6 md:py-12",
+      )}
+    >
       <div
         className={cn(
           "flex w-full max-w-3xl flex-col",
-          viewMode === "match" ? "gap-4" : "gap-6",
+          viewMode === "match" ? "gap-2 sm:gap-4" : "gap-6",
         )}
       >
-        <div className="flex flex-col gap-2">
+        <div className={cn(
+          "flex items-center gap-3",
+          viewMode === "match" ? "justify-between" : "flex-col items-start gap-2",
+        )}>
           <Link
             href="/"
             className="flex min-h-10 w-fit items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -433,22 +417,25 @@ export default function JobsPage() {
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
-          <div className="flex flex-wrap items-start justify-between gap-3">
+          {viewMode !== "match" && (
             <div className="flex flex-col gap-2">
               <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
                 Curadoria de Vagas
               </h1>
-              {viewMode === "list" && (
-                <p className="hidden text-sm leading-relaxed text-muted-foreground sm:block">
-                  Vagas compartilhadas para a comunidade de mentorados.
-                </p>
-              )}
+              <p className="hidden text-sm leading-relaxed text-muted-foreground sm:block">
+                Vagas compartilhadas para a comunidade de mentorados.
+              </p>
             </div>
-          </div>
+          )}
+          {viewMode === "match" && (
+            <h1 className="hidden text-xl font-semibold text-foreground sm:block sm:text-2xl">
+              Curadoria de Vagas
+            </h1>
+          )}
         </div>
 
         {hydrated && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
             <div
               className="inline-flex rounded-lg border border-border bg-card p-0.5 text-sm font-medium"
               role="group"
@@ -734,12 +721,6 @@ export default function JobsPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  {job.recommendation_note && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Indicação da comunidade
-                    </span>
-                  )}
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${JOB_TYPE_COLORS[job.job_type] || ""}`}
                   >
@@ -773,18 +754,6 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {job.recommendation_note && (
-                <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
-                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Por que indicaram esta vaga
-                  </p>
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                    {job.recommendation_note}
-                  </p>
-                </div>
-              )}
-
               {job.stack_tags && job.stack_tags.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-1.5">
                   {job.stack_tags.map((tag) => (
@@ -804,7 +773,7 @@ export default function JobsPage() {
                   if (rows.length === 0) return null;
                   return (
                     <details className="group/summary mb-3 overflow-hidden rounded-lg border border-violet-500/20 bg-violet-500/5">
-                      <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 select-none dark:text-violet-300 [&::-webkit-details-marker]:hidden">
+                      <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 select-none dark:text-violet-300 [&::-webkit-details-marker]:hidden">
                         Resumo da vaga
                         <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/summary:rotate-180" aria-hidden="true" />
                       </summary>
@@ -834,7 +803,7 @@ export default function JobsPage() {
 
               {job.important_note && (
                 <details className="group/note mb-3 overflow-hidden rounded-lg border border-amber-500/20 bg-amber-500/5">
-                  <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-amber-600 select-none dark:text-amber-300 [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-amber-600 select-none dark:text-amber-300 [&::-webkit-details-marker]:hidden">
                     <span className="flex items-center gap-1.5">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       Observação importante
