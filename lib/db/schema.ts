@@ -633,6 +633,23 @@ export const ads = pgTable("ads", {
 });
 
 // -----------------------------------------------------------------------------
+// AD_DAILY_STATS — estatísticas diárias de anúncios (views/cliques por dia)
+// -----------------------------------------------------------------------------
+export const adDailyStats = pgTable(
+  "ad_daily_stats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    adId: uuid("ad_id")
+      .notNull()
+      .references(() => ads.id, { onDelete: "cascade" }),
+    statDate: date("stat_date").notNull().defaultNow(),
+    viewCount: integer("view_count").notNull().default(0),
+    clickCount: integer("click_count").notNull().default(0),
+  },
+  (table) => [uniqueIndex("idx_ad_daily_stats_unique").on(table.adId, table.statDate)],
+);
+
+// -----------------------------------------------------------------------------
 // TIPS - dicas exibidas nas telas públicas
 // -----------------------------------------------------------------------------
 export const tips = pgTable("tips", {
@@ -1590,6 +1607,7 @@ export type ContentSuggestion = typeof contentSuggestions.$inferSelect;
 export type NewContentSuggestion = typeof contentSuggestions.$inferInsert;
 export type Ad = typeof ads.$inferSelect;
 export type NewAd = typeof ads.$inferInsert;
+export type AdDailyStat = typeof adDailyStats.$inferSelect;
 export type Tip = typeof tips.$inferSelect;
 export type NewTip = typeof tips.$inferInsert;
 export type SiteSetting = typeof siteSettings.$inferSelect;

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { AdsStats } from "@/components/dashboard/admin/ads-stats"
 import { AdsTable } from "@/components/dashboard/admin/ads-table"
 import { AdForm } from "@/components/dashboard/admin/ad-form"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ export default function AdminAdsPage() {
         </Button>
       </DashboardHeader>
       <div className="flex flex-col gap-6 p-4 md:p-6">
+        <AdsStats refreshKey={refreshKey} />
         {showForm && (
           <div className="rounded-lg border p-4">
             <AdForm onSuccess={handleSuccess} />
