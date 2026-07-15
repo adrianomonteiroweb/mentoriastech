@@ -8,6 +8,7 @@ import {
   Linkedin,
   Sparkles,
 } from "lucide-react";
+import { GoogleAd } from "@/components/google-ad";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -88,6 +89,8 @@ export default function FerramentasPage() {
             de inteligência artificial. Comece agora, sem cadastro.
           </p>
         </div>
+
+        <GoogleAd />
 
         <section className="flex flex-col gap-3" aria-label="Ferramentas">
           {TOOLS.map((tool) => (

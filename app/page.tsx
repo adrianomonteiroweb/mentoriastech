@@ -1,4 +1,5 @@
 import { PlatformLinks } from "@/components/platform-links";
+import { GoogleAd } from "@/components/google-ad";
 import { HeroSection } from "@/components/hero-section";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -18,6 +19,10 @@ export default function Page() {
         <HeroSection />
 
         <PlatformLinks />
+
+        <div className="mx-auto w-full max-w-xl px-4 pt-6 sm:px-6">
+          <GoogleAd />
+        </div>
 
         <section
           id="booking"

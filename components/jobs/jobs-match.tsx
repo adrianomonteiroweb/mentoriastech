@@ -15,6 +15,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { GoogleAd } from "@/components/google-ad";
 import { Button } from "@/components/ui/button";
 import { getJobCategoryLabel } from "@/lib/job-options";
 import { parseSummaryRows } from "@/lib/job-summary";
@@ -342,6 +343,8 @@ export function JobsMatch({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-card to-transparent" aria-hidden="true" />
         </div>
       </div>
+
+      {(index + 1) % 2 === 0 && <GoogleAd />}
 
       {/* Ações — fixo no rodapé (mobile), inline (desktop) */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur-sm sm:static sm:inset-auto sm:z-auto sm:border-0 sm:bg-transparent sm:backdrop-blur-none">

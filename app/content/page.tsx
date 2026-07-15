@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import {
   Eye,
   FileText,
@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { ContentSuggestionForm } from "@/components/content/content-suggestion-form";
+import { GoogleAd } from "@/components/google-ad";
 import { DonateWidget } from "@/components/donate-widget";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
@@ -191,12 +192,12 @@ export default function ContentPage() {
         )}
 
         <div id="conteudos" className="scroll-mt-6 flex flex-col gap-3">
-          {filtered.map((item) => {
+          {filtered.map((item, itemIndex) => {
             const config = TYPE_CONFIG[item.content_type];
             const Icon = config.icon;
             return (
+              <Fragment key={item.id}>
               <div
-                key={item.id}
                 className="rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5"
               >
                 <div className="flex items-start gap-3">
@@ -252,6 +253,10 @@ export default function ContentPage() {
                   />
                 </div>
               </div>
+              {(itemIndex + 1) % 2 === 0 && itemIndex < filtered.length - 1 && (
+                <GoogleAd />
+              )}
+              </Fragment>
             );
           })}
 

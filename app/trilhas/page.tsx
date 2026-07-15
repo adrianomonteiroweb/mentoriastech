@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Globe, Loader2, Route } from "lucide-react"
 import Link from "next/link"
 import { DonateWidget } from "@/components/donate-widget"
+import { GoogleAd } from "@/components/google-ad"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -61,6 +62,8 @@ export default function TrilhasPage() {
             poucos cliques e acompanhe seu progresso em Minhas Mentorias.
           </p>
         </div>
+
+        <GoogleAd />
 
         {tracks.length === 0 ? (
           <p className="py-8 text-center text-base text-muted-foreground">

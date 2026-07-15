@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { Fragment, useEffect, useMemo, useState, useRef } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { DonateWidget } from "@/components/donate-widget";
+import { GoogleAd } from "@/components/google-ad";
 import { JobShareForm } from "@/components/jobs/job-share-form";
 import { JobsMatch } from "@/components/jobs/jobs-match";
 import { RandomTipCard } from "@/components/random-tip";
@@ -680,9 +681,9 @@ export default function JobsPage() {
             />
           ) : (
             <>
-          {filtered.map((job) => (
+          {filtered.map((job, jobIndex) => (
+            <Fragment key={job.id}>
             <div
-              key={job.id}
               id={`vaga-${job.id}`}
               className={cn(
                 "scroll-mt-24 rounded-lg border bg-card p-4 transition-all hover:border-primary/30",
@@ -1055,6 +1056,10 @@ export default function JobsPage() {
                 </div>
               )}
             </div>
+            {(jobIndex + 1) % 2 === 0 && jobIndex < filtered.length - 1 && (
+              <GoogleAd />
+            )}
+            </Fragment>
           ))}
 
           {filtered.length === 0 && (
