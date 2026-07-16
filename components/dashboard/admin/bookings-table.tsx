@@ -131,10 +131,10 @@ function buildConfirmationMessage(
   const day = localDate ? localDate.getDate() : ""
   const time = formatTimeForMessage(booking.start_time)
 
-  let msg = `Olá ${firstName}, tudo bem? Sou o Adriano Monteiro da MentoriasTech e estou passando apenas para confirmar sua mentoria ${weekday} (${day}) às ${time} horas com o tema ${topic}.`
+  let msg = `Olá ${firstName}, tudo bem? 😊 Sou o Adriano Monteiro da MentoriasTech e estou passando apenas para confirmar sua mentoria ${weekday} (${day}) às ${time} horas com o tema ${topic}. ✅`
 
   if (topic.toLowerCase().includes("busca de oportunidade")) {
-    msg += "\nAssim que possível, envie seu currículo e link do LinkedIn."
+    msg += "\n\n📄 Assim que possível, envie seu currículo e link do LinkedIn."
   }
 
   return msg
@@ -468,14 +468,14 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden sm:table-cell">WhatsApp</TableHead>
-              <TableHead className="hidden sm:table-cell">Tema</TableHead>
-              <TableHead className="hidden sm:table-cell">Tipo</TableHead>
-              <TableHead className="hidden xl:table-cell">Origem</TableHead>
+              <TableHead className="hidden lg:table-cell">Email</TableHead>
+              <TableHead className="hidden xl:table-cell">WhatsApp</TableHead>
+              <TableHead className="hidden lg:table-cell">Tema</TableHead>
+              <TableHead className="hidden xl:table-cell">Tipo</TableHead>
+              <TableHead className="hidden 2xl:table-cell">Origem</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="hidden lg:table-cell">Solicitado em</TableHead>
-              <TableHead className="hidden md:table-cell">Data/Hora</TableHead>
+              <TableHead className="hidden xl:table-cell">Solicitado em</TableHead>
+              <TableHead className="hidden lg:table-cell">Data/Hora</TableHead>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -504,7 +504,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                 return (
                   <TableRow key={b.id}>
                     <TableCell className="font-medium">{getName(b)}</TableCell>
-                    <TableCell className="hidden md:table-cell text-xs">
+                    <TableCell className="hidden lg:table-cell text-xs">
                       {(() => {
                         const email = getEmail(b)
                         if (!email) {
@@ -531,7 +531,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         )
                       })()}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell className="hidden xl:table-cell">
                       {(() => {
                         const whatsapp = b.profiles?.whatsapp || b.guest_whatsapp
                         if (!whatsapp) return <span className="text-xs text-muted-foreground">-</span>
@@ -549,22 +549,22 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         )
                       })()}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-xs">{getTopic(b)}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
+                    <TableCell className="hidden lg:table-cell text-xs">{getTopic(b)}</TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       <Badge variant="outline" className="text-xs capitalize">
                         {b.booking_type}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell text-xs">{getOrigin(b)}</TableCell>
+                    <TableCell className="hidden 2xl:table-cell text-xs">{getOrigin(b)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[b.status]}`}>
                         {STATUS_LABELS[b.status]}
                       </span>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-xs">
+                    <TableCell className="hidden xl:table-cell text-xs">
                       <span className="whitespace-nowrap">{formatRequestedAt(b.created_at)}</span>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-xs">
+                    <TableCell className="hidden lg:table-cell text-xs">
                       <div className="flex flex-col">
                         {weekday && (
                           <span className="font-medium text-foreground">
@@ -584,79 +584,79 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                         {b.status === "pending" && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Confirmar"
                             onClick={() => updateStatus(b.id, "confirmed")}>
-                            <Check className="h-3 w-3 sm:mr-1" />
-                            <span className="hidden sm:inline">Confirmar</span>
+                            <Check className="h-3 w-3 xl:mr-1" />
+                            <span className="hidden xl:inline">Confirmar</span>
                           </Button>
                         )}
                         {b.status === "confirmed" && b.booking_type === "paid" && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Solicitar Pgto"
                             onClick={() => updateStatus(b.id, "payment_pending")}>
-                            <span className="hidden sm:inline">Solicitar Pgto</span>
-                            <span className="sm:hidden">Pgto</span>
+                            <span className="hidden xl:inline">Solicitar Pgto</span>
+                            <span className="xl:hidden">Pgto</span>
                           </Button>
                         )}
                         {(b.status === "paid" || (b.status === "confirmed" && b.booking_type === "free")) && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Agendar"
                             onClick={() => updateStatus(b.id, "scheduled")}>
-                            <span className="hidden sm:inline">Agendar</span>
-                            <span className="sm:hidden">Ag.</span>
+                            <span className="hidden xl:inline">Agendar</span>
+                            <span className="xl:hidden">Ag.</span>
                           </Button>
                         )}
                         {b.status === "scheduled" && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Concluir"
                             onClick={() => openCompleteBooking(b)}>
-                            <span className="hidden sm:inline">Concluir</span>
-                            <span className="sm:hidden">OK</span>
+                            <span className="hidden xl:inline">Concluir</span>
+                            <span className="xl:hidden">OK</span>
                           </Button>
                         )}
                         {b.google_meet_url && (
                           <Button size="sm" variant="ghost" className="text-xs h-7" title="Meet" asChild>
                             <a href={b.google_meet_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline">Meet</span>
+                              <ExternalLink className="h-3 w-3 xl:mr-1" />
+                              <span className="hidden xl:inline">Meet</span>
                             </a>
                           </Button>
                         )}
                         {b.mentee_id && (
                           <Button size="sm" variant="ghost" className="text-xs h-7" title="Ir para mentorado" asChild>
                             <Link href={`/admin/mentees?search=${encodeURIComponent(getEmail(b))}`}>
-                              <Users className="h-3 w-3 sm:mr-1" />
-                              <span className="hidden sm:inline">Mentorado</span>
+                              <Users className="h-3 w-3 xl:mr-1" />
+                              <span className="hidden xl:inline">Mentorado</span>
                             </Link>
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" className="text-xs h-7" title="Copiar confirmação"
                           onClick={() => copyConfirmation(b)}>
                           {copiedConfirmationId === b.id ? (
-                            <ClipboardCheck className="h-3 w-3 sm:mr-1 text-green-500" />
+                            <ClipboardCheck className="h-3 w-3 xl:mr-1 text-green-500" />
                           ) : (
-                            <MessageSquareText className="h-3 w-3 sm:mr-1" />
+                            <MessageSquareText className="h-3 w-3 xl:mr-1" />
                           )}
-                          <span className="hidden sm:inline">{copiedConfirmationId === b.id ? "Copiado!" : "Confirmação"}</span>
+                          <span className="hidden xl:inline">{copiedConfirmationId === b.id ? "Copiado!" : "Confirmação"}</span>
                         </Button>
                         <Button size="sm" variant="ghost" className="text-xs h-7" title="Editar"
                           onClick={() => openEdit(b)}>
-                          <Pencil className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Editar</span>
+                          <Pencil className="h-3 w-3 xl:mr-1" />
+                          <span className="hidden xl:inline">Editar</span>
                         </Button>
                         {b.status === "cancelled" && (
                           <Button size="sm" variant="outline" className="text-xs h-7" title="Reativar"
                             onClick={() => updateStatus(b.id, "scheduled")}>
-                            <span className="hidden sm:inline">Reativar</span>
-                            <span className="sm:hidden">Reat.</span>
+                            <span className="hidden xl:inline">Reativar</span>
+                            <span className="xl:hidden">Reat.</span>
                           </Button>
                         )}
                         {!["completed", "cancelled"].includes(b.status) && (
                           <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" title="Cancelar"
                             onClick={() => updateStatus(b.id, "cancelled")}>
-                            <span className="hidden sm:inline">Cancelar</span>
-                            <span className="sm:hidden">Canc.</span>
+                            <span className="hidden xl:inline">Cancelar</span>
+                            <span className="xl:hidden">Canc.</span>
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" title="Excluir"
                           onClick={() => deleteBooking(b.id)}>
-                          <Trash2 className="h-3 w-3 sm:mr-1" />
-                          <span className="hidden sm:inline">Excluir</span>
+                          <Trash2 className="h-3 w-3 xl:mr-1" />
+                          <span className="hidden xl:inline">Excluir</span>
                         </Button>
                       </div>
                     </TableCell>

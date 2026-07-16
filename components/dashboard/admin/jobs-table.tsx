@@ -674,13 +674,13 @@ export function JobsTable({
             )}
             <TableHead>Titulo</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead className="hidden lg:table-cell">Link</TableHead>
-            <TableHead>Origem</TableHead>
-            <TableHead>Região</TableHead>
-            <TableHead className="hidden lg:table-cell">Tipo</TableHead>
-            <TableHead className="hidden lg:table-cell">Nivel</TableHead>
-            <TableHead className="hidden xl:table-cell">Categoria</TableHead>
-            <TableHead className="hidden xl:table-cell">Autor</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Link</TableHead>
+            <TableHead className="hidden xl:table-cell">Origem</TableHead>
+            <TableHead className="hidden xl:table-cell">Região</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Tipo</TableHead>
+            <TableHead className="hidden xl:table-cell">Nivel</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Categoria</TableHead>
+            <TableHead className="hidden 2xl:table-cell">Autor</TableHead>
             <TableHead className="hidden 2xl:table-cell">Views</TableHead>
             <TableHead className="hidden 2xl:table-cell">Cliques</TableHead>
             <TableHead className="hidden 2xl:table-cell">Compart.</TableHead>
@@ -727,7 +727,7 @@ export function JobsTable({
                     "—"
                   )}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden 2xl:table-cell">
                   {job.application_url ? (
                     <a
                       href={job.application_url}
@@ -742,30 +742,30 @@ export function JobsTable({
                     <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {JOB_SOURCE_LABELS[getJobSource(job.application_url)]}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="hidden xl:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {job.is_international ? "Internacional" : "Brasil"}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden 2xl:table-cell">
                   <Badge variant="outline" className="text-xs capitalize">{job.job_type}</Badge>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
+                <TableCell className="hidden xl:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {getJobLevelLabel(job.level)}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden xl:table-cell">
+                <TableCell className="hidden 2xl:table-cell">
                   <Badge variant="outline" className="text-xs">
                     {job.category ? getJobCategoryLabel(job.category) : "—"}
                   </Badge>
                 </TableCell>
-                <TableCell className="hidden xl:table-cell text-xs">{job.profiles?.full_name || "—"}</TableCell>
+                <TableCell className="hidden 2xl:table-cell text-xs">{job.profiles?.full_name || "—"}</TableCell>
                 <TableCell className="hidden 2xl:table-cell">
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Eye className="h-3 w-3" />
@@ -828,19 +828,23 @@ export function JobsTable({
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs"
+                        title="Detalhes"
                         onClick={() => setSelectedJob(job)}
                       >
-                        <Info className="h-3 w-3 mr-1" /> Detalhes
+                        <Info className="h-3 w-3 xl:mr-1" />
+                        <span className="hidden xl:inline">Detalhes</span>
                       </Button>
                       {adminMode && job.status === "pending" && (
                         <>
-                        <Button size="sm" variant="outline" className="text-xs h-7"
+                        <Button size="sm" variant="outline" className="text-xs h-7" title="Aprovar"
                           onClick={() => updateStatus(job.id, "approved")}>
-                          <CheckCircle2 className="h-3 w-3 mr-1" /> Aprovar
+                          <CheckCircle2 className="h-3 w-3 xl:mr-1" />
+                          <span className="hidden xl:inline">Aprovar</span>
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive"
+                        <Button size="sm" variant="ghost" className="text-xs h-7 text-destructive" title="Rejeitar"
                           onClick={() => updateStatus(job.id, "rejected")}>
-                          <XCircle className="h-3 w-3 mr-1" /> Rejeitar
+                          <XCircle className="h-3 w-3 xl:mr-1" />
+                          <span className="hidden xl:inline">Rejeitar</span>
                         </Button>
                         </>
                       )}
@@ -848,17 +852,21 @@ export function JobsTable({
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs"
+                        title="Editar"
                         onClick={() => openEdit(job)}
                       >
-                        <Pencil className="h-3 w-3 mr-1" /> Editar
+                        <Pencil className="h-3 w-3 xl:mr-1" />
+                        <span className="hidden xl:inline">Editar</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 text-xs text-destructive"
+                        title="Remover"
                         onClick={() => deleteJob(job.id)}
                       >
-                        <Trash2 className="h-3 w-3 mr-1" /> Remover
+                        <Trash2 className="h-3 w-3 xl:mr-1" />
+                        <span className="hidden xl:inline">Remover</span>
                       </Button>
                     </div>
                   </TableCell>
