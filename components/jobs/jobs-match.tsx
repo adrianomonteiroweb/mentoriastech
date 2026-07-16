@@ -334,6 +334,13 @@ export function JobsMatch({
               </div>
             )}
 
+            {job.recommendation_note && (
+              <p className="shrink-0 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+                <span className="mr-1.5 font-medium text-primary">Indicação:</span>
+                {job.recommendation_note}
+              </p>
+            )}
+
             {description && (
               <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                 {description}

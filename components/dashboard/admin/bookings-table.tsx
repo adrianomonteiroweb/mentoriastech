@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Check, Copy, ExternalLink, Loader2, MessageCircle, Pencil, Trash2, Users } from "lucide-react"
+import { Check, ClipboardCheck, Copy, ExternalLink, Loader2, MessageCircle, MessageSquareText, Pencil, Trash2, Users } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { BookingWithRelations, BookingStatus, MentoringTopic, OriginCategory } from "@/lib/types/database"
 import { CompleteBookingDialog } from "@/components/dashboard/admin/complete-booking-dialog"
@@ -101,6 +101,45 @@ function formatRequestedAt(value: string | null | undefined) {
   return REQUESTED_AT_FORMATTER.format(date)
 }
 
+function getFirstName(fullName: string | null | undefined): string {
+  if (!fullName) return ""
+  return fullName.trim().split(/\s+/)[0]
+}
+
+function formatTimeForMessage(time: string | null | undefined): string {
+  if (!time) return ""
+  const [h, m] = time.substring(0, 5).split(":")
+  if (!h) return ""
+  const hour = parseInt(h, 10)
+  const minute = m && m !== "00" ? `:${m}` : ""
+  return `${hour}${minute}`
+}
+
+function buildConfirmationMessage(
+  booking: BookingWithRelations,
+  getName: (b: BookingWithRelations) => string,
+  getTopic: (b: BookingWithRelations) => string,
+): string {
+  const fullName = getName(booking)
+  const firstName = getFirstName(fullName)
+  const topic = getTopic(booking)
+  const date = booking.session_date || booking.created_at?.split("T")[0]
+  const localDate = parseIsoDate(date)
+  const weekday = localDate
+    ? WEEKDAY_FORMATTER.format(localDate).replace("-feira", "")
+    : ""
+  const day = localDate ? localDate.getDate() : ""
+  const time = formatTimeForMessage(booking.start_time)
+
+  let msg = `Olá ${firstName}, tudo bem? Sou o Adriano Monteiro da MentoriasTech e estou passando apenas para confirmar sua mentoria ${weekday} (${day}) às ${time} horas com o tema ${topic}.`
+
+  if (topic.toLowerCase().includes("busca de oportunidade")) {
+    msg += "\nAssim que possível, envie seu currículo e link do LinkedIn."
+  }
+
+  return msg
+}
+
 export function BookingsTable({ bookingId }: BookingsTableProps) {
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [topics, setTopics] = useState<MentoringTopic[]>([])
@@ -111,6 +150,7 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
   const [completingBooking, setCompletingBooking] = useState<BookingWithRelations | null>(null)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRelations | null>(null)
   const [copiedBookingId, setCopiedBookingId] = useState<string | null>(null)
+  const [copiedConfirmationId, setCopiedConfirmationId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [loadError, setLoadError] = useState("")
   const [error, setError] = useState("")
@@ -270,6 +310,29 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
       window.setTimeout(() => setCopiedBookingId((current) => (current === bookingId ? null : current)), 1500)
     } catch {
       alert("Nao foi possivel copiar o email.")
+    }
+  }
+
+  async function copyConfirmation(booking: BookingWithRelations) {
+    const msg = buildConfirmationMessage(booking, getName, getTopic)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(msg)
+      } else {
+        const textarea = document.createElement("textarea")
+        textarea.value = msg
+        textarea.style.position = "fixed"
+        textarea.style.opacity = "0"
+        document.body.appendChild(textarea)
+        textarea.focus()
+        textarea.select()
+        document.execCommand("copy")
+        document.body.removeChild(textarea)
+      }
+      setCopiedConfirmationId(booking.id)
+      window.setTimeout(() => setCopiedConfirmationId((current) => (current === booking.id ? null : current)), 1500)
+    } catch {
+      alert("Não foi possível copiar a mensagem.")
     }
   }
 
@@ -562,6 +625,15 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                             </Link>
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" className="text-xs h-7" title="Copiar confirmação"
+                          onClick={() => copyConfirmation(b)}>
+                          {copiedConfirmationId === b.id ? (
+                            <ClipboardCheck className="h-3 w-3 sm:mr-1 text-green-500" />
+                          ) : (
+                            <MessageSquareText className="h-3 w-3 sm:mr-1" />
+                          )}
+                          <span className="hidden sm:inline">{copiedConfirmationId === b.id ? "Copiado!" : "Confirmação"}</span>
+                        </Button>
                         <Button size="sm" variant="ghost" className="text-xs h-7" title="Editar"
                           onClick={() => openEdit(b)}>
                           <Pencil className="h-3 w-3 sm:mr-1" />
@@ -718,6 +790,14 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
                       </Link>
                     </Button>
                   )}
+                  <Button variant="ghost" className="justify-start" onClick={() => copyConfirmation(selectedBooking)}>
+                    {copiedConfirmationId === selectedBooking.id ? (
+                      <ClipboardCheck className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <MessageSquareText className="h-4 w-4" />
+                    )}
+                    {copiedConfirmationId === selectedBooking.id ? "Confirmação copiada!" : "Copiar confirmação"}
+                  </Button>
                   <Button variant="ghost" className="justify-start" onClick={() => openEdit(selectedBooking)}>
                     <Pencil className="h-4 w-4" />
                     Editar

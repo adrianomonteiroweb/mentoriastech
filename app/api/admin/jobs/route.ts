@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { toJob, toProfile } from "@/lib/db/mappers"
@@ -8,6 +8,11 @@ import { requireRole } from "@/lib/utils/auth"
 const bulkDeleteSchema = z.union([
   z.object({ status: z.enum(["pending", "approved", "rejected", "expired"]) }),
   z.object({ ids: z.array(z.string().uuid()).min(1) }),
+])
+
+const bulkApproveSchema = z.union([
+  z.object({ ids: z.array(z.string().uuid()).min(1) }),
+  z.object({ favorite_companies: z.array(z.string().min(1)).min(1) }),
 ])
 
 export async function GET() {
@@ -53,6 +58,40 @@ export async function GET() {
         action_counts: actionCounts[job.id] || { applied: 0, link_issue: 0, closed: 0, liked: 0 },
       })),
     })
+  } catch (error) {
+    const status = (error as { status?: number }).status || 500
+    const message = (error as Error).message || "Erro interno"
+    return NextResponse.json({ error: message }, { status })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const admin = await requireRole("admin")
+    const body = await request.json()
+
+    const parsed = bulkApproveSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
+    }
+
+    const condition =
+      "ids" in parsed.data
+        ? and(inArray(jobs.id, parsed.data.ids), eq(jobs.status, "pending"))
+        : and(inArray(jobs.company, parsed.data.favorite_companies), eq(jobs.status, "pending"))
+
+    const approved = await db
+      .update(jobs)
+      .set({
+        status: "approved",
+        approvedBy: admin.id,
+        approvedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(condition!)
+      .returning({ id: jobs.id })
+
+    return NextResponse.json({ success: true, approved: approved.length })
   } catch (error) {
     const status = (error as { status?: number }).status || 500
     const message = (error as Error).message || "Erro interno"

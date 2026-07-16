@@ -100,6 +100,9 @@ export function JobsTable({
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const [bulkDeleteSelectedOpen, setBulkDeleteSelectedOpen] = useState(false)
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [bulkApproveSelectedOpen, setBulkApproveSelectedOpen] = useState(false)
+  const [bulkApproveFavoritesOpen, setBulkApproveFavoritesOpen] = useState(false)
+  const [bulkApproving, setBulkApproving] = useState(false)
 
   function loadJobs() {
     setLoading(true)
@@ -197,6 +200,54 @@ export function JobsTable({
       console.error(error)
     } finally {
       setBulkDeleting(false)
+    }
+  }
+
+  const pendingSelectedCount = Array.from(selectedIds).filter((id) =>
+    jobs.find((j) => j.id === id && j.status === "pending"),
+  ).length
+
+  const pendingFavoriteCount = jobs.filter(
+    (j) => j.status === "pending" && j.company && favoriteCompanies.has(j.company),
+  ).length
+
+  async function bulkApproveSelected() {
+    const pendingIds = Array.from(selectedIds).filter((id) =>
+      jobs.find((j) => j.id === id && j.status === "pending"),
+    )
+    if (pendingIds.length === 0) return
+    setBulkApproving(true)
+    try {
+      await fetch("/api/admin/jobs", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: pendingIds }),
+      })
+      setBulkApproveSelectedOpen(false)
+      setSelectedIds(new Set())
+      loadJobs()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setBulkApproving(false)
+    }
+  }
+
+  async function bulkApproveFavorites() {
+    if (favoriteCompanies.size === 0) return
+    setBulkApproving(true)
+    try {
+      await fetch("/api/admin/jobs", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorite_companies: Array.from(favoriteCompanies) }),
+      })
+      setBulkApproveFavoritesOpen(false)
+      loadJobs()
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setBulkApproving(false)
     }
   }
 
@@ -462,6 +513,26 @@ export function JobsTable({
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400"
+              disabled={pendingSelectedCount === 0}
+              onClick={() => setBulkApproveSelectedOpen(true)}
+            >
+              <CheckCircle2 className="mr-1 h-3 w-3" />
+              Aprovar selecionadas{pendingSelectedCount > 0 ? ` (${pendingSelectedCount})` : ""}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400"
+              disabled={pendingFavoriteCount === 0}
+              onClick={() => setBulkApproveFavoritesOpen(true)}
+            >
+              <Star className="mr-1 h-3 w-3" />
+              Aprovar favoritas{pendingFavoriteCount > 0 ? ` (${pendingFavoriteCount})` : ""}
+            </Button>
             <Button
               size="sm"
               variant="destructive"
@@ -972,6 +1043,60 @@ export function JobsTable({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {bulkDeleting ? "Excluindo..." : "Excluir selecionadas"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkApproveSelectedOpen} onOpenChange={setBulkApproveSelectedOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar vagas selecionadas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação vai aprovar{" "}
+              <strong>
+                {pendingSelectedCount} vaga{pendingSelectedCount !== 1 ? "s" : ""}
+              </strong>{" "}
+              pendente{pendingSelectedCount !== 1 ? "s" : ""} entre as selecionadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkApproving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                bulkApproveSelected()
+              }}
+              disabled={bulkApproving}
+            >
+              {bulkApproving ? "Aprovando..." : "Aprovar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkApproveFavoritesOpen} onOpenChange={setBulkApproveFavoritesOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar vagas de empresas favoritas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação vai aprovar{" "}
+              <strong>
+                {pendingFavoriteCount} vaga{pendingFavoriteCount !== 1 ? "s" : ""}
+              </strong>{" "}
+              pendente{pendingFavoriteCount !== 1 ? "s" : ""} de empresas favoritadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkApproving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault()
+                bulkApproveFavorites()
+              }}
+              disabled={bulkApproving}
+            >
+              {bulkApproving ? "Aprovando..." : "Aprovar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

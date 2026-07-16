@@ -738,6 +738,13 @@ export default function JobsPage() {
                 </div>
               </div>
 
+              {job.recommendation_note && (
+                <p className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
+                  <span className="mr-1.5 font-medium text-primary">Indicação:</span>
+                  {job.recommendation_note}
+                </p>
+              )}
+
               {job.is_international && (
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-semibold text-violet-600 dark:border-violet-400/40 dark:bg-violet-400/15 dark:text-violet-300">
