@@ -1,41 +1,15 @@
 import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
-import { z } from "zod"
 import { db, jobs } from "@/lib/db"
 import { toJob } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
-import { jobActiveHoursSchema } from "@/lib/job-validation"
+import { jobShareSchema } from "@/lib/job-validation"
 import { requireRole } from "@/lib/utils/auth"
 
-// Limite de corpo: indicacao e enxuta, nada legitimo se aproxima disso.
-const MAX_BODY_BYTES = 8 * 1024
-
-const httpUrlSchema = z
-  .string()
-  .url()
-  .max(2000)
-  .refine((value) => {
-    try {
-      const protocol = new URL(value).protocol
-      return protocol === "http:" || protocol === "https:"
-    } catch {
-      return false
-    }
-  }, "URL deve ser http(s)")
-
-// Indicação enxuta da comunidade: apenas link + por que achou interessante (+ título).
-const shareSchema = z
-  .object({
-    title: z.string().min(3).max(200),
-    application_url: httpUrlSchema,
-    recommendation_note: z.string().min(10).max(2000),
-    company: z.string().max(150).optional(),
-    active_hours: jobActiveHoursSchema.default(0),
-    level: z.enum(["internship", "junior", "mid", "senior", "staff", "senior_staff", "principal", "distinguished"]).optional(),
-    is_international: z.boolean().default(false),
-  })
-  .strict()
+// Limite de corpo: a indicacao e enxuta, mas o bot de busca pode enviar a
+// descricao completa da vaga (ate 10k chars) para enriquecer o banco de uma vez.
+const MAX_BODY_BYTES = 32 * 1024
 
 // Valida o Bearer token do bot com comparacao timing-safe. Sem env configurada,
 // o caminho bot fica desabilitado (retorna false).
@@ -86,7 +60,7 @@ export async function POST(request: Request) {
 
     const body = await request.json()
 
-    const parsed = shareSchema.safeParse(body)
+    const parsed = jobShareSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Dados invalidos", details: parsed.error.flatten() },
@@ -112,7 +86,15 @@ export async function POST(request: Request) {
       .values({
         title: parsed.data.title,
         company: parsed.data.company || null,
-        description: null,
+        // Campos enriquecidos pelo bot de busca (opcionais). Quando ausentes,
+        // caem no default da coluna (stackTags [], jobType "remote").
+        description: parsed.data.description ?? null,
+        location: parsed.data.location ?? null,
+        stackTags: parsed.data.stack_tags ?? [],
+        jobType: parsed.data.job_type ?? "remote",
+        salaryRange: parsed.data.salary_range ?? null,
+        requiredLanguage: parsed.data.required_language ?? null,
+        languageLevel: parsed.data.language_level ?? null,
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
         level: parsed.data.level ?? "junior",
