@@ -204,21 +204,34 @@ await requireRole(['admin', 'mentor'])
 > A rota `/formacao` já funciona (tela de status); as queries de turma retornam vazio até
 > o SQL ser aplicado e uma turma ser criada (Sprint 2).
 
-### Sprint 2 — Gestão de turma (instrutor)
+### Sprint 2 — Gestão de turma (instrutor) ✅ (código; verificação DB pendente)
 
 ```
-[ ] Tela: app/formacao/instrutor/turma/[id]/page.tsx — visão geral da turma
-[ ] Formulário: criar turma (nome, link_meet, data_inicio)
-[ ] Convidar alunos por email — bloquear 6º membro (validação no servidor)
-[ ] Geração automática de encontros de domingo às 10h (fuso America/Fortaleza)
-[ ] Atribuição inicial de papéis para o 1º encontro
-[ ] Publicar primeira etapa com tarefas associadas
-[ ] API: POST /api/formacao/instrutor/turmas
-[ ] API: POST /api/formacao/instrutor/turmas/[id]/membros
-[ ] API: POST /api/formacao/instrutor/turmas/[id]/encontros/gerar
-[ ] API: POST /api/formacao/instrutor/turmas/[id]/papeis
-[ ] API: POST /api/formacao/instrutor/etapas/[id]/publicar
+[x] Tela: app/formacao/instrutor/turma/[id]/page.tsx — gestão completa da turma
+[x] Dashboard: app/formacao/instrutor/page.tsx — lista de turmas + criar turma
+[x] Formulário: criar turma (nome, empresa fictícia, link_meet, data_inicio)
+[x] Convidar alunos por email + nome — bloqueia 6º no servidor, vincula profile existente
+[x] Geração automática de encontros de domingo às 10h (America/Fortaleza, offset -03:00)
+[x] Atribuição de papéis por encontro (grade membro→papel, valida fase/turma)
+[x] Publicar etapa/tarefas: criação de tarefa c/ projeto/etapa/papel/responsável/critérios
+[x] Toggle de status da turma (planejada/ativa/concluída/cancelada)
+[x] API: GET/POST /api/formacao/instrutor/turmas
+[x] API: GET/PATCH/DELETE /api/formacao/instrutor/turmas/[id]
+[x] API: POST /api/formacao/instrutor/turmas/[id]/membros + DELETE [membroId]
+[x] API: POST /api/formacao/instrutor/turmas/[id]/encontros/gerar
+[x] API: POST /api/formacao/instrutor/turmas/[id]/papeis
+[x] API: POST /api/formacao/instrutor/turmas/[id]/tarefas
+[x] API: GET /api/formacao/instrutor/referencia (fases/papéis/projetos/etapas)
+[x] lib/formacao: schedule.ts (gerarDomingos), validation.ts (zod), auth.ts (guard)
+[x] Build OK + tsc sem erros novos
+[x] Browser: gate de papel (redireciona p/ login) + regressão /formacao OK
+[~] Verificação end-to-end (criar turma etc.) — depende do SQL aplicado no Neon
 ```
+
+> **Bloqueio de verificação:** o fluxo do instrutor grava nas tabelas `formacao_*`, que
+> ainda não existem no Neon. Aplicar `drizzle/manual/formacao_schema.sql` destrava o uso real.
+>
+> **Nota:** APIs da formação usam **camelCase** (módulo isolado, difere do `sim_*`).
 
 ### Sprint 3 — Tela inicial do aluno (re-entrada)
 

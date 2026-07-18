@@ -113,12 +113,20 @@ export default async function FormacaoPage() {
         )}
       </div>
 
-      <Link
-        href="/"
-        className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-      >
-        Voltar para a página inicial
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link
+          href="/"
+          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Voltar para a página inicial
+        </Link>
+        <Link
+          href="/formacao/instrutor"
+          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Área do instrutor
+        </Link>
+      </div>
     </main>
   );
 }
