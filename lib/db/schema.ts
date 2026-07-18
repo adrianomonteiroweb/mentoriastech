@@ -1582,6 +1582,518 @@ export const simWorkspaceFiles = pgTable(
   ],
 );
 
+// =============================================================================
+// ÓRBITA — Formação em Squad (tabelas formacao_*)
+// Produto distinto do Sprint Simulator: squad de até 5 alunos + 1 instrutor,
+// papéis rotativos, projetos obrigatórios, dailies bilíngues, encontros semanais.
+// SQL manual em drizzle/manual/formacao_schema.sql.
+// =============================================================================
+
+export const formacaoFases = pgTable("formacao_fases", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  numero: integer("numero").notNull(),
+  nome: text("nome").notNull(),
+  objetivo: text("objetivo"),
+  ordem: integer("ordem").notNull().default(0),
+});
+
+export const formacaoPapeis = pgTable("formacao_papeis", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  faseId: uuid("fase_id")
+    .notNull()
+    .references(() => formacaoFases.id, { onDelete: "cascade" }),
+  chave: text("chave").notNull(),
+  nome: text("nome").notNull(),
+  nomeCurto: text("nome_curto"),
+  responsabilidades: jsonb("responsabilidades")
+    .$type<string[]>()
+    .notNull()
+    .default([]),
+  cor: text("cor").notNull().default("blue"),
+  minOcorrencias: integer("min_ocorrencias").notNull().default(1),
+  ordem: integer("ordem").notNull().default(0),
+});
+
+export const formacaoProjetos = pgTable("formacao_projetos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  faseId: uuid("fase_id")
+    .notNull()
+    .references(() => formacaoFases.id, { onDelete: "cascade" }),
+  numero: integer("numero").notNull(),
+  chave: text("chave").notNull(),
+  nome: text("nome").notNull(),
+  problema: text("problema"),
+  objetivo: text("objetivo"),
+  ordem: integer("ordem").notNull().default(0),
+});
+
+export const formacaoRequisitosProjeto = pgTable(
+  "formacao_requisitos_projeto",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projetoId: uuid("projeto_id")
+      .notNull()
+      .references(() => formacaoProjetos.id, { onDelete: "cascade" }),
+    tipo: text("tipo", { enum: ["requisito", "evidencia"] })
+      .notNull()
+      .default("requisito"),
+    texto: text("texto").notNull(),
+    ordem: integer("ordem").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("formacao_requisitos_unique").on(
+      table.projetoId,
+      table.tipo,
+      table.ordem,
+    ),
+  ],
+);
+
+export const formacaoEtapas = pgTable(
+  "formacao_etapas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projetoId: uuid("projeto_id")
+      .notNull()
+      .references(() => formacaoProjetos.id, { onDelete: "cascade" }),
+    nome: text("nome").notNull(),
+    oQueE: text("o_que_e"),
+    porQueExiste: text("por_que_existe"),
+    oQueEntregar: text("o_que_entregar"),
+    oQueDesbloqueia: text("o_que_desbloqueia"),
+    ordem: integer("ordem").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_etapas_unique").on(table.projetoId, table.ordem),
+  ],
+);
+
+export const formacaoCompetencias = pgTable(
+  "formacao_competencias",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    faseId: uuid("fase_id")
+      .notNull()
+      .references(() => formacaoFases.id, { onDelete: "cascade" }),
+    nome: text("nome").notNull(),
+    descricao: text("descricao"),
+    ordem: integer("ordem").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("formacao_competencias_unique").on(table.faseId, table.nome),
+  ],
+);
+
+export const formacaoTurmas = pgTable("formacao_turmas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nome: text("nome").notNull(),
+  instrutorId: uuid("instrutor_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  empresaFicticia: text("empresa_ficticia"),
+  linkMeet: text("link_meet"),
+  dataInicio: date("data_inicio").notNull(),
+  faseAtual: integer("fase_atual").notNull().default(1),
+  status: text("status", {
+    enum: ["planejada", "ativa", "concluida", "cancelada"],
+  })
+    .notNull()
+    .default("planejada"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoMembros = pgTable(
+  "formacao_membros",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    turmaId: uuid("turma_id")
+      .notNull()
+      .references(() => formacaoTurmas.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    email: text("email").notNull(),
+    nome: text("nome"),
+    iniciais: text("iniciais"),
+    status: text("status", { enum: ["convidado", "ativo", "inativo"] })
+      .notNull()
+      .default("convidado"),
+    convidadoEm: timestamp("convidado_em", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_membros_turma_email_unique").on(
+      table.turmaId,
+      table.email,
+    ),
+  ],
+);
+
+export const formacaoEncontros = pgTable(
+  "formacao_encontros",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    turmaId: uuid("turma_id")
+      .notNull()
+      .references(() => formacaoTurmas.id, { onDelete: "cascade" }),
+    numero: integer("numero").notNull(),
+    data: timestamp("data", { withTimezone: true }).notNull(),
+    linkMeet: text("link_meet"),
+    tipo: text("tipo").notNull().default("semanal"),
+    pauta: jsonb("pauta").$type<string[]>().notNull().default([]),
+    faseId: uuid("fase_id").references(() => formacaoFases.id, {
+      onDelete: "set null",
+    }),
+    projetoId: uuid("projeto_id").references(() => formacaoProjetos.id, {
+      onDelete: "set null",
+    }),
+    etapaId: uuid("etapa_id").references(() => formacaoEtapas.id, {
+      onDelete: "set null",
+    }),
+    decisoes: text("decisoes"),
+    proximosPassos: text("proximos_passos"),
+    status: text("status", { enum: ["agendado", "realizado", "cancelado"] })
+      .notNull()
+      .default("agendado"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_encontros_turma_numero_unique").on(
+      table.turmaId,
+      table.numero,
+    ),
+  ],
+);
+
+export const formacaoTarefas = pgTable("formacao_tarefas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  turmaId: uuid("turma_id")
+    .notNull()
+    .references(() => formacaoTurmas.id, { onDelete: "cascade" }),
+  projetoId: uuid("projeto_id").references(() => formacaoProjetos.id, {
+    onDelete: "set null",
+  }),
+  etapaId: uuid("etapa_id").references(() => formacaoEtapas.id, {
+    onDelete: "set null",
+  }),
+  papelId: uuid("papel_id").references(() => formacaoPapeis.id, {
+    onDelete: "set null",
+  }),
+  membroId: uuid("membro_id").references(() => formacaoMembros.id, {
+    onDelete: "set null",
+  }),
+  titulo: text("titulo").notNull(),
+  contexto: text("contexto"),
+  motivo: text("motivo"),
+  politicaIa: text("politica_ia"),
+  prazo: timestamp("prazo", { withTimezone: true }),
+  status: text("status", {
+    enum: ["a_fazer", "em_andamento", "bloqueada", "em_revisao", "concluida"],
+  })
+    .notNull()
+    .default("a_fazer"),
+  ordem: integer("ordem").notNull().default(0),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoCriteriosAceite = pgTable("formacao_criterios_aceite", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tarefaId: uuid("tarefa_id")
+    .notNull()
+    .references(() => formacaoTarefas.id, { onDelete: "cascade" }),
+  texto: text("texto").notNull(),
+  concluido: boolean("concluido").notNull().default(false),
+  ordem: integer("ordem").notNull().default(0),
+});
+
+export const formacaoEntregas = pgTable("formacao_entregas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tarefaId: uuid("tarefa_id")
+    .notNull()
+    .references(() => formacaoTarefas.id, { onDelete: "cascade" }),
+  membroId: uuid("membro_id")
+    .notNull()
+    .references(() => formacaoMembros.id, { onDelete: "cascade" }),
+  tipo: text("tipo", {
+    enum: [
+      "texto",
+      "arquivo",
+      "link",
+      "audio",
+      "produto",
+      "repositorio",
+      "pull_request",
+    ],
+  })
+    .notNull()
+    .default("texto"),
+  conteudo: text("conteudo"),
+  arquivoUrl: text("arquivo_url"),
+  versao: integer("versao").notNull().default(1),
+  status: text("status", {
+    enum: ["rascunho", "enviada", "correcao_solicitada", "aprovada"],
+  })
+    .notNull()
+    .default("rascunho"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoFeedbacks = pgTable("formacao_feedbacks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entregaId: uuid("entrega_id")
+    .notNull()
+    .references(() => formacaoEntregas.id, { onDelete: "cascade" }),
+  instrutorId: uuid("instrutor_id").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  comentario: text("comentario").notNull(),
+  statusSolicitado: text("status_solicitado", {
+    enum: ["correcao_solicitada", "aprovada"],
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoConteudos = pgTable("formacao_conteudos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  turmaId: uuid("turma_id").references(() => formacaoTurmas.id, {
+    onDelete: "cascade",
+  }),
+  etapaId: uuid("etapa_id").references(() => formacaoEtapas.id, {
+    onDelete: "set null",
+  }),
+  tarefaId: uuid("tarefa_id").references(() => formacaoTarefas.id, {
+    onDelete: "set null",
+  }),
+  encontroId: uuid("encontro_id").references(() => formacaoEncontros.id, {
+    onDelete: "set null",
+  }),
+  titulo: text("titulo").notNull(),
+  explicacao: text("explicacao"),
+  porQueImporta: text("por_que_importa"),
+  exemplo: text("exemplo"),
+  tipo: text("tipo", {
+    enum: ["texto", "video", "audio", "arquivo", "link", "checklist"],
+  })
+    .notNull()
+    .default("texto"),
+  url: text("url"),
+  corpo: text("corpo"),
+  ordem: integer("ordem").notNull().default(0),
+  status: text("status", { enum: ["rascunho", "publicado"] })
+    .notNull()
+    .default("rascunho"),
+  createdBy: uuid("created_by").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoConteudoArquivos = pgTable("formacao_conteudo_arquivos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conteudoId: uuid("conteudo_id")
+    .notNull()
+    .references(() => formacaoConteudos.id, { onDelete: "cascade" }),
+  blobUrl: text("blob_url").notNull(),
+  nome: text("nome"),
+  tipo: text("tipo"),
+  tamanho: integer("tamanho"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoPresencas = pgTable(
+  "formacao_presencas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    encontroId: uuid("encontro_id")
+      .notNull()
+      .references(() => formacaoEncontros.id, { onDelete: "cascade" }),
+    membroId: uuid("membro_id")
+      .notNull()
+      .references(() => formacaoMembros.id, { onDelete: "cascade" }),
+    presenca: text("presenca", {
+      enum: ["pendente", "confirmado", "presente", "atrasado", "ausente"],
+    })
+      .notNull()
+      .default("pendente"),
+    confirmadoEm: timestamp("confirmado_em", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_presencas_unique").on(
+      table.encontroId,
+      table.membroId,
+    ),
+  ],
+);
+
+export const formacaoDailyEntries = pgTable(
+  "formacao_daily_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    encontroId: uuid("encontro_id")
+      .notNull()
+      .references(() => formacaoEncontros.id, { onDelete: "cascade" }),
+    membroId: uuid("membro_id")
+      .notNull()
+      .references(() => formacaoMembros.id, { onDelete: "cascade" }),
+    concluidoPt: text("concluido_pt"),
+    andamentoPt: text("andamento_pt"),
+    proximoPt: text("proximo_pt"),
+    bloqueioPt: text("bloqueio_pt"),
+    ajudaPt: text("ajuda_pt"),
+    registradoEm: timestamp("registrado_em", { withTimezone: true }),
+    noPrazo: boolean("no_prazo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_daily_entries_unique").on(
+      table.encontroId,
+      table.membroId,
+    ),
+  ],
+);
+
+export const formacaoDailyIngles = pgTable("formacao_daily_ingles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dailyEntryId: uuid("daily_entry_id")
+    .notNull()
+    .references(() => formacaoDailyEntries.id, { onDelete: "cascade" }),
+  fraseCompletaPt: text("frase_completa_pt"),
+  fraseCompletaEn: text("frase_completa_en"),
+  incrementos: jsonb("incrementos").$type<string[]>().notNull().default([]),
+  vocab: jsonb("vocab").$type<string[]>().notNull().default([]),
+  status: text("status", {
+    enum: [
+      "nao_iniciada",
+      "repetida_leitura",
+      "repetida_apoio",
+      "repetida_sem_leitura",
+      "usada_na_daily",
+    ],
+  })
+    .notNull()
+    .default("nao_iniciada"),
+  observacaoInstrutor: text("observacao_instrutor"),
+  audioUrl: text("audio_url"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Histórico imutável: a aplicação não faz UPDATE/DELETE nesta tabela.
+export const formacaoAtribuicoesPapel = pgTable("formacao_atribuicoes_papel", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  turmaId: uuid("turma_id")
+    .notNull()
+    .references(() => formacaoTurmas.id, { onDelete: "cascade" }),
+  membroId: uuid("membro_id")
+    .notNull()
+    .references(() => formacaoMembros.id, { onDelete: "cascade" }),
+  papelId: uuid("papel_id")
+    .notNull()
+    .references(() => formacaoPapeis.id, { onDelete: "cascade" }),
+  encontroId: uuid("encontro_id").references(() => formacaoEncontros.id, {
+    onDelete: "set null",
+  }),
+  atribuidoPor: uuid("atribuido_por").references(() => profiles.id, {
+    onDelete: "set null",
+  }),
+  atribuidoEm: timestamp("atribuido_em", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const formacaoCertificados = pgTable(
+  "formacao_certificados",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    membroId: uuid("membro_id")
+      .notNull()
+      .references(() => formacaoMembros.id, { onDelete: "cascade" }),
+    faseId: uuid("fase_id")
+      .notNull()
+      .references(() => formacaoFases.id, { onDelete: "cascade" }),
+    codigo: uuid("codigo").notNull().defaultRandom(),
+    alunoNome: text("aluno_nome"),
+    faseNome: text("fase_nome"),
+    competenciasComplementares: jsonb("competencias_complementares")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+    emitidoPor: uuid("emitido_por").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    emitidoEm: timestamp("emitido_em", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("formacao_certificados_codigo_unique").on(table.codigo),
+    uniqueIndex("formacao_certificados_membro_fase_unique").on(
+      table.membroId,
+      table.faseId,
+    ),
+  ],
+);
+
 // -----------------------------------------------------------------------------
 // TYPE EXPORTS
 // -----------------------------------------------------------------------------
@@ -1663,3 +2175,53 @@ export type SimScoreEvent = typeof simScoreEvents.$inferSelect;
 export type NewSimScoreEvent = typeof simScoreEvents.$inferInsert;
 export type SimWorkspaceFile = typeof simWorkspaceFiles.$inferSelect;
 export type NewSimWorkspaceFile = typeof simWorkspaceFiles.$inferInsert;
+
+// Órbita — Formação em Squad
+export type FormacaoFase = typeof formacaoFases.$inferSelect;
+export type NewFormacaoFase = typeof formacaoFases.$inferInsert;
+export type FormacaoPapel = typeof formacaoPapeis.$inferSelect;
+export type NewFormacaoPapel = typeof formacaoPapeis.$inferInsert;
+export type FormacaoProjeto = typeof formacaoProjetos.$inferSelect;
+export type NewFormacaoProjeto = typeof formacaoProjetos.$inferInsert;
+export type FormacaoRequisitoProjeto =
+  typeof formacaoRequisitosProjeto.$inferSelect;
+export type NewFormacaoRequisitoProjeto =
+  typeof formacaoRequisitosProjeto.$inferInsert;
+export type FormacaoEtapa = typeof formacaoEtapas.$inferSelect;
+export type NewFormacaoEtapa = typeof formacaoEtapas.$inferInsert;
+export type FormacaoCompetencia = typeof formacaoCompetencias.$inferSelect;
+export type NewFormacaoCompetencia = typeof formacaoCompetencias.$inferInsert;
+export type FormacaoTurma = typeof formacaoTurmas.$inferSelect;
+export type NewFormacaoTurma = typeof formacaoTurmas.$inferInsert;
+export type FormacaoMembro = typeof formacaoMembros.$inferSelect;
+export type NewFormacaoMembro = typeof formacaoMembros.$inferInsert;
+export type FormacaoEncontro = typeof formacaoEncontros.$inferSelect;
+export type NewFormacaoEncontro = typeof formacaoEncontros.$inferInsert;
+export type FormacaoTarefa = typeof formacaoTarefas.$inferSelect;
+export type NewFormacaoTarefa = typeof formacaoTarefas.$inferInsert;
+export type FormacaoCriterioAceite =
+  typeof formacaoCriteriosAceite.$inferSelect;
+export type NewFormacaoCriterioAceite =
+  typeof formacaoCriteriosAceite.$inferInsert;
+export type FormacaoEntrega = typeof formacaoEntregas.$inferSelect;
+export type NewFormacaoEntrega = typeof formacaoEntregas.$inferInsert;
+export type FormacaoFeedback = typeof formacaoFeedbacks.$inferSelect;
+export type NewFormacaoFeedback = typeof formacaoFeedbacks.$inferInsert;
+export type FormacaoConteudo = typeof formacaoConteudos.$inferSelect;
+export type NewFormacaoConteudo = typeof formacaoConteudos.$inferInsert;
+export type FormacaoConteudoArquivo =
+  typeof formacaoConteudoArquivos.$inferSelect;
+export type NewFormacaoConteudoArquivo =
+  typeof formacaoConteudoArquivos.$inferInsert;
+export type FormacaoPresenca = typeof formacaoPresencas.$inferSelect;
+export type NewFormacaoPresenca = typeof formacaoPresencas.$inferInsert;
+export type FormacaoDailyEntry = typeof formacaoDailyEntries.$inferSelect;
+export type NewFormacaoDailyEntry = typeof formacaoDailyEntries.$inferInsert;
+export type FormacaoDailyIngles = typeof formacaoDailyIngles.$inferSelect;
+export type NewFormacaoDailyIngles = typeof formacaoDailyIngles.$inferInsert;
+export type FormacaoAtribuicaoPapel =
+  typeof formacaoAtribuicoesPapel.$inferSelect;
+export type NewFormacaoAtribuicaoPapel =
+  typeof formacaoAtribuicoesPapel.$inferInsert;
+export type FormacaoCertificado = typeof formacaoCertificados.$inferSelect;
+export type NewFormacaoCertificado = typeof formacaoCertificados.$inferInsert;

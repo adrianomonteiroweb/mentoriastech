@@ -7,6 +7,8 @@ import { ThumbDock } from "@/components/thumb-dock";
 import { MentorshipRequestTabs } from "@/components/booking/mentorship-request-tabs";
 import { FreeSlotsNotice } from "@/components/booking/free-slots-notice";
 import { PageViewTracker } from "@/components/page-view-tracker";
+import { FormacaoDevBanner } from "@/components/formacao/formacao-dev-banner";
+import { isFormacaoPreviewEnabled } from "@/lib/formacao/preview";
 import { CalendarDays } from "lucide-react";
 
 export default function Page() {
@@ -16,6 +18,8 @@ export default function Page() {
       <SiteHeader />
 
       <main className="pb-6">
+        {isFormacaoPreviewEnabled() && <FormacaoDevBanner />}
+
         <HeroSection />
 
         <PlatformLinks />
