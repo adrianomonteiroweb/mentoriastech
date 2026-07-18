@@ -43,6 +43,43 @@ export const atribuirPapeisSchema = z.object({
     .min(1, "Informe ao menos uma atribuição"),
 })
 
+export const tarefaStatusSchema = z.object({
+  // O aluno controla só estes; em_revisao vem do envio de entrega e concluida
+  // vem da aprovação do instrutor.
+  status: z.enum(["a_fazer", "em_andamento", "bloqueada"]),
+})
+
+export const criterioToggleSchema = z.object({
+  concluido: z.boolean(),
+})
+
+export const criarEntregaSchema = z
+  .object({
+    tipo: z.enum([
+      "texto",
+      "arquivo",
+      "link",
+      "audio",
+      "produto",
+      "repositorio",
+      "pull_request",
+    ]),
+    conteudo: z.string().max(20_000).optional().or(z.literal("")),
+    arquivoUrl: z.string().url().max(1000).optional().or(z.literal("")),
+  })
+  .refine(
+    (d) =>
+      d.tipo === "arquivo" || d.tipo === "audio"
+        ? !!d.arquivoUrl
+        : !!(d.conteudo && d.conteudo.trim()),
+    { message: "Preencha o conteúdo ou anexe o arquivo da entrega" },
+  )
+
+export const revisarEntregaSchema = z.object({
+  acao: z.enum(["aprovar", "solicitar_correcao"]),
+  comentario: z.string().max(20_000).optional().or(z.literal("")),
+})
+
 export const criarTarefaSchema = z.object({
   titulo: z.string().min(3, "Título é obrigatório").max(200),
   contexto: textoOpcional,

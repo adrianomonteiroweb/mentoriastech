@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ArrowRight,
   CalendarDays,
@@ -156,6 +157,16 @@ function Header({ home }: { home: TurmaHome }) {
           />
         </div>
       </div>
+
+      {home.tarefaAtual && (
+        <Link
+          href={`/formacao/turma/tarefa/${home.tarefaAtual.id}`}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Abrir minha tarefa
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      )}
     </section>
   );
 }

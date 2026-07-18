@@ -43,6 +43,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { TarefaReviewDialog } from "@/components/formacao/instrutor/tarefa-review-dialog";
 
 const STATUS_LABEL: Record<string, string> = {
   planejada: "Planejada",
@@ -776,6 +777,7 @@ function TarefasSection({
                 <Badge variant="outline">
                   {TAREFA_STATUS_LABEL[t.status] ?? t.status}
                 </Badge>
+                <TarefaReviewDialog tarefaId={t.id} titulo={t.titulo} />
               </li>
             ))}
           </ul>

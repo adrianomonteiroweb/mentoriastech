@@ -2,10 +2,13 @@ import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import {
   db,
   formacaoAtribuicoesPapel,
+  formacaoCriteriosAceite,
   formacaoDailyEntries,
   formacaoEncontros,
+  formacaoEntregas,
   formacaoEtapas,
   formacaoFases,
+  formacaoFeedbacks,
   formacaoMembros,
   formacaoPapeis,
   formacaoPresencas,
@@ -13,9 +16,12 @@ import {
   formacaoTarefas,
   formacaoTurmas,
   type FormacaoAtribuicaoPapel,
+  type FormacaoCriterioAceite,
   type FormacaoEncontro,
+  type FormacaoEntrega,
   type FormacaoEtapa,
   type FormacaoFase,
+  type FormacaoFeedback,
   type FormacaoMembro,
   type FormacaoPapel,
   type FormacaoProjeto,
@@ -221,6 +227,153 @@ export async function getReferencia(): Promise<Referencia> {
   ])
 
   return { fases, papeis, projetos, etapas }
+}
+
+// ---------------------------------------------------------------------------
+// Tarefa e entrega (Sprint 4)
+// ---------------------------------------------------------------------------
+
+export interface EntregaComFeedbacks extends FormacaoEntrega {
+  feedbacks: FormacaoFeedback[]
+}
+
+export interface TarefaDetalhe {
+  tarefa: FormacaoTarefa
+  criterios: FormacaoCriterioAceite[]
+  entregas: EntregaComFeedbacks[]
+  projetoNome: string | null
+  etapaNome: string | null
+  papelNome: string | null
+  papelCor: string | null
+  responsavelNome: string | null
+}
+
+/** Detalhe completo de uma tarefa (todas as entregas) — visão do instrutor. */
+export async function getTarefaDetalhe(
+  tarefaId: string,
+): Promise<TarefaDetalhe | null> {
+  const [tarefa] = await db
+    .select()
+    .from(formacaoTarefas)
+    .where(eq(formacaoTarefas.id, tarefaId))
+    .limit(1)
+  if (!tarefa) return null
+
+  const [criterios, entregas, projeto, etapa, papel, responsavel] =
+    await Promise.all([
+      db
+        .select()
+        .from(formacaoCriteriosAceite)
+        .where(eq(formacaoCriteriosAceite.tarefaId, tarefaId))
+        .orderBy(asc(formacaoCriteriosAceite.ordem)),
+      db
+        .select()
+        .from(formacaoEntregas)
+        .where(eq(formacaoEntregas.tarefaId, tarefaId))
+        .orderBy(desc(formacaoEntregas.createdAt)),
+      tarefa.projetoId
+        ? db
+            .select({ nome: formacaoProjetos.nome })
+            .from(formacaoProjetos)
+            .where(eq(formacaoProjetos.id, tarefa.projetoId))
+            .limit(1)
+        : Promise.resolve([]),
+      tarefa.etapaId
+        ? db
+            .select({ nome: formacaoEtapas.nome })
+            .from(formacaoEtapas)
+            .where(eq(formacaoEtapas.id, tarefa.etapaId))
+            .limit(1)
+        : Promise.resolve([]),
+      tarefa.papelId
+        ? db
+            .select({ nome: formacaoPapeis.nome, cor: formacaoPapeis.cor })
+            .from(formacaoPapeis)
+            .where(eq(formacaoPapeis.id, tarefa.papelId))
+            .limit(1)
+        : Promise.resolve([]),
+      tarefa.membroId
+        ? db
+            .select({ nome: formacaoMembros.nome, email: formacaoMembros.email })
+            .from(formacaoMembros)
+            .where(eq(formacaoMembros.id, tarefa.membroId))
+            .limit(1)
+        : Promise.resolve([]),
+    ])
+
+  const entregaIds = entregas.map((e) => e.id)
+  const feedbacks = entregaIds.length
+    ? await db
+        .select()
+        .from(formacaoFeedbacks)
+        .where(inArray(formacaoFeedbacks.entregaId, entregaIds))
+        .orderBy(asc(formacaoFeedbacks.createdAt))
+    : []
+
+  const feedbacksPorEntrega = new Map<string, FormacaoFeedback[]>()
+  for (const f of feedbacks) {
+    const arr = feedbacksPorEntrega.get(f.entregaId) ?? []
+    arr.push(f)
+    feedbacksPorEntrega.set(f.entregaId, arr)
+  }
+
+  return {
+    tarefa,
+    criterios,
+    entregas: entregas.map((e) => ({
+      ...e,
+      feedbacks: feedbacksPorEntrega.get(e.id) ?? [],
+    })),
+    projetoNome: projeto[0]?.nome ?? null,
+    etapaNome: etapa[0]?.nome ?? null,
+    papelNome: papel[0]?.nome ?? null,
+    papelCor: papel[0]?.cor ?? null,
+    responsavelNome:
+      responsavel[0]?.nome || responsavel[0]?.email || null,
+  }
+}
+
+/** Membro ativo de uma turma pelo email da sessão (ou null). */
+export async function getMembroAtivoNaTurma(
+  turmaId: string,
+  email: string,
+): Promise<FormacaoMembro | null> {
+  const normalized = normalizeEmail(email)
+  const [row] = await db
+    .select()
+    .from(formacaoMembros)
+    .where(
+      and(
+        eq(formacaoMembros.turmaId, turmaId),
+        eq(formacaoMembros.email, normalized),
+        sql`${formacaoMembros.status} <> 'inativo'`,
+      ),
+    )
+    .limit(1)
+  return row ?? null
+}
+
+export interface TarefaParaMembro {
+  detalhe: TarefaDetalhe
+  membro: FormacaoMembro
+}
+
+/**
+ * Detalhe da tarefa acessível a um aluno: exige que ele seja membro ativo da
+ * turma da tarefa. As entregas são filtradas às do próprio aluno.
+ */
+export async function getTarefaParaMembro(
+  tarefaId: string,
+  email: string,
+): Promise<TarefaParaMembro | null> {
+  const detalhe = await getTarefaDetalhe(tarefaId)
+  if (!detalhe) return null
+
+  const membro = await getMembroAtivoNaTurma(detalhe.tarefa.turmaId, email)
+  if (!membro) return null
+
+  const minhas = detalhe.entregas.filter((e) => e.membroId === membro.id)
+  return { detalhe: { ...detalhe, entregas: minhas }, membro }
 }
 
 // ---------------------------------------------------------------------------

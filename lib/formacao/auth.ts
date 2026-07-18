@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/utils/auth"
+import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { isFormacaoPreviewEnabled } from "@/lib/formacao/preview"
 
 export class FormacaoError extends Error {
@@ -19,6 +20,17 @@ export async function requireFormacaoInstrutor() {
     throw new FormacaoError("Não encontrado", 404)
   }
   return requireRole("admin", "mentor")
+}
+
+/**
+ * Gate das rotas de aluno da Órbita: preview habilitado + sessão mentee-access.
+ * Retorna a sessão (com email).
+ */
+export async function requireFormacaoAluno() {
+  if (!isFormacaoPreviewEnabled()) {
+    throw new FormacaoError("Não encontrado", 404)
+  }
+  return requireMenteeAccess()
 }
 
 /** Traduz erros conhecidos para { error, status } nas rotas. */

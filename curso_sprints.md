@@ -256,23 +256,30 @@ await requireRole(['admin', 'mentor'])
 > anteriores = concluídas, posteriores = bloqueadas. O detalhamento fino de conclusão chega
 > com entregas/aprovações (Sprints 4+).
 
-### Sprint 4 — Tarefa e entrega
+### Sprint 4 — Tarefa e entrega ✅
 
 ```
-[ ] CurrentTaskCard: título, contexto, "Por que importa" (bloco laranja), critérios de aceite, política de IA
-[ ] Critérios de aceite: checkboxes individuais — tarefa só conclui com entrega enviada
-[ ] Badge de papel do responsável com cor constante
-[ ] Formulário de entrega: tipo selecionável (texto / link / arquivo / áudio / repositório / pull request)
-[ ] Upload de arquivo (Vercel Blob, máx 5MB — reusa uploadFile de lib/utils/upload.ts)
-[ ] Status: rascunho → enviada → correção solicitada → aprovada
-[ ] Histórico de versões: cada reenvio é uma nova linha (não sobrescrever)
-[ ] Feedback do instrutor: comentário + novo status
-[ ] Micro-recompensa ao aprovar: animação de confetti ou scale+cor no card
-[ ] API: GET /api/formacao/tarefas/[id]
-[ ] API: PATCH /api/formacao/tarefas/[id] (atualizar status — validar transições)
-[ ] API: POST /api/formacao/tarefas/[id]/entregas
-[ ] API: PATCH /api/formacao/instrutor/entregas/[id] (aprovar / solicitar correção)
+[x] TaskDetail: título, contexto, "Por que importa" (bloco laranja), critérios, política de IA
+[x] Critérios de aceite: checkboxes individuais (toggle via API)
+[x] Badge de papel do responsável com cor constante (role-colors)
+[x] Formulário de entrega: texto / link / arquivo / áudio / produto / repositório / pull request
+[x] Upload de arquivo (Vercel Blob, máx 5MB, categoria "mentorship" — reusa uploadFile)
+[x] Status: rascunho → enviada → correção solicitada → aprovada
+[x] Histórico de versões: cada reenvio é nova linha (versao = max+1, não sobrescreve)
+[x] Feedback do instrutor: comentário + status (tarefa-review-dialog no turma-manager)
+[x] Micro-recompensa: banner "Concluída e aprovada!" com animação (RewardBanner)
+[x] Fluxo de status: enviar entrega → em_revisão; aprovar → concluída; correção → em_andamento
+[x] Link da home para a tarefa atual ("Abrir minha tarefa")
+[x] API: GET/PATCH /api/formacao/tarefas/[id] (aluno; status a_fazer/em_andamento/bloqueada)
+[x] API: POST /api/formacao/tarefas/[id]/entregas + /entregas/upload
+[x] API: PATCH /api/formacao/tarefas/[id]/criterios/[criterioId] (toggle)
+[x] API: GET /api/formacao/instrutor/tarefas/[id]
+[x] API: PATCH /api/formacao/instrutor/entregas/[id] (aprovar / solicitar correção)
+[x] Build OK + tsc sem erros novos
 ```
+
+> **Regra de conclusão (PRD):** o aluno não conclui a tarefa sozinho — enviar entrega move
+> para "em revisão"; só a aprovação do instrutor conclui. Correção devolve para "em andamento".
 
 ### Sprint 5 — Daily e presença
 
