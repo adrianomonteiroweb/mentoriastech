@@ -302,19 +302,27 @@ await requireRole(['admin', 'mentor'])
 > instrutor na Sprint 8 — aqui a daily é PT + streaks + presença. "Histórico mini de 4 sprints"
 > foi coberto pelos streaks + lista de atrasos (histórico completo/derivado fica na Sprint 12).
 
-### Sprint 6 — Rotação de papéis
+### Sprint 6 — Rotação de papéis ✅
 
 ```
-[ ] RolesMatrix: tabela membros × 5 papéis com contadores coloridos (≥1 = cor do papel, 0 = muted)
-[ ] Indicador pessoal: "Você: N/5 papéis" + progress bar até o certificado
-[ ] Painel do instrutor: atribuir papel por membro por encontro (dropdown)
-[ ] Validação: cada membro tem 1 papel por encontro (Fase 1); 1+ papéis possíveis em turmas menores
-[ ] Histórico imutável: sem DELETE ou UPDATE em formacao_atribuicoes_papel
-[ ] Alerta visual: papel ainda não exercido por algum membro (antes do encontro seguinte)
-[ ] API: GET /api/formacao/turma/rotacao
-[ ] API: POST /api/formacao/instrutor/turmas/[id]/papeis — atribuir papel
-[ ] API: GET /api/formacao/instrutor/turmas/[id]/rotacao — matriz completa
+[x] RolesMatrix: tabela membros × 5 papéis com contadores coloridos (≥1 = cor do papel, 0 = muted)
+[x] Indicador pessoal: "Você: N/5 papéis" + progress bar até o certificado
+[x] Painel do instrutor: atribuir papel por membro por encontro (dropdown)
+[x] Validação: cada membro tem 1 papel por encontro (Fase 1); 1+ papéis possíveis em turmas menores
+[x] Histórico imutável: sem DELETE ou UPDATE em formacao_atribuicoes_papel
+[x] Alerta visual: papel ainda não exercido por algum membro (antes do encontro seguinte)
+[x] API: GET /api/formacao/turma/rotacao
+[x] API: POST /api/formacao/instrutor/turmas/[id]/papeis — atribuir papel
+[x] API: GET /api/formacao/instrutor/turmas/[id]/rotacao — matriz completa
+[x] Link "Minha rotação de papéis" na home do aluno (RoleCard)
+[x] Build OK + tsc sem erros novos
 ```
+
+> **Nota:** A atribuição de papéis (POST) já existia da Sprint 2. A Sprint 6 adicionou a
+> visualização da **matriz completa de rotação** (aluno e instrutor), o **indicador pessoal**
+> com progress bar, os **alertas de papéis pendentes**, e o **histórico por encontro** no
+> painel do instrutor. O histórico é imutável — apenas a escalação do encontro atual/futuro
+> pode ser editada (via POST existente).
 
 ### Sprint 7 — Condutor do encontro (instrutor)
 

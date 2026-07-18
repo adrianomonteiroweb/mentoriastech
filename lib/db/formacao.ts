@@ -786,3 +786,207 @@ export async function getTurmaHome(
     squad,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Rotação de papéis — Sprint 6
+// ---------------------------------------------------------------------------
+
+export interface RotacaoPapel {
+  id: string
+  nome: string
+  nomeCurto: string | null
+  cor: string
+  minOcorrencias: number
+}
+
+export interface RotacaoMembro {
+  id: string
+  nome: string | null
+  iniciais: string | null
+  isMe: boolean
+  contagem: Record<string, number>
+  total: number
+  totalRequerido: number
+}
+
+export interface RotacaoAtribuicao {
+  membroId: string
+  papelId: string
+  encontroNumero: number
+}
+
+export interface RotacaoAlerta {
+  membroId: string
+  membroNome: string | null
+  papelId: string
+  papelNome: string
+  tipo: "nunca_exercido" | "abaixo_minimo"
+}
+
+export interface RotacaoContext {
+  papeis: RotacaoPapel[]
+  membros: RotacaoMembro[]
+  atribuicoes: RotacaoAtribuicao[]
+  alertas: RotacaoAlerta[]
+  meuProgresso: { exercidos: number; total: number }
+}
+
+export async function getRotacaoContext(
+  turma: FormacaoTurma,
+  membro: FormacaoMembro,
+): Promise<RotacaoContext> {
+  const [fase] = await db
+    .select()
+    .from(formacaoFases)
+    .where(eq(formacaoFases.numero, turma.faseAtual))
+    .limit(1)
+
+  if (!fase) {
+    return {
+      papeis: [],
+      membros: [],
+      atribuicoes: [],
+      alertas: [],
+      meuProgresso: { exercidos: 0, total: 0 },
+    }
+  }
+
+  const [papeis, membrosDb, atribuicoesDb] = await Promise.all([
+    db
+      .select()
+      .from(formacaoPapeis)
+      .where(eq(formacaoPapeis.faseId, fase.id))
+      .orderBy(asc(formacaoPapeis.ordem)),
+    db
+      .select()
+      .from(formacaoMembros)
+      .where(eq(formacaoMembros.turmaId, turma.id)),
+    db
+      .select({
+        membroId: formacaoAtribuicoesPapel.membroId,
+        papelId: formacaoAtribuicoesPapel.papelId,
+        encontroId: formacaoAtribuicoesPapel.encontroId,
+      })
+      .from(formacaoAtribuicoesPapel)
+      .where(eq(formacaoAtribuicoesPapel.turmaId, turma.id)),
+  ])
+
+  const encontroIds = [
+    ...new Set(
+      atribuicoesDb
+        .map((a) => a.encontroId)
+        .filter((id): id is string => !!id),
+    ),
+  ]
+  const encontroNumeroMap = new Map<string, number>()
+  if (encontroIds.length) {
+    const encs = await db
+      .select({ id: formacaoEncontros.id, numero: formacaoEncontros.numero })
+      .from(formacaoEncontros)
+      .where(inArray(formacaoEncontros.id, encontroIds))
+    for (const e of encs) encontroNumeroMap.set(e.id, e.numero)
+  }
+
+  const papelList: RotacaoPapel[] = papeis.map((p) => ({
+    id: p.id,
+    nome: p.nome,
+    nomeCurto: p.nomeCurto,
+    cor: p.cor,
+    minOcorrencias: p.minOcorrencias,
+  }))
+
+  const papelMap = new Map(papeis.map((p) => [p.id, p]))
+
+  const membrosResult: RotacaoMembro[] = membrosDb.map((m) => {
+    const minhas = atribuicoesDb.filter((a) => a.membroId === m.id)
+    const contagem: Record<string, number> = {}
+    for (const p of papeis) contagem[p.id] = 0
+    for (const a of minhas) {
+      if (contagem[a.papelId] !== undefined) contagem[a.papelId]++
+    }
+    const exercidos = papeis.filter((p) => contagem[p.id] > 0).length
+    return {
+      id: m.id,
+      nome: m.nome,
+      iniciais: m.iniciais,
+      isMe: m.id === membro.id,
+      contagem,
+      total: exercidos,
+      totalRequerido: papeis.length,
+    }
+  })
+
+  const atribuicoesList: RotacaoAtribuicao[] = atribuicoesDb
+    .filter((a) => a.encontroId && encontroNumeroMap.has(a.encontroId))
+    .map((a) => ({
+      membroId: a.membroId,
+      papelId: a.papelId,
+      encontroNumero: encontroNumeroMap.get(a.encontroId!)!,
+    }))
+
+  const alertas: RotacaoAlerta[] = []
+  for (const m of membrosDb) {
+    for (const p of papeis) {
+      const count =
+        membrosResult.find((r) => r.id === m.id)?.contagem[p.id] ?? 0
+      if (count === 0) {
+        alertas.push({
+          membroId: m.id,
+          membroNome: m.nome,
+          papelId: p.id,
+          papelNome: p.nome,
+          tipo: "nunca_exercido",
+        })
+      } else if (count < p.minOcorrencias) {
+        alertas.push({
+          membroId: m.id,
+          membroNome: m.nome,
+          papelId: p.id,
+          papelNome: p.nome,
+          tipo: "abaixo_minimo",
+        })
+      }
+    }
+  }
+
+  const eu = membrosResult.find((m) => m.isMe)
+  const meuProgresso = eu
+    ? { exercidos: eu.total, total: eu.totalRequerido }
+    : { exercidos: 0, total: papeis.length }
+
+  return { papeis: papelList, membros: membrosResult, atribuicoes: atribuicoesList, alertas, meuProgresso }
+}
+
+export interface RotacaoInstrutorContext extends RotacaoContext {
+  encontros: Array<{ id: string; numero: number; data: Date }>
+}
+
+export async function getRotacaoInstrutorContext(
+  turma: FormacaoTurma,
+): Promise<RotacaoInstrutorContext> {
+  const fakeMembro = { id: "__instrutor__" } as FormacaoMembro
+  const base = await getRotacaoContext(turma, fakeMembro)
+
+  const encontros = await db
+    .select({
+      id: formacaoEncontros.id,
+      numero: formacaoEncontros.numero,
+      data: formacaoEncontros.data,
+    })
+    .from(formacaoEncontros)
+    .where(eq(formacaoEncontros.turmaId, turma.id))
+    .orderBy(asc(formacaoEncontros.numero))
+
+  const membrosFixados = base.membros.map((m) => ({ ...m, isMe: false }))
+
+  return {
+    ...base,
+    membros: membrosFixados,
+    meuProgresso: { exercidos: 0, total: 0 },
+    encontros: encontros.map((e) => ({
+      id: e.id,
+      numero: e.numero,
+      data: e.data,
+    })),
+  }
+}
