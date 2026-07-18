@@ -324,22 +324,29 @@ await requireRole(['admin', 'mentor'])
 > painel do instrutor. O histórico é imutável — apenas a escalação do encontro atual/futuro
 > pode ser editada (via POST existente).
 
-### Sprint 7 — Condutor do encontro (instrutor)
+### Sprint 7 — Condutor do encontro (instrutor) ✅
 
 ```
-[ ] Tela do encontro: lista de alunos + papel + status da preparação da daily
-[ ] Seção por aluno: campo para documentar fala em PT
-[ ] Campo para versão em inglês (instrutor digita ou cola, editável)
-[ ] Botão de confirmação de presença por membro (toggle)
-[ ] Registrar decisões da reunião (campo livre)
-[ ] Registrar próximos passos (campo livre)
-[ ] Botão "Liberar próxima etapa" (requer: todos com presença registrada)
-[ ] API: GET /api/formacao/instrutor/encontros/[id] — dados completos do encontro
-[ ] API: PATCH /api/formacao/instrutor/encontros/[id] — atualizar decisões/próximos passos/status
-[ ] API: POST /api/formacao/instrutor/encontros/[id]/daily/[membroId] — salvar fala PT + EN
-[ ] API: PATCH /api/formacao/instrutor/encontros/[id]/presenca — marcar presença por membro
-[ ] API: POST /api/formacao/instrutor/encontros/[id]/liberar-etapa
+[x] Tela do encontro: lista de alunos + papel + status da preparação da daily
+[x] Seção por aluno: campo para documentar fala em PT
+[x] Campo para versão em inglês (instrutor digita ou cola, editável)
+[x] Botão de confirmação de presença por membro (toggle)
+[x] Registrar decisões da reunião (campo livre)
+[x] Registrar próximos passos (campo livre)
+[x] Botão "Liberar próxima etapa" (requer: todos com presença registrada)
+[x] API: GET /api/formacao/instrutor/encontros/[id] — dados completos do encontro
+[x] API: PATCH /api/formacao/instrutor/encontros/[id] — atualizar decisões/próximos passos/status
+[x] API: POST /api/formacao/instrutor/encontros/[id]/daily/[membroId] — salvar fala PT + EN
+[x] API: PATCH /api/formacao/instrutor/encontros/[id]/presenca — marcar presença por membro
+[x] API: POST /api/formacao/instrutor/encontros/[id]/liberar-etapa
+[x] Encontros clicáveis no turma-manager → navega para condutor
+[x] Build OK + tsc sem erros novos
 ```
+
+> **Navegação:** na tela de gestão da turma (`/formacao/instrutor/turma/[id]`), cada encontro
+> da lista agora é clicável e leva ao condutor (`/formacao/instrutor/turma/[id]/encontro/[encontroId]`).
+> O botão "Liberar próxima etapa" marca o encontro como `realizado` e só habilita quando todos
+> os membros têm presença registrada (presente ou atrasado).
 
 ### Sprint 8 — Inglês (Slow English)
 

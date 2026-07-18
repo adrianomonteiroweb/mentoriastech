@@ -97,7 +97,7 @@ export function TurmaManager({
 
       <MembrosSection membros={membros} base={base} onCall={call} />
 
-      <EncontrosSection encontros={encontros} base={base} onCall={call} />
+      <EncontrosSection encontros={encontros} turmaId={turma.id} base={base} onCall={call} />
 
       <PapeisSection
         membros={membros}
@@ -107,6 +107,14 @@ export function TurmaManager({
         base={base}
         onCall={call}
       />
+
+      <Link
+        href={`/formacao/instrutor/turma/${turma.id}/rotacao`}
+        className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
+      >
+        <Users className="h-4 w-4" />
+        Ver matriz completa de rotação
+      </Link>
 
       <TarefasSection
         tarefas={tarefas}
@@ -300,10 +308,12 @@ function MembrosSection({
 
 function EncontrosSection({
   encontros,
+  turmaId,
   base,
   onCall,
 }: {
   encontros: TurmaDetalhe["encontros"];
+  turmaId: string;
   base: string;
   onCall: CallFn;
 }) {
@@ -340,16 +350,18 @@ function EncontrosSection({
         {encontros.length > 0 && (
           <ul className="grid gap-2 sm:grid-cols-2">
             {encontros.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
-                  {e.numero}
-                </span>
-                <span className="text-muted-foreground">
-                  {formatarFortaleza(e.data)}
-                </span>
+              <li key={e.id}>
+                <Link
+                  href={`/formacao/instrutor/turma/${turmaId}/encontro/${e.id}`}
+                  className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-secondary"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+                    {e.numero}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatarFortaleza(e.data)}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

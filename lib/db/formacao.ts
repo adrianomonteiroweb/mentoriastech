@@ -4,6 +4,7 @@ import {
   formacaoAtribuicoesPapel,
   formacaoCriteriosAceite,
   formacaoDailyEntries,
+  formacaoDailyIngles,
   formacaoEncontros,
   formacaoEntregas,
   formacaoEtapas,
@@ -18,6 +19,7 @@ import {
   type FormacaoAtribuicaoPapel,
   type FormacaoCriterioAceite,
   type FormacaoDailyEntry,
+  type FormacaoDailyIngles,
   type FormacaoEncontro,
   type FormacaoEntrega,
   type FormacaoEtapa,
@@ -988,5 +990,172 @@ export async function getRotacaoInstrutorContext(
       numero: e.numero,
       data: e.data,
     })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Condutor do encontro (instrutor) — Sprint 7
+// ---------------------------------------------------------------------------
+
+export interface EncontroMembroCondutor {
+  id: string
+  nome: string | null
+  iniciais: string | null
+  papel: { nome: string; cor: string } | null
+  daily: {
+    id: string
+    concluidoPt: string | null
+    andamentoPt: string | null
+    proximoPt: string | null
+    bloqueioPt: string | null
+    ajudaPt: string | null
+    registradoEm: Date | null
+  } | null
+  ingles: {
+    id: string
+    fraseCompletaPt: string | null
+    fraseCompletaEn: string | null
+  } | null
+  presenca: {
+    id: string
+    presenca: string
+    confirmadoEm: Date | null
+  } | null
+}
+
+export interface EncontroCondutorContext {
+  encontro: FormacaoEncontro
+  turma: Pick<FormacaoTurma, "id" | "nome" | "empresaFicticia" | "linkMeet">
+  membros: EncontroMembroCondutor[]
+  todosComPresenca: boolean
+}
+
+export async function getEncontroCondutorContext(
+  encontroId: string,
+  turmaId: string,
+): Promise<EncontroCondutorContext | null> {
+  const [encontro] = await db
+    .select()
+    .from(formacaoEncontros)
+    .where(
+      and(
+        eq(formacaoEncontros.id, encontroId),
+        eq(formacaoEncontros.turmaId, turmaId),
+      ),
+    )
+    .limit(1)
+  if (!encontro) return null
+
+  const [turma] = await db
+    .select()
+    .from(formacaoTurmas)
+    .where(eq(formacaoTurmas.id, turmaId))
+    .limit(1)
+  if (!turma) return null
+
+  const membrosDb = await db
+    .select()
+    .from(formacaoMembros)
+    .where(eq(formacaoMembros.turmaId, turmaId))
+
+  const membroIds = membrosDb.map((m) => m.id)
+  if (membroIds.length === 0) {
+    return {
+      encontro,
+      turma: { id: turma.id, nome: turma.nome, empresaFicticia: turma.empresaFicticia, linkMeet: turma.linkMeet },
+      membros: [],
+      todosComPresenca: false,
+    }
+  }
+
+  const [atribs, dailies, presencas] = await Promise.all([
+    db
+      .select({
+        membroId: formacaoAtribuicoesPapel.membroId,
+        nome: formacaoPapeis.nome,
+        cor: formacaoPapeis.cor,
+      })
+      .from(formacaoAtribuicoesPapel)
+      .innerJoin(formacaoPapeis, eq(formacaoAtribuicoesPapel.papelId, formacaoPapeis.id))
+      .where(eq(formacaoAtribuicoesPapel.encontroId, encontroId)),
+    db
+      .select()
+      .from(formacaoDailyEntries)
+      .where(
+        and(
+          eq(formacaoDailyEntries.encontroId, encontroId),
+          inArray(formacaoDailyEntries.membroId, membroIds),
+        ),
+      ),
+    db
+      .select()
+      .from(formacaoPresencas)
+      .where(
+        and(
+          eq(formacaoPresencas.encontroId, encontroId),
+          inArray(formacaoPresencas.membroId, membroIds),
+        ),
+      ),
+  ])
+
+  const dailyIds = dailies.map((d) => d.id)
+  const inglesList = dailyIds.length
+    ? await db
+        .select()
+        .from(formacaoDailyIngles)
+        .where(inArray(formacaoDailyIngles.dailyEntryId, dailyIds))
+    : []
+
+  const papelByMembro = new Map(atribs.map((a) => [a.membroId, { nome: a.nome, cor: a.cor }]))
+  const dailyByMembro = new Map(dailies.map((d) => [d.membroId, d]))
+  const presencaByMembro = new Map(presencas.map((p) => [p.membroId, p]))
+  const inglesByDailyId = new Map(inglesList.map((i) => [i.dailyEntryId, i]))
+
+  const membrosResult: EncontroMembroCondutor[] = membrosDb.map((m) => {
+    const daily = dailyByMembro.get(m.id) ?? null
+    const ingles = daily ? inglesByDailyId.get(daily.id) ?? null : null
+    const presenca = presencaByMembro.get(m.id) ?? null
+    return {
+      id: m.id,
+      nome: m.nome,
+      iniciais: m.iniciais,
+      papel: papelByMembro.get(m.id) ?? null,
+      daily: daily
+        ? {
+            id: daily.id,
+            concluidoPt: daily.concluidoPt,
+            andamentoPt: daily.andamentoPt,
+            proximoPt: daily.proximoPt,
+            bloqueioPt: daily.bloqueioPt,
+            ajudaPt: daily.ajudaPt,
+            registradoEm: daily.registradoEm,
+          }
+        : null,
+      ingles: ingles
+        ? {
+            id: ingles.id,
+            fraseCompletaPt: ingles.fraseCompletaPt,
+            fraseCompletaEn: ingles.fraseCompletaEn,
+          }
+        : null,
+      presenca: presenca
+        ? {
+            id: presenca.id,
+            presenca: presenca.presenca,
+            confirmadoEm: presenca.confirmadoEm,
+          }
+        : null,
+    }
+  })
+
+  const todosComPresenca = membrosResult.every(
+    (m) => m.presenca && ["presente", "atrasado"].includes(m.presenca.presenca),
+  )
+
+  return {
+    encontro,
+    turma: { id: turma.id, nome: turma.nome, empresaFicticia: turma.empresaFicticia, linkMeet: turma.linkMeet },
+    membros: membrosResult,
+    todosComPresenca,
   }
 }
