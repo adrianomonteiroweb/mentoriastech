@@ -281,21 +281,26 @@ await requireRole(['admin', 'mentor'])
 > **Regra de conclusão (PRD):** o aluno não conclui a tarefa sozinho — enviar entrega move
 > para "em revisão"; só a aprovação do instrutor conclui. Correção devolve para "em andamento".
 
-### Sprint 5 — Daily e presença
+### Sprint 5 — Daily e presença ✅
 
 ```
-[ ] DailyCard: 5 campos nomeados com placeholder em PT e tradução EN ao lado
-[ ] Status badge: "Pendente · faltam N dias" → "Registrada" (verde) após submit
-[ ] Submit registra no feed de atividades da squad
-[ ] PresencePanel: streak de encontros seguidos + streak de dailies em dia
-[ ] Copy de loss-aversion: "N domingos seguidos · Confirme para não perder a sequência"
-[ ] Botão de confirmação de presença no encontro da semana
-[ ] Seção de atrasos registrados: transparência sem punição (encontro / daily)
-[ ] Histórico mini: 4 sprints anteriores com ícones de status
-[ ] API: POST /api/formacao/daily — valida encontro da semana + membro da turma
-[ ] API: POST /api/formacao/presenca/confirmar
-[ ] API: GET /api/formacao/turma/presenca — streaks e histórico
+[x] DailyCard: 5 campos nomeados (Concluído/Andamento/Próximo/Bloqueio/Ajuda) com placeholder PT
+[x] Status badge: "Pendente · faltam N dias" → "Registrada" após submit
+[x] Daily persistida por (encontro, membro) — upsert; base do feed da squad (feed completo: Sprint 12)
+[x] PresencePanel: streak de encontros seguidos + streak de dailies em dia (getDailyContext)
+[x] Copy de loss-aversion: "N domingos seguidos · confirme para não perder a sequência"
+[x] Botão de confirmação de presença no próximo encontro
+[x] Seção de atrasos registrados: transparência sem punição (encontro / daily)
+[x] no_prazo calculado no registro (registrada após o horário = atrasada)
+[x] Link "Preparar minha daily" na home
+[x] API: POST /api/formacao/daily (valida encontro + membro da turma)
+[x] API: POST /api/formacao/presenca/confirmar
+[x] Build OK + tsc sem erros novos
 ```
+
+> **Escopo:** a versão EN da daily (Slow English, repetição incremental) é conduzida pelo
+> instrutor na Sprint 8 — aqui a daily é PT + streaks + presença. "Histórico mini de 4 sprints"
+> foi coberto pelos streaks + lista de atrasos (histórico completo/derivado fica na Sprint 12).
 
 ### Sprint 6 — Rotação de papéis
 

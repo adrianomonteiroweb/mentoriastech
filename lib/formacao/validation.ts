@@ -80,6 +80,19 @@ export const revisarEntregaSchema = z.object({
   comentario: z.string().max(20_000).optional().or(z.literal("")),
 })
 
+export const registrarDailySchema = z.object({
+  encontroId: z.string().uuid("Encontro inválido"),
+  concluidoPt: textoOpcional,
+  andamentoPt: textoOpcional,
+  proximoPt: textoOpcional,
+  bloqueioPt: textoOpcional,
+  ajudaPt: textoOpcional,
+})
+
+export const confirmarPresencaSchema = z.object({
+  encontroId: z.string().uuid("Encontro inválido"),
+})
+
 export const criarTarefaSchema = z.object({
   titulo: z.string().min(3, "Título é obrigatório").max(200),
   contexto: textoOpcional,

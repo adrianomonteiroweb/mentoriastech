@@ -360,6 +360,13 @@ function MeetingCard({ home }: { home: TurmaHome }) {
               <ArrowRight className="h-3.5 w-3.5" />
             </a>
           )}
+          <Link
+            href="/formacao/turma/daily"
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-border py-2 text-sm font-medium transition-colors hover:bg-secondary"
+          >
+            Preparar minha daily
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </>
       ) : (
         <p className="mt-2 text-sm text-muted-foreground">

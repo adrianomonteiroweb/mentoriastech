@@ -17,6 +17,7 @@ import {
   formacaoTurmas,
   type FormacaoAtribuicaoPapel,
   type FormacaoCriterioAceite,
+  type FormacaoDailyEntry,
   type FormacaoEncontro,
   type FormacaoEntrega,
   type FormacaoEtapa,
@@ -374,6 +375,134 @@ export async function getTarefaParaMembro(
 
   const minhas = detalhe.entregas.filter((e) => e.membroId === membro.id)
   return { detalhe: { ...detalhe, entregas: minhas }, membro }
+}
+
+// ---------------------------------------------------------------------------
+// Daily e presença (Sprint 5)
+// ---------------------------------------------------------------------------
+
+export interface DailyContext {
+  encontro: Pick<FormacaoEncontro, "id" | "numero" | "data"> | null
+  daily: FormacaoDailyEntry | null
+  presencaConfirmada: boolean
+  meetingStreak: number
+  dailyStreak: number
+  diasAteEncontro: number | null
+  atrasos: Array<{ numero: number; tipo: string; detalhe: string }>
+}
+
+const PRESENCAS_CONTAM = ["confirmado", "presente", "atrasado"]
+
+/** Contexto de daily/presença do aluno: próximo encontro, streaks e atrasos. */
+export async function getDailyContext(
+  turma: FormacaoTurma,
+  membro: FormacaoMembro,
+): Promise<DailyContext> {
+  const now = new Date()
+
+  const encontros = await db
+    .select()
+    .from(formacaoEncontros)
+    .where(eq(formacaoEncontros.turmaId, turma.id))
+    .orderBy(asc(formacaoEncontros.numero))
+
+  const proximo =
+    encontros.find((e) => new Date(e.data) >= now) ??
+    encontros[encontros.length - 1] ??
+    null
+
+  const encIds = encontros.map((e) => e.id)
+  const [dailies, presencas] = await Promise.all([
+    encIds.length
+      ? db
+          .select()
+          .from(formacaoDailyEntries)
+          .where(
+            and(
+              inArray(formacaoDailyEntries.encontroId, encIds),
+              eq(formacaoDailyEntries.membroId, membro.id),
+            ),
+          )
+      : Promise.resolve([]),
+    encIds.length
+      ? db
+          .select()
+          .from(formacaoPresencas)
+          .where(
+            and(
+              inArray(formacaoPresencas.encontroId, encIds),
+              eq(formacaoPresencas.membroId, membro.id),
+            ),
+          )
+      : Promise.resolve([]),
+  ])
+
+  const dailyByEnc = new Map(dailies.map((d) => [d.encontroId, d]))
+  const presByEnc = new Map(presencas.map((p) => [p.encontroId, p]))
+
+  const daily = proximo ? dailyByEnc.get(proximo.id) ?? null : null
+  const presencaConfirmada = proximo
+    ? !!presByEnc.get(proximo.id)?.confirmadoEm
+    : false
+
+  // Streaks: encontros passados, do mais recente para trás, até o primeiro gap.
+  const passados = encontros
+    .filter((e) => new Date(e.data) < now)
+    .sort((a, b) => b.numero - a.numero)
+
+  let meetingStreak = 0
+  for (const e of passados) {
+    const p = presByEnc.get(e.id)
+    if (p && PRESENCAS_CONTAM.includes(p.presenca)) meetingStreak++
+    else break
+  }
+
+  let dailyStreak = 0
+  for (const e of passados) {
+    const d = dailyByEnc.get(e.id)
+    if (d && d.registradoEm) dailyStreak++
+    else break
+  }
+
+  // Atrasos (transparência sem punição).
+  const atrasos: DailyContext["atrasos"] = []
+  for (const e of encontros) {
+    const d = dailyByEnc.get(e.id)
+    if (d && d.registradoEm && d.noPrazo === false) {
+      atrasos.push({
+        numero: e.numero,
+        tipo: "Daily atrasada",
+        detalhe: `Encontro #${e.numero}`,
+      })
+    }
+    const p = presByEnc.get(e.id)
+    if (p && p.presenca === "atrasado") {
+      atrasos.push({
+        numero: e.numero,
+        tipo: "Atraso no encontro",
+        detalhe: `Encontro #${e.numero}`,
+      })
+    }
+  }
+
+  const diasAteEncontro = proximo
+    ? Math.max(
+        0,
+        Math.ceil((new Date(proximo.data).getTime() - now.getTime()) / 86_400_000),
+      )
+    : null
+
+  return {
+    encontro: proximo
+      ? { id: proximo.id, numero: proximo.numero, data: proximo.data }
+      : null,
+    daily,
+    presencaConfirmada,
+    meetingStreak,
+    dailyStreak,
+    diasAteEncontro,
+    atrasos,
+  }
 }
 
 // ---------------------------------------------------------------------------
