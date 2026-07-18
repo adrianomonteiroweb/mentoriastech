@@ -348,20 +348,33 @@ await requireRole(['admin', 'mentor'])
 > O botão "Liberar próxima etapa" marca o encontro como `realizado` e só habilita quando todos
 > os membros têm presença registrada (presente ou atrasado).
 
-### Sprint 8 — Inglês (Slow English)
+### Sprint 8 — Inglês (Slow English) ✅
 
 ```
-[ ] EnglishCard: frase-alvo completa + 4 incrementos progressivos numerados
-[ ] Vocab badges: palavras-chave isoladas da frase (pill colorida)
-[ ] Status de prática: não iniciada / repetida com leitura / repetida com apoio / repetida sem leitura / usada na daily
-[ ] Instrutor marca manualmente o estágio atingido (sem avaliação automática de pronúncia)
-[ ] Campo de observação do instrutor (feedback qualitativo)
-[ ] Botão "Ouvir áudio" (link externo ou Vercel Blob — opcional por frase)
-[ ] Aluno vê seu histórico de evoluções de inglês por encontro
-[ ] API: GET /api/formacao/turma/daily-ingles/[encontroId]
-[ ] API: PATCH /api/formacao/instrutor/daily-ingles/[id] — status + observação
-[ ] API: POST /api/formacao/instrutor/daily-ingles/[id]/audio — upload de áudio de referência
+[x] EnglishPractice: escrita livre PT + tradução via Gemini + frase-alvo EN
+[x] Prática incremental: palavra por palavra com controles (começar/próximo/voltar/parar)
+[x] TTS nativo (Web Speech API, en-US, rate 0.85): cada incremento é reproduzido ao avançar
+[x] Vocab badges: palavras-chave isoladas da frase (pill colorida clicável com TTS)
+[x] Status de prática: não iniciada / repetida com leitura / repetida com apoio / repetida sem leitura / usada na daily
+[x] Instrutor marca manualmente o estágio atingido (PATCH status)
+[x] Campo de observação do instrutor (feedback qualitativo)
+[x] Progresso visual durante prática (progress bar + step counter)
+[x] Micro-recompensa ao completar: "Prática completa!"
+[x] Bloco "Por que praticar inglês" (viés: por que antes de como)
+[x] Link "Praticar inglês" na home do aluno (MeetingCard)
+[x] API: POST /api/formacao/daily-ingles — traduz PT→EN via Gemini + gera incrementos + vocab
+[x] API: GET /api/formacao/turma/daily-ingles/[encontroId]
+[x] API: PATCH /api/formacao/instrutor/daily-ingles/[id] — status + observação
+[x] lib/formacao/translate.ts — translateToEnglish + buildIncrements
+[x] Build OK + tsc sem erros novos
 ```
+
+> **Diferença do PRD original:** substituímos o áudio externo por TTS nativo (Web Speech API)
+> com voz en-US e velocidade reduzida (0.85×). A prática incremental mostra palavra por
+> palavra com destaque visual na última adicionada, controles de reprodução, e progresso
+> visível. O aluno escreve livremente em PT, a IA traduz e fragmenta em incrementos.
+> Princípios de UX/AX aplicados: comprehensible input (Krashen), progressive disclosure,
+> chunking, controle de ritmo pelo usuário, por que antes de como, micro-recompensa ao concluir.
 
 ### Sprint 9 — Projetos, conteúdos e arquivos
 

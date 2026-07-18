@@ -994,6 +994,58 @@ export async function getRotacaoInstrutorContext(
 }
 
 // ---------------------------------------------------------------------------
+// Inglês incremental (aluno) — Sprint 8
+// ---------------------------------------------------------------------------
+
+export interface DailyInglesContext {
+  encontro: { id: string; numero: number } | null
+  ingles: FormacaoDailyIngles | null
+}
+
+export async function getDailyInglesContext(
+  turma: FormacaoTurma,
+  membro: FormacaoMembro,
+): Promise<DailyInglesContext> {
+  const now = new Date()
+  const encontros = await db
+    .select()
+    .from(formacaoEncontros)
+    .where(eq(formacaoEncontros.turmaId, turma.id))
+    .orderBy(asc(formacaoEncontros.numero))
+
+  const proximo =
+    encontros.find((e) => new Date(e.data) >= now) ??
+    encontros[encontros.length - 1] ??
+    null
+
+  if (!proximo) return { encontro: null, ingles: null }
+
+  const [daily] = await db
+    .select()
+    .from(formacaoDailyEntries)
+    .where(
+      and(
+        eq(formacaoDailyEntries.encontroId, proximo.id),
+        eq(formacaoDailyEntries.membroId, membro.id),
+      ),
+    )
+    .limit(1)
+
+  if (!daily) return { encontro: { id: proximo.id, numero: proximo.numero }, ingles: null }
+
+  const [ingles] = await db
+    .select()
+    .from(formacaoDailyIngles)
+    .where(eq(formacaoDailyIngles.dailyEntryId, daily.id))
+    .limit(1)
+
+  return {
+    encontro: { id: proximo.id, numero: proximo.numero },
+    ingles: ingles ?? null,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Condutor do encontro (instrutor) — Sprint 7
 // ---------------------------------------------------------------------------
 
