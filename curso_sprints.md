@@ -233,19 +233,28 @@ await requireRole(['admin', 'mentor'])
 >
 > **Nota:** APIs da formação usam **camelCase** (módulo isolado, difere do `sim_*`).
 
-### Sprint 3 — Tela inicial do aluno (re-entrada)
+### Sprint 3 — Tela inicial do aluno (re-entrada) ✅
 
 ```
-[ ] ContinuityLine: 4 blocos coloridos (onde parei / onde estou / por que importa / próxima ação)
-[ ] SequenceTrack: pills horizontais — done (✓) / current (destaque) / locked (🔒)
-[ ] Detail panel da etapa atual: o que é / por que existe / o que entregar / o que desbloqueia
-[ ] SprintHeader: meta da semana, countdown em dias, day-track Seg–Dom com barra de progresso
-[ ] CurrentRoleCard: papel atual + responsabilidades + badge colorido constante
-[ ] NextMeetingCard: próximo domingo 10h, número do encontro, agenda resumida
-[ ] ProjectProgress (sidebar): nome do projeto, barra, entregas (done/current/pending)
-[ ] SquadPanel (sidebar): membros, papel, status da daily, confirmação de presença
-[ ] API: GET /api/formacao/turma/home — consolida todos os dados da tela em 1 request
+[x] ContinuityLine: 4 blocos coloridos (onde parei / onde estou / por que importa / próxima ação)
+[x] SequenceTrack: pills horizontais — done (✓) / current (destaque) / locked (🔒)
+[x] Detail panel da etapa atual: o que é / por que existe / o que entregar / o que desbloqueia
+[x] Header: meta da semana (etapa), countdown em dias, day-track Seg–Dom, barra de progresso
+[x] RoleCard: papel atual + responsabilidades + cor constante (lib/formacao/role-colors.ts)
+[x] MeetingCard: próximo domingo 10h, número do encontro, pauta, link do Meet
+[x] ProjectProgress: nome do projeto, % , entregas (concluída/atual/bloqueada)
+[x] SquadPanel: membros, papel, status da daily, confirmação de presença
+[x] getTurmaHome: agrega tudo em 1 consulta consolidada (deriva projeto/etapa do encontro)
+[x] API: GET /api/formacao/turma/home (mentee-access)
+[x] Rota app/formacao/turma/page.tsx + redirect de /formacao quando turma ativa
+[x] Build OK + tsc sem erros novos
+[x] Smoke check: guards de /formacao/turma redirecionam sem erro (teste do fluxo é manual)
 ```
+
+> **Derivação de progresso (Sprint 3):** projeto/etapa "atual" vêm do `projeto_id`/`etapa_id`
+> do próximo encontro (o instrutor define); fallback = 1º projeto da fase + 1ª etapa. Etapas
+> anteriores = concluídas, posteriores = bloqueadas. O detalhamento fino de conclusão chega
+> com entregas/aprovações (Sprints 4+).
 
 ### Sprint 4 — Tarefa e entrega
 

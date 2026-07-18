@@ -1,12 +1,14 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm"
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import {
   db,
   formacaoAtribuicoesPapel,
+  formacaoDailyEntries,
   formacaoEncontros,
   formacaoEtapas,
   formacaoFases,
   formacaoMembros,
   formacaoPapeis,
+  formacaoPresencas,
   formacaoProjetos,
   formacaoTarefas,
   formacaoTurmas,
@@ -219,4 +221,286 @@ export async function getReferencia(): Promise<Referencia> {
   ])
 
   return { fases, papeis, projetos, etapas }
+}
+
+// ---------------------------------------------------------------------------
+// Home do aluno — consolida "onde parei / o que faço agora / por quê / meu papel"
+// ---------------------------------------------------------------------------
+
+export type EstadoEtapa = "concluida" | "atual" | "bloqueada"
+
+export interface TurmaHome {
+  turma: Pick<
+    FormacaoTurma,
+    "id" | "nome" | "empresaFicticia" | "faseAtual" | "linkMeet"
+  >
+  membro: Pick<FormacaoMembro, "id" | "nome" | "iniciais">
+  papelAtual: Pick<
+    FormacaoPapel,
+    "nome" | "cor" | "responsabilidades"
+  > | null
+  proximoEncontro: Pick<
+    FormacaoEncontro,
+    "id" | "numero" | "data" | "linkMeet" | "pauta"
+  > | null
+  projetoAtual: Pick<FormacaoProjeto, "nome" | "numero"> | null
+  etapaAtual: FormacaoEtapa | null
+  sequencia: Array<{ id: string; nome: string; estado: EstadoEtapa }>
+  continuidade: {
+    parou: string | null
+    agora: string | null
+    importa: string | null
+    proximaAcao: string | null
+  }
+  progresso: {
+    percent: number
+    entregas: Array<{ id: string; nome: string; estado: EstadoEtapa }>
+  }
+  tarefaAtual: Pick<FormacaoTarefa, "id" | "titulo" | "status"> | null
+  squad: Array<{
+    id: string
+    nome: string | null
+    iniciais: string | null
+    isMe: boolean
+    papel: string | null
+    dailyOk: boolean
+    presencaOk: boolean
+  }>
+}
+
+const TAREFA_ATIVAS = [
+  "a_fazer",
+  "em_andamento",
+  "bloqueada",
+  "em_revisao",
+] as const
+
+/** Agrega todos os dados da tela inicial do aluno em uma única estrutura. */
+export async function getTurmaHome(
+  turma: FormacaoTurma,
+  membro: FormacaoMembro,
+): Promise<TurmaHome> {
+  const now = new Date()
+
+  // Encontros → próximo (data >= agora) ou o último realizado.
+  const encontros = await db
+    .select()
+    .from(formacaoEncontros)
+    .where(eq(formacaoEncontros.turmaId, turma.id))
+    .orderBy(asc(formacaoEncontros.numero))
+  const proximo =
+    encontros.find((e) => new Date(e.data) >= now) ??
+    encontros[encontros.length - 1] ??
+    null
+
+  // Papel do aluno no próximo encontro.
+  let papelAtual: TurmaHome["papelAtual"] = null
+  if (proximo) {
+    const [row] = await db
+      .select({ papel: formacaoPapeis })
+      .from(formacaoAtribuicoesPapel)
+      .innerJoin(
+        formacaoPapeis,
+        eq(formacaoAtribuicoesPapel.papelId, formacaoPapeis.id),
+      )
+      .where(
+        and(
+          eq(formacaoAtribuicoesPapel.membroId, membro.id),
+          eq(formacaoAtribuicoesPapel.encontroId, proximo.id),
+        ),
+      )
+      .limit(1)
+    if (row) {
+      papelAtual = {
+        nome: row.papel.nome,
+        cor: row.papel.cor,
+        responsabilidades: row.papel.responsabilidades,
+      }
+    }
+  }
+
+  // Projeto/etapa atual: preferir o que o instrutor marcou no encontro; senão,
+  // o primeiro projeto da fase atual e sua primeira etapa.
+  const projetosFase = await db
+    .select()
+    .from(formacaoProjetos)
+    .innerJoin(formacaoFases, eq(formacaoProjetos.faseId, formacaoFases.id))
+    .where(eq(formacaoFases.numero, turma.faseAtual))
+    .orderBy(asc(formacaoProjetos.ordem))
+  const projetos = projetosFase.map((r) => r.formacao_projetos)
+
+  const projetoAtual =
+    (proximo?.projetoId
+      ? projetos.find((p) => p.id === proximo.projetoId)
+      : null) ??
+    projetos[0] ??
+    null
+
+  let etapas: FormacaoEtapa[] = []
+  if (projetoAtual) {
+    etapas = await db
+      .select()
+      .from(formacaoEtapas)
+      .where(eq(formacaoEtapas.projetoId, projetoAtual.id))
+      .orderBy(asc(formacaoEtapas.ordem))
+  }
+
+  const etapaAtual =
+    (proximo?.etapaId
+      ? etapas.find((e) => e.id === proximo.etapaId)
+      : null) ??
+    etapas[0] ??
+    null
+
+  const idxAtual = etapaAtual
+    ? etapas.findIndex((e) => e.id === etapaAtual.id)
+    : -1
+
+  const estadoDe = (i: number): EstadoEtapa =>
+    idxAtual < 0 || i === idxAtual
+      ? "atual"
+      : i < idxAtual
+        ? "concluida"
+        : "bloqueada"
+
+  const sequencia = etapas.map((e, i) => ({
+    id: e.id,
+    nome: e.nome,
+    estado: estadoDe(i),
+  }))
+
+  const percent =
+    etapas.length > 0 && idxAtual >= 0
+      ? Math.round((idxAtual / etapas.length) * 100)
+      : 0
+
+  // Tarefa ativa do aluno.
+  const [tarefa] = await db
+    .select()
+    .from(formacaoTarefas)
+    .where(
+      and(
+        eq(formacaoTarefas.turmaId, turma.id),
+        eq(formacaoTarefas.membroId, membro.id),
+        inArray(formacaoTarefas.status, TAREFA_ATIVAS),
+      ),
+    )
+    .orderBy(asc(formacaoTarefas.ordem), desc(formacaoTarefas.createdAt))
+    .limit(1)
+
+  const etapaAnterior = idxAtual > 0 ? etapas[idxAtual - 1] : null
+  const continuidade = {
+    parou: etapaAnterior
+      ? etapaAnterior.oQueEntregar || `Você concluiu: ${etapaAnterior.nome}`
+      : null,
+    agora: etapaAtual
+      ? etapaAtual.oQueE || `Você está em: ${etapaAtual.nome}`
+      : null,
+    importa: etapaAtual?.porQueExiste ?? null,
+    proximaAcao: tarefa?.titulo || etapaAtual?.oQueEntregar || null,
+  }
+
+  // Squad: membros + papel/daily/presença no próximo encontro.
+  const membros = await db
+    .select()
+    .from(formacaoMembros)
+    .where(
+      and(
+        eq(formacaoMembros.turmaId, turma.id),
+        sql`${formacaoMembros.status} <> 'inativo'`,
+      ),
+    )
+    .orderBy(asc(formacaoMembros.convidadoEm))
+
+  let papelPorMembro = new Map<string, string>()
+  let dailyOk = new Set<string>()
+  let presencaOk = new Set<string>()
+  if (proximo) {
+    const [atribs, dailies, presencas] = await Promise.all([
+      db
+        .select({
+          membroId: formacaoAtribuicoesPapel.membroId,
+          nome: formacaoPapeis.nomeCurto,
+          nomeFull: formacaoPapeis.nome,
+        })
+        .from(formacaoAtribuicoesPapel)
+        .innerJoin(
+          formacaoPapeis,
+          eq(formacaoAtribuicoesPapel.papelId, formacaoPapeis.id),
+        )
+        .where(eq(formacaoAtribuicoesPapel.encontroId, proximo.id)),
+      db
+        .select({ membroId: formacaoDailyEntries.membroId })
+        .from(formacaoDailyEntries)
+        .where(
+          and(
+            eq(formacaoDailyEntries.encontroId, proximo.id),
+            isNotNull(formacaoDailyEntries.registradoEm),
+          ),
+        ),
+      db
+        .select({ membroId: formacaoPresencas.membroId })
+        .from(formacaoPresencas)
+        .where(
+          and(
+            eq(formacaoPresencas.encontroId, proximo.id),
+            isNotNull(formacaoPresencas.confirmadoEm),
+          ),
+        ),
+    ])
+    papelPorMembro = new Map(
+      atribs.map((a) => [a.membroId, a.nome || a.nomeFull]),
+    )
+    dailyOk = new Set(dailies.map((d) => d.membroId))
+    presencaOk = new Set(presencas.map((p) => p.membroId))
+  }
+
+  const squad = membros.map((m) => ({
+    id: m.id,
+    nome: m.nome,
+    iniciais: m.iniciais,
+    isMe: m.id === membro.id,
+    papel: papelPorMembro.get(m.id) ?? null,
+    dailyOk: dailyOk.has(m.id),
+    presencaOk: presencaOk.has(m.id),
+  }))
+
+  return {
+    turma: {
+      id: turma.id,
+      nome: turma.nome,
+      empresaFicticia: turma.empresaFicticia,
+      faseAtual: turma.faseAtual,
+      linkMeet: turma.linkMeet,
+    },
+    membro: { id: membro.id, nome: membro.nome, iniciais: membro.iniciais },
+    papelAtual,
+    proximoEncontro: proximo
+      ? {
+          id: proximo.id,
+          numero: proximo.numero,
+          data: proximo.data,
+          linkMeet: proximo.linkMeet || turma.linkMeet,
+          pauta: proximo.pauta,
+        }
+      : null,
+    projetoAtual: projetoAtual
+      ? { nome: projetoAtual.nome, numero: projetoAtual.numero }
+      : null,
+    etapaAtual,
+    sequencia,
+    continuidade,
+    progresso: {
+      percent,
+      entregas: sequencia.map((s) => ({
+        id: s.id,
+        nome: s.nome,
+        estado: s.estado,
+      })),
+    },
+    tarefaAtual: tarefa
+      ? { id: tarefa.id, titulo: tarefa.titulo, status: tarefa.status }
+      : null,
+    squad,
+  }
 }

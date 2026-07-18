@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Clock, Orbit, Users } from "lucide-react";
 import { getMenteeAccessSession } from "@/lib/utils/mentee-access";
 import {
@@ -7,19 +8,18 @@ import {
 } from "@/lib/db/formacao";
 
 // Estado da tela inicial da Órbita conforme o vínculo do aluno.
-// Sprint 1: sem redirect (a tela /formacao/turma chega na Sprint 3).
+// Turma ativa → redireciona direto para a home (/formacao/turma).
 type Estado =
   | { tipo: "sem_sessao" }
   | { tipo: "sem_turma" }
-  | { tipo: "aguardando"; turmaNome: string; dataInicio: string }
-  | { tipo: "ativa"; turmaNome: string };
+  | { tipo: "aguardando"; turmaNome: string; dataInicio: string };
 
 async function resolverEstado(): Promise<Estado> {
   const session = await getMenteeAccessSession();
   if (!session) return { tipo: "sem_sessao" };
 
   const ativa = await getActiveTurmaMembershipForEmail(session.email);
-  if (ativa) return { tipo: "ativa", turmaNome: ativa.turma.nome };
+  if (ativa) redirect("/formacao/turma");
 
   const qualquer = await getAnyTurmaMembershipForEmail(session.email);
   if (qualquer) {
@@ -92,21 +92,6 @@ export default async function FormacaoPage() {
               <p className="text-sm text-muted-foreground">
                 Sua turma ainda não começou. Início previsto para{" "}
                 {estado.dataInicio}.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {estado.tipo === "ativa" && (
-          <div className="flex items-start gap-3">
-            <Users className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                {estado.turmaNome}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Sua squad está ativa. A tela da turma chega na próxima etapa do
-                desenvolvimento.
               </p>
             </div>
           </div>
