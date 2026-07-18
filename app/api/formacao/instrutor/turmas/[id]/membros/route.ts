@@ -42,6 +42,7 @@ export async function POST(
 
     const email = parsed.data.email.trim().toLowerCase()
     const nome = parsed.data.nome?.trim() || null
+    const whatsapp = parsed.data.whatsapp?.trim() || null
 
     // Já é membro desta turma?
     const [existente] = await db
@@ -79,6 +80,7 @@ export async function POST(
         email,
         nome: nomeFinal,
         iniciais: iniciaisDe(nomeFinal, email),
+        whatsapp: whatsapp || profile?.whatsapp || null,
         status: "ativo",
       })
       .returning()

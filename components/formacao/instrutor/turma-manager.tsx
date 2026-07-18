@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -195,6 +195,13 @@ function TurmaHeader({
   );
 }
 
+interface SearchResult {
+  id: string;
+  email: string;
+  fullName: string | null;
+  whatsapp: string | null;
+}
+
 function MembrosSection({
   membros,
   base,
@@ -206,8 +213,46 @@ function MembrosSection({
 }) {
   const [email, setEmail] = useState("");
   const [nome, setNome] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const cheio = membros.filter((m) => m.status !== "inativo").length >= 5;
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  async function buscar(q: string) {
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `/api/formacao/instrutor/mentorados?q=${encodeURIComponent(q)}`,
+      );
+      const json = await res.json();
+      setResults(json.data || []);
+    } catch {
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function onSearchChange(value: string) {
+    setSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => buscar(value), 300);
+  }
+
+  function selectResult(r: SearchResult) {
+    setEmail(r.email);
+    setNome(r.fullName || "");
+    setWhatsapp(r.whatsapp || "");
+    setSearch("");
+    setResults([]);
+  }
 
   async function adicionar() {
     if (!email.trim()) {
@@ -218,11 +263,12 @@ function MembrosSection({
     try {
       await onCall(
         `${base}/membros`,
-        { method: "POST", body: JSON.stringify({ email, nome }) },
+        { method: "POST", body: JSON.stringify({ email, nome, whatsapp }) },
         "Aluno adicionado",
       );
       setEmail("");
       setNome("");
+      setWhatsapp("");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -283,22 +329,71 @@ function MembrosSection({
             Limite de 5 alunos atingido.
           </p>
         ) : (
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              placeholder="email@do-aluno.com"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              placeholder="Nome (opcional)"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
-            <Button onClick={adicionar} disabled={busy} className="shrink-0">
-              <UserPlus className="mr-1.5 h-4 w-4" />
-              Adicionar
-            </Button>
+          <div className="space-y-3">
+            {/* Buscar mentorado existente */}
+            <div className="relative">
+              <Input
+                placeholder="Buscar mentorado por nome ou e-mail..."
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+              />
+              {(results.length > 0 || searching) && (
+                <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-card shadow-lg">
+                  {searching && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">
+                      Buscando...
+                    </p>
+                  )}
+                  {results.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => selectResult(r)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-secondary"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                        {(r.fullName || r.email)[0]?.toUpperCase() || "?"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm">
+                          {r.fullName || r.email}
+                        </p>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {r.email}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Formulário manual */}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Input
+                placeholder="email@do-aluno.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                placeholder="Nome (opcional)"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="WhatsApp (ex: 5585999999999)"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                className="max-w-[220px]"
+              />
+              <Button onClick={adicionar} disabled={busy} className="shrink-0">
+                <UserPlus className="mr-1.5 h-4 w-4" />
+                Adicionar
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

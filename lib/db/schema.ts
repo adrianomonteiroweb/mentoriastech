@@ -1726,6 +1726,7 @@ export const formacaoMembros = pgTable(
     email: text("email").notNull(),
     nome: text("nome"),
     iniciais: text("iniciais"),
+    whatsapp: text("whatsapp"),
     status: text("status", { enum: ["convidado", "ativo", "inativo"] })
       .notNull()
       .default("convidado"),

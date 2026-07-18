@@ -25,6 +25,7 @@ export const editarTurmaSchema = z.object({
 export const convidarMembroSchema = z.object({
   email: z.string().email("E-mail inválido"),
   nome: z.string().max(120).optional().or(z.literal("")),
+  whatsapp: z.string().max(20).optional().or(z.literal("")),
 })
 
 export const gerarEncontrosSchema = z.object({
