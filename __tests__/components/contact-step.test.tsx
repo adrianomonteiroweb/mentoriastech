@@ -24,7 +24,7 @@ describe("ContactStep", () => {
 
     expect(screen.getByPlaceholderText("Seu nome e sobrenome")).toBeInTheDocument()
     expect(screen.getByPlaceholderText("seu@email.com")).toBeInTheDocument()
-    expect(screen.getByPlaceholderText("(85) 99999-9999")).toBeInTheDocument()
+    expect(screen.getByLabelText("WhatsApp")).toBeInTheDocument()
   })
 
   it("should show authenticated banner when isAuthenticated is true", () => {
@@ -80,7 +80,7 @@ describe("ContactStep", () => {
     const user = userEvent.setup()
     render(<ContactStep {...defaultProps} onChangeWhatsapp={onChangeWhatsapp} />)
 
-    await user.type(screen.getByPlaceholderText("(85) 99999-9999"), "8")
+    await user.type(screen.getByLabelText("WhatsApp"), "8")
     expect(onChangeWhatsapp).toHaveBeenCalled()
   })
 

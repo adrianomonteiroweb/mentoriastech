@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 
 interface ScheduleSlot {
   id: string
@@ -293,14 +294,12 @@ export function BookingForm() {
         >
           WhatsApp
         </label>
-        <input
+        <PhoneNumberInput
           id="whatsapp"
-          type="tel"
           required
-          placeholder="(85) 99999-9999"
           value={whatsapp}
-          onChange={(e) => setWhatsapp(e.target.value)}
-          className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+          onChange={setWhatsapp}
+          className="min-h-12 px-4"
         />
       </div>
 

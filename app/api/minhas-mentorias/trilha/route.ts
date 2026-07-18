@@ -8,6 +8,7 @@ import {
   requireMenteeAccess,
 } from "@/lib/utils/mentee-access"
 import { enrollInTrack, TrackEnrollError } from "@/lib/trilhas/enroll"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 import {
   getActiveTracksWithPhases,
   getEnrollmentsForMentee,
@@ -16,7 +17,7 @@ import {
 const enrollSchema = z.object({
   trackId: z.string().uuid(),
   name: z.string().optional(),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
   targetInternational: z.boolean().optional(),
   includeEnglish: z.boolean().optional(),
   englishInterviews: z.boolean().optional(),

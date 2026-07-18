@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/lib/audit"
 import { requireMenteeAccess } from "@/lib/utils/mentee-access"
 import { ensureProfileForMenteeEmail } from "@/lib/utils/mentee-resume"
 import { defaultJobAlert, mapJobAlert } from "@/lib/db/job-alerts"
+import { requiredWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,14 +16,7 @@ const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
 const upsertSchema = z.object({
   enabled: z.boolean().default(true),
   name: z.string().trim().max(120).optional().or(z.literal("")),
-  // Dígitos DDD+número (o bot prefixa o DDI 55). Aceita máscara e normaliza p/ dígitos.
-  whatsapp: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 10 && digits.length <= 13, {
-      message: "Informe um WhatsApp válido (DDD + número).",
-    }),
+  whatsapp: requiredWhatsAppSchema,
   positions: keywordArray.default([]),
   stack: keywordArray.default([]),
   levels: z.array(z.enum(["internship", "junior", "mid", "senior"])).max(4).default([]),

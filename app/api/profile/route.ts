@@ -5,10 +5,11 @@ import { db, profiles } from "@/lib/db"
 import { requireAuth } from "@/lib/utils/auth"
 import { safeOwnResumeHref } from "@/lib/utils/resume-access"
 import { toProfile } from "@/lib/db/mappers"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const updateSchema = z.object({
   full_name: z.string().min(2).optional(),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
   linkedin_url: z.string().url().optional().or(z.literal("")),
   bio: z.string().max(500).optional(),
 })

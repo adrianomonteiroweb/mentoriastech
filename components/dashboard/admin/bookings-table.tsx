@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { Check, ClipboardCheck, Copy, ExternalLink, Loader2, MessageCircle, MessageSquareText, Pencil, Trash2, Users } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
 import type { BookingWithRelations, BookingStatus, MentoringTopic, OriginCategory } from "@/lib/types/database"
@@ -894,10 +895,10 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="booking-whatsapp">WhatsApp</Label>
-                <Input
+                <PhoneNumberInput
                   id="booking-whatsapp"
                   value={form.guest_whatsapp}
-                  onChange={(e) => setForm((current) => ({ ...current, guest_whatsapp: e.target.value }))}
+                  onChange={(value) => setForm((current) => ({ ...current, guest_whatsapp: value }))}
                 />
               </div>
             </div>

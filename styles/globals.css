@@ -84,6 +84,28 @@ body {
   }
 }
 
+@layer components {
+  .phone-number-input .PhoneInputCountry {
+    @apply mr-2 border-r border-border pr-2;
+  }
+
+  .phone-number-input .PhoneInputCountrySelect {
+    @apply cursor-pointer;
+  }
+
+  .phone-number-input .PhoneInputCountryIcon {
+    @apply overflow-hidden rounded-sm shadow-none;
+  }
+
+  .phone-number-input .PhoneInputCountrySelectArrow {
+    @apply ml-1 text-muted-foreground opacity-80;
+  }
+
+  .phone-number-input .PhoneInputInput {
+    @apply min-w-0 flex-1 border-0 bg-transparent py-2 text-foreground outline-none placeholder:text-muted-foreground;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

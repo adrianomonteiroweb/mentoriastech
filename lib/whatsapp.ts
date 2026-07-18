@@ -1,17 +1,41 @@
-/**
- * Formata número de telefone brasileiro para link do WhatsApp.
- * Se o número tem 10 ou 11 dígitos (DDD + número), adiciona o código do país 55.
- */
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js/max"
+
+export const DEFAULT_PHONE_COUNTRY: CountryCode = "BR"
+
+/** Converte registros brasileiros legados e números internacionais para a UI. */
+export function phoneNumberForInput(input: string): string | undefined {
+  const trimmed = input.trim()
+  if (!trimmed) return undefined
+  if (trimmed.startsWith("+")) return trimmed
+
+  const digits = trimmed.replace(/\D/g, "")
+  if (!digits) return undefined
+
+  // Compatibilidade com os registros antigos: DDD + número sem DDI.
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`
+  return `+${digits}`
+}
+
+/** Normaliza e valida no padrão E.164. Retorna null quando o número é inválido. */
+export function normalizePhoneNumber(
+  input: string,
+  defaultCountry: CountryCode = DEFAULT_PHONE_COUNTRY,
+): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+
+  const value = trimmed.startsWith("+") ? trimmed : phoneNumberForInput(trimmed) || trimmed
+  const phone = parsePhoneNumberFromString(value, defaultCountry)
+  return phone?.isValid() ? phone.number : null
+}
+
+/** Formata um E.164 para o wa.me e mantém compatibilidade com dados legados. */
 export function formatWhatsAppNumber(input: string): string {
+  const normalized = normalizePhoneNumber(input)
+  if (normalized) return normalized.slice(1)
+
   const digits = input.replace(/\D/g, "")
-
-  // 11 dígitos = DDD (2) + celular (9) — ex: 85986663753
-  // 10 dígitos = DDD (2) + fixo (8) — ex: 8532123456
-  if (digits.length === 10 || digits.length === 11) {
-    return `55${digits}`
-  }
-
-  // Já inclui código do país (13 dígitos para celular BR) ou formato internacional
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`
   return digits
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import 'react-phone-number-input/style.css'
 import './globals.css'
 import { PWARegister } from '@/components/pwa-register'
 import { InstallPrompt } from '@/components/install-prompt'

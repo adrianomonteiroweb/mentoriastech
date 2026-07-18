@@ -7,11 +7,12 @@ import { requireMentorAccess, getMentorId, requireRole } from "@/lib/utils/auth"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const createMenteeSchema = z.object({
   full_name: z.string().min(1, "Nome é obrigatório"),
   email: z.string().email("Email inválido"),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
 })
 
 const careerStatusValues = ["seeking", "interning", "employed", "student", "other"] as const

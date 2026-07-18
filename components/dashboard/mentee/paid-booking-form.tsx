@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { cn } from "@/lib/utils"
 import type { PublicPaidMentorship } from "@/lib/types/database"
 
@@ -472,7 +473,7 @@ export function PaidBookingForm() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="paid-whatsapp">WhatsApp</Label>
-          <Input id="paid-whatsapp" value={whatsapp} onChange={(event) => setWhatsapp(event.target.value)} required />
+          <PhoneNumberInput id="paid-whatsapp" value={whatsapp} onChange={setWhatsapp} required />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="paid-document">CPF (opcional)</Label>

@@ -29,9 +29,8 @@ function isBotRequest(request: Request): boolean {
   )
 }
 
-// GET — inscrições ativas na forma que o bot consome (equivalente a uma linha
-// do CSV: name/whatsapp/email + filtros). Só enabled = true (o bot dropava as
-// desabilitadas no load()).
+// GET — inscrições ativas na forma que o bot consome. `whatsapp` é entregue
+// em E.164 (ex.: +5511987654321 ou +2389841098), sem DDI fixo.
 export async function GET(request: Request) {
   if (!isBotRequest(request)) {
     return NextResponse.json(

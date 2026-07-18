@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Loader2, Search, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { TagInput } from "@/components/minhas-mentorias/shared/tag-input"
 import { TagSelect } from "@/components/minhas-mentorias/shared/tag-select"
 import { PillMultiSelect } from "@/components/minhas-mentorias/shared/pill-multi-select"
@@ -210,13 +211,11 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="new-whatsapp" className="text-xs font-medium text-muted-foreground">WhatsApp</label>
-              <input
+              <PhoneNumberInput
                 id="new-whatsapp"
                 value={newWhatsapp}
-                onChange={(e) => { setNewWhatsapp(e.target.value); setWhatsapp(e.target.value) }}
-                inputMode="numeric"
-                placeholder="DDD + número (ex: 85986663753)"
-                className="min-h-10 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                onChange={(value) => { setNewWhatsapp(value); setWhatsapp(value) }}
+                showHint={false}
               />
             </div>
           </div>
@@ -302,13 +301,10 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
             <label htmlFor="jac-whatsapp" className="text-sm font-medium text-foreground">
               WhatsApp
             </label>
-            <input
+            <PhoneNumberInput
               id="jac-whatsapp"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              inputMode="numeric"
-              placeholder="DDD + número (ex: 85986663753)"
-              className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={setWhatsapp}
             />
           </div>
         </div>

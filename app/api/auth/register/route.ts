@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { db, paidMentorships, profiles, userRoles } from "@/lib/db"
 import { signToken } from "@/lib/auth/jwt"
 import { AUTH_COOKIE, authCookieOptions } from "@/lib/auth/cookies"
+import { requiredWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const BCRYPT_ROUNDS = 12
 
@@ -12,7 +13,7 @@ const registerSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
   fullName: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  whatsapp: z.string().trim().min(1, "WhatsApp obrigatorio"),
+  whatsapp: requiredWhatsAppSchema,
 })
 
 export async function POST(request: Request) {

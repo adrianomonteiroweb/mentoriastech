@@ -6,6 +6,7 @@ import { ArrowLeft, BellRing, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { TagInput } from "@/components/minhas-mentorias/shared/tag-input"
 import { TagSelect } from "@/components/minhas-mentorias/shared/tag-select"
 import { PillMultiSelect } from "@/components/minhas-mentorias/shared/pill-multi-select"
@@ -151,15 +152,11 @@ export function JobAlertsPanel({ email }: Props) {
                   <label htmlFor="ja-whatsapp" className="text-sm font-medium text-foreground">
                     WhatsApp
                   </label>
-                  <input
+                  <PhoneNumberInput
                     id="ja-whatsapp"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    inputMode="numeric"
-                    placeholder="DDD + número (ex: 85986663753)"
-                    className="min-h-11 rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    onChange={setWhatsapp}
                   />
-                  <p className="text-xs text-muted-foreground">Com DDD, sem o código do país (adicionamos o +55 automaticamente).</p>
                 </div>
               </CardContent>
             </Card>

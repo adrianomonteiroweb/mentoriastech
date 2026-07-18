@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { CalendarDays, Check, Globe, Loader2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { cn } from "@/lib/utils"
 import type { LearningTrackWithPhases } from "@/lib/types/database"
 
@@ -316,11 +317,10 @@ export function TrilhaEnrollForm({
                   <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     WhatsApp
                   </label>
-                  <input
+                  <PhoneNumberInput
+                    id="trilha-whatsapp"
                     value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm focus:border-primary focus:outline-none"
-                    placeholder="(00) 00000-0000"
+                    onChange={setWhatsapp}
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 sm:col-span-2">

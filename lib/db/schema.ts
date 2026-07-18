@@ -949,7 +949,7 @@ export const jobAlertSubscriptions = pgTable(
       .references(() => profiles.id, { onDelete: "cascade" }),
     // Liga/desliga o recebimento (padrão habilitado).
     enabled: boolean("enabled").notNull().default(true),
-    // Canal de entrega: nome exibido + número (dígitos DDD+número; o bot prefixa 55).
+    // Canal de entrega: nome exibido + número internacional no padrão E.164.
     name: text("name"),
     whatsapp: text("whatsapp"),
     // Palavras casadas contra o título da vaga (armazenadas em minúsculas).

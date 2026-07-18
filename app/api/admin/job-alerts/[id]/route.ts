@@ -4,6 +4,7 @@ import { z } from "zod"
 import { db, jobAlertSubscriptions, profiles } from "@/lib/db"
 import { AuthError, requireRole } from "@/lib/utils/auth"
 import { logAuditEvent } from "@/lib/audit"
+import { requiredWhatsAppSchema } from "@/lib/whatsapp-schema"
 import {
   dedupeList,
   mapJobAlertAdmin,
@@ -17,18 +18,11 @@ export const dynamic = "force-dynamic"
 const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
 
 // Todos os campos opcionais: o admin pode salvar só o toggle (enabled) ou o
-// formulário completo. WhatsApp aceita máscara e normaliza p/ dígitos.
+// formulário completo. WhatsApp é normalizado no padrão internacional E.164.
 const updateSchema = z.object({
   enabled: z.boolean().optional(),
   name: z.string().trim().max(120).nullable().optional(),
-  whatsapp: z
-    .string()
-    .trim()
-    .transform((value) => value.replace(/\D/g, ""))
-    .refine((digits) => digits.length >= 10 && digits.length <= 13, {
-      message: "Informe um WhatsApp válido (DDD + número).",
-    })
-    .optional(),
+  whatsapp: requiredWhatsAppSchema.optional(),
   positions: keywordArray.optional(),
   stack: keywordArray.optional(),
   levels: z.array(z.enum(["internship", "junior", "mid", "senior"])).max(4).optional(),

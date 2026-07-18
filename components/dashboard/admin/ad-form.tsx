@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 import type { Ad } from "@/lib/types/database"
 
@@ -138,16 +139,15 @@ export function AdForm({ ad, onSuccess }: AdFormProps) {
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ad-whatsapp">WhatsApp com país e DDD</Label>
-          <Input
+          <PhoneNumberInput
             id="ad-whatsapp"
-            inputMode="tel"
             value={whatsappNumber}
-            onChange={(event) => setWhatsappNumber(event.target.value)}
-            placeholder="5585988139289"
+            onChange={setWhatsappNumber}
             aria-describedby="ad-whatsapp-help"
+            showHint={false}
           />
           <p id="ad-whatsapp-help" className="text-sm leading-relaxed text-foreground/75">
-            Informe somente números. O botão do anúncio abrirá uma conversa nesse WhatsApp.
+            Selecione o país ou cole o número completo com +. O botão abrirá a conversa nesse WhatsApp.
           </p>
         </div>
       </div>

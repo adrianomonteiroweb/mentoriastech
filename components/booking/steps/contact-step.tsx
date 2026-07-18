@@ -2,6 +2,7 @@
 
 import { CreditCard, Mail, Megaphone, Phone, RefreshCcw, User } from "lucide-react"
 import { ORIGIN_OPTIONS, type OriginCategoryValue } from "@/lib/types/booking"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { StepNavigation } from "../step-navigation"
 
 interface ContactStepProps {
@@ -188,14 +189,12 @@ export function ContactStep({
             <Phone className="h-3 w-3" />
             WhatsApp
           </label>
-          <input
+          <PhoneNumberInput
             id="booking-whatsapp"
-            type="tel"
             required
-            placeholder="(85) 99999-9999"
             value={whatsapp}
-            onChange={(e) => onChangeWhatsapp(e.target.value)}
-            className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
+            onChange={onChangeWhatsapp}
+            className="min-h-12 px-4"
           />
         </div>
       )}

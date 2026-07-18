@@ -22,6 +22,7 @@ import {
 import { JobAlertForm } from "@/components/dashboard/admin/job-alert-form"
 import { JobAlertCreateForm } from "@/components/dashboard/admin/job-alert-create-form"
 import { LEVEL_OPTIONS, type AdminJobAlert } from "@/lib/db/job-alerts"
+import { formatWhatsAppNumber } from "@/lib/whatsapp"
 
 interface JobAlertsTableProps {
   refreshKey?: number
@@ -137,7 +138,7 @@ export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
                   <TableCell className="hidden md:table-cell">
                     {item.whatsapp ? (
                       <a
-                        href={`https://wa.me/55${item.whatsapp}`}
+                        href={`https://wa.me/${formatWhatsAppNumber(item.whatsapp)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-primary hover:underline"

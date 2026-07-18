@@ -34,7 +34,7 @@ describe("AdForm", () => {
       DEFAULT_AD_WHATSAPP_MESSAGE,
     )
     expect(
-      screen.getByText(/O botão do anúncio abrirá uma conversa nesse WhatsApp\./),
+      screen.getByText(/O botão abrirá a conversa nesse WhatsApp\./),
     ).toBeInTheDocument()
   })
 })

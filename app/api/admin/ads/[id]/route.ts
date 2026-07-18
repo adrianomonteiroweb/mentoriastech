@@ -5,13 +5,14 @@ import { db, ads } from "@/lib/db"
 import { toAd } from "@/lib/db/mappers"
 import { DEFAULT_AD_WHATSAPP_MESSAGE } from "@/lib/ad-whatsapp"
 import { z } from "zod"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const updateSchema = z.object({
   title: z.string().min(2).optional(),
   description: z.string().optional(),
   image_url: z.string().url().optional().or(z.literal("")),
   image_alt: z.string().max(500).optional(),
-  whatsapp_number: z.string().optional(),
+  whatsapp_number: optionalWhatsAppSchema,
   whatsapp_message: z.string().trim().max(1000).optional(),
   link_url: z.string().url().optional().or(z.literal("")),
   sort_order: z.number().int().optional(),

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { FileText, Loader2, Save, Upload, CheckCircle2 } from "lucide-react"
 import type { Profile } from "@/lib/types/database"
 
@@ -147,7 +148,7 @@ export function ProfileForm() {
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="whatsapp">WhatsApp</Label>
-        <Input id="whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="(85) 99999-9999" />
+        <PhoneNumberInput id="whatsapp" value={whatsapp} onChange={setWhatsapp} />
       </div>
 
       <div className="flex flex-col gap-1.5">

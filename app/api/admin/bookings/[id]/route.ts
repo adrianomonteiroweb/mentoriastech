@@ -11,6 +11,7 @@ import { toBooking } from "@/lib/db/mappers"
 import { normalizeMentorshipChecklistSnapshot } from "@/lib/mentorship-checklist"
 import { sendBookingStatusEmail } from "@/lib/booking-notifications"
 import { requireMentorAccess } from "@/lib/utils/auth"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const menteeProfileUpdateSchema = z.object({
   career_status: z
@@ -50,7 +51,7 @@ const updateSchema = z.object({
   start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
   guest_name: z.string().optional(),
   guest_email: z.string().email().optional().or(z.literal("")),
-  guest_whatsapp: z.string().optional(),
+  guest_whatsapp: optionalWhatsAppSchema,
   google_meet_url: z.string().url().optional().or(z.literal("")),
   topics_discussed: z.string().optional(),
   mentee_strengths: z.string().optional(),

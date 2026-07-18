@@ -13,6 +13,7 @@ import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-confl
 import { toPayment, toPublicPaidMentorship } from "@/lib/db/mappers"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { paidMentorshipRequestToMentorEmail } from "@/lib/email-templates"
+import { requiredWhatsAppSchema } from "@/lib/whatsapp-schema"
 import {
   PagarmeError,
   chargeFailureDetail,
@@ -38,7 +39,7 @@ const createSchema = z.object({
   paidMentorshipId: z.string().uuid("Mentoria paga invalida"),
   name: z.string().trim().min(2, "Nome e obrigatorio"),
   email: z.string().trim().email("Email invalido"),
-  whatsapp: z.string().trim().min(1, "WhatsApp e obrigatorio"),
+  whatsapp: requiredWhatsAppSchema,
   document: z.string().trim().max(20).optional().default(""),
   slotId: z.string().uuid().optional(),
   sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data invalida"),

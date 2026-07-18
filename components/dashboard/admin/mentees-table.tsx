@@ -43,6 +43,7 @@ import {
   X,
 } from "lucide-react"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
+import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { MenteeHistoryDialog } from "@/components/dashboard/admin/mentee-history-dialog"
 import { AddMenteeToSelectionProcessDialog } from "@/components/dashboard/admin/add-mentee-to-selection-process-dialog"
 import type { CareerStatus, MentoringTopic, OriginCategory, Profile, Seniority } from "@/lib/types/database"
@@ -1008,10 +1009,10 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="mentee-whatsapp">WhatsApp</Label>
-                <Input
+                <PhoneNumberInput
                   id="mentee-whatsapp"
                   value={form.whatsapp}
-                  onChange={(e) => setForm((current) => ({ ...current, whatsapp: e.target.value }))}
+                  onChange={(value) => setForm((current) => ({ ...current, whatsapp: value }))}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -1257,11 +1258,10 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="new-mentee-whatsapp">WhatsApp</Label>
-              <Input
+              <PhoneNumberInput
                 id="new-mentee-whatsapp"
                 value={newForm.whatsapp}
-                onChange={(e) => setNewForm((c) => ({ ...c, whatsapp: e.target.value }))}
-                placeholder="(11) 99999-9999"
+                onChange={(value) => setNewForm((c) => ({ ...c, whatsapp: value }))}
               />
             </div>
             <div className="flex flex-col gap-1.5">

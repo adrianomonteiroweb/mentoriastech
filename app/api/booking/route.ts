@@ -7,13 +7,14 @@ import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-confl
 import { ensureMenteeProfile } from "@/lib/db/mentees"
 import { newBookingToMentorEmail } from "@/lib/email-templates"
 import { getDefaultMentorId } from "@/lib/utils/auth"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const FALLBACK_EMAIL = process.env.MENTOR_EMAIL || "adrianomonteiroweb@gmail.com"
 
 const schema = z.object({
   name: z.string().optional(),
   email: z.string().email("Email invalido"),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
   day: z.string().min(1, "Dia e obrigatorio"),
   time: z.string().min(1, "Horario e obrigatorio"),
   topic: z.string().min(1, "Tema e obrigatorio"),

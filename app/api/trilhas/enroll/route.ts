@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { enrollInTrack, TrackEnrollError } from "@/lib/trilhas/enroll"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const schema = z.object({
   trackId: z.string().uuid(),
   email: z.string().email("Email invalido"),
   name: z.string().optional(),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
   isReturningMentee: z.boolean().optional(),
   targetInternational: z.boolean().optional(),
   includeEnglish: z.boolean().optional(),

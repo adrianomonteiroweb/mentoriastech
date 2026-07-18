@@ -171,7 +171,7 @@ describe("UnifiedBookingForm — free flow", () => {
     })
     await user.type(screen.getByPlaceholderText("Seu nome e sobrenome"), "Maria Teste")
     await user.type(screen.getByPlaceholderText("seu@email.com"), "maria@test.com")
-    await user.type(screen.getByPlaceholderText("(85) 99999-9999"), "85999990000")
+    await user.type(screen.getByLabelText("WhatsApp"), "85999990000")
     await clickNavNext(user)
 
     // Step 4: Review → Submit
@@ -232,7 +232,7 @@ describe("UnifiedBookingForm — free flow", () => {
     })
     await user.type(screen.getByPlaceholderText("Seu nome e sobrenome"), "Maria Teste")
     await user.type(screen.getByPlaceholderText("seu@email.com"), "maria@test.com")
-    await user.type(screen.getByPlaceholderText("(85) 99999-9999"), "85999990000")
+    await user.type(screen.getByLabelText("WhatsApp"), "85999990000")
     await clickNavNext(user)
 
     await waitFor(() => {
@@ -317,7 +317,7 @@ describe("UnifiedBookingForm — paid flow", () => {
     })
     await user.type(screen.getByPlaceholderText("Seu nome e sobrenome"), "João Teste")
     await user.type(screen.getByPlaceholderText("seu@email.com"), "joao@test.com")
-    await user.type(screen.getByPlaceholderText("(85) 99999-9999"), "85999990002")
+    await user.type(screen.getByLabelText("WhatsApp"), "85999990002")
     await clickNavNext(user)
 
     // Review — should show "Solicitar mentoria" (no more payment step)

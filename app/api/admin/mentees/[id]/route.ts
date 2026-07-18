@@ -5,11 +5,12 @@ import { toProfile } from "@/lib/db/mappers"
 import { requireMentorAccess } from "@/lib/utils/auth"
 import { safeProfileResumeHref } from "@/lib/utils/resume-access"
 import { z } from "zod"
+import { optionalWhatsAppSchema } from "@/lib/whatsapp-schema"
 
 const updateSchema = z.object({
   full_name: z.string().optional(),
   email: z.string().email().optional(),
-  whatsapp: z.string().optional(),
+  whatsapp: optionalWhatsAppSchema,
   linkedin_url: z.string().url().optional().or(z.literal("")),
   bio: z.string().optional(),
   portfolio_url: z.string().url().optional().or(z.literal("")),

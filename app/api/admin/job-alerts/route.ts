@@ -4,6 +4,7 @@ import { z } from "zod"
 import { db, jobAlertSubscriptions, profiles } from "@/lib/db"
 import { AuthError, requireRole } from "@/lib/utils/auth"
 import { logAuditEvent } from "@/lib/audit"
+import { requiredWhatsAppSchema } from "@/lib/whatsapp-schema"
 import {
   dedupeList,
   mapJobAlertAdmin,
@@ -16,13 +17,7 @@ export const dynamic = "force-dynamic"
 
 const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
 
-const whatsappField = z
-  .string()
-  .trim()
-  .transform((value) => value.replace(/\D/g, ""))
-  .refine((digits) => digits.length >= 10 && digits.length <= 13, {
-    message: "Informe um WhatsApp válido (DDD + número).",
-  })
+const whatsappField = requiredWhatsAppSchema
 
 const alertFields = {
   enabled: z.boolean().default(true),
