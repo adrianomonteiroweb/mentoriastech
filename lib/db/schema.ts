@@ -532,6 +532,7 @@ export const pageEvents = pgTable("page_events", {
   eventType: text("event_type").notNull(), // 'visit' | 'click'
   target: text("target"), // clicks: 'booking_submit' | 'platform_link' | 'social_link' | ...
   visitorHash: text("visitor_hash").notNull(),
+  referrer: text("referrer"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -2226,3 +2227,22 @@ export type NewFormacaoAtribuicaoPapel =
   typeof formacaoAtribuicoesPapel.$inferInsert;
 export type FormacaoCertificado = typeof formacaoCertificados.$inferSelect;
 export type NewFormacaoCertificado = typeof formacaoCertificados.$inferInsert;
+
+// -----------------------------------------------------------------------------
+// COMPANY_FEEDBACKS — feedbacks de usuários sobre empresas (salário baixo, etc.)
+// -----------------------------------------------------------------------------
+export const companyFeedbacks = pgTable("company_feedbacks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  company: text("company").notNull(),
+  category: text("category", {
+    enum: ["salario_baixo", "processo_longo", "nao_confiavel", "processos_inexistentes", "outro"],
+  }).notNull(),
+  comment: text("comment"),
+  profileId: uuid("profile_id").references(() => profiles.id, { onDelete: "set null" }),
+  status: text("status", { enum: ["pending", "reviewed", "blocked"] }).notNull().default("pending"),
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type CompanyFeedback = typeof companyFeedbacks.$inferSelect;
+export type NewCompanyFeedback = typeof companyFeedbacks.$inferInsert;

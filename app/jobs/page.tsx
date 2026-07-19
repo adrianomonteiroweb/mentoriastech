@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   MapPin,
   Building2,
+  Flag,
   Loader2,
   ArrowLeft,
   ExternalLink,
@@ -27,6 +28,7 @@ import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { DonateWidget } from "@/components/donate-widget";
 import { GoogleAd } from "@/components/google-ad";
+import { CompanyFeedbackDialog } from "@/components/jobs/company-feedback-dialog";
 import { JobShareForm } from "@/components/jobs/job-share-form";
 import { JobsMatch } from "@/components/jobs/jobs-match";
 import { RandomTipCard } from "@/components/random-tip";
@@ -151,6 +153,7 @@ export default function JobsPage() {
   const [translatedJobs, setTranslatedJobs] = useState<Set<string>>(new Set());
   const [targetJobId, setTargetJobId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [feedbackCompany, setFeedbackCompany] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const { hydrated, preferences, updatePreference } = useUserPreferences();
   const viewedJobs = useRef<Set<string>>(new Set());
@@ -1059,6 +1062,16 @@ export default function JobsPage() {
                         ? "Encerramento reportado ✓"
                         : "Vaga encerrada?"}
                     </button>
+                    {job.company && (
+                      <button
+                        onClick={() => setFeedbackCompany(job.company)}
+                        title="Dar feedback sobre esta empresa"
+                        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400"
+                      >
+                        <Flag className="h-4 w-4" />
+                        Feedback da empresa
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1095,6 +1108,14 @@ export default function JobsPage() {
           <JobShareForm onSuccess={loadJobs} />
         </DialogContent>
       </Dialog>
+
+      {feedbackCompany && (
+        <CompanyFeedbackDialog
+          open={!!feedbackCompany}
+          onOpenChange={(open) => { if (!open) setFeedbackCompany(null) }}
+          company={feedbackCompany}
+        />
+      )}
     </main>
   );
 }

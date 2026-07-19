@@ -16,6 +16,7 @@ export async function trackPageEvent(
         event,
         path: path ?? (typeof window !== "undefined" ? window.location.pathname : "/"),
         target,
+        referrer: typeof document !== "undefined" ? document.referrer || undefined : undefined,
       }),
       keepalive: true,
     })

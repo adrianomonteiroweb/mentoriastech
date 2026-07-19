@@ -504,7 +504,16 @@ export function BookingsTable({ bookingId }: BookingsTableProps) {
 
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="font-medium">{getName(b)}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-0.5">
+                        <span>{getName(b)}</span>
+                        {b.origin_category && (
+                          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary 2xl:hidden">
+                            {ORIGIN_LABELS[b.origin_category] || b.origin_category}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="hidden lg:table-cell text-xs">
                       {(() => {
                         const email = getEmail(b)

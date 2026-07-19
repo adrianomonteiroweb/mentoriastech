@@ -13,6 +13,7 @@ const trackSchema = z.object({
     .startsWith("/")
     .refine((value) => !value.includes("://"), "Path invalido"),
   target: z.string().min(1).max(60).optional(),
+  referrer: z.string().max(500).optional(),
 })
 
 export async function POST(request: Request) {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const { event, path, target } = parsed.data
+    const { event, path, target, referrer } = parsed.data
 
     let visitorHash: string
     const session = await getSession().catch(() => null)
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
       eventType: event,
       target: target ?? null,
       visitorHash,
+      referrer: referrer || null,
     })
 
     return NextResponse.json({ success: true })

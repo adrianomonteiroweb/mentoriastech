@@ -14,6 +14,7 @@ import {
   Eye,
   Gift,
   Linkedin,
+  MapPin,
   MousePointerClick,
   Percent,
   Sparkles,
@@ -21,9 +22,10 @@ import {
   UserPlus,
   Users,
   Wallet,
+  Zap,
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
-import type { AdminStats, PeriodValues } from "@/lib/types/database"
+import type { AdminStats, MenteesByOrigin, PeriodValues } from "@/lib/types/database"
 import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 type Period = "today" | "week" | "month"
@@ -185,6 +187,13 @@ function buildGroups(stats: AdminStats | null, period: Period): IndicatorGroup[]
           change: isMonth ? monthChange(visitsVal, ts?.publico.visits.prevMonth ?? 0) : null,
         },
         {
+          label: "Última hora",
+          value: stats?.visitsLastHour ?? 0,
+          sublabel: "visitas nos últimos 60 min",
+          icon: Zap,
+          color: "text-yellow-400",
+        },
+        {
           label: "Cliques",
           value: clicksVal,
           icon: MousePointerClick,
@@ -315,6 +324,63 @@ function ToolStatsBlock({ stats, period, loading }: { stats: AdminStats | null; 
   )
 }
 
+const ORIGIN_LABELS: Record<string, string> = {
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  palestra: "Palestra",
+  indicacao: "Indicação",
+  evento: "Evento",
+}
+
+function MenteesByOriginBlock({ data, loading }: { data: MenteesByOrigin[]; loading: boolean }) {
+  const total = data.reduce((acc, d) => acc + d.count, 0)
+
+  return (
+    <Card className="border-primary/20 bg-primary/[0.03]">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          Mentorados por Origem
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum dado de origem registrado</p>
+        ) : (
+          <div className="space-y-2.5">
+            {data.map((item) => {
+              const pct = total > 0 ? Math.round((item.count / total) * 100) : 0
+              return (
+                <div key={item.origin} className="flex items-center gap-3">
+                  <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{ORIGIN_LABELS[item.origin] ?? item.origin}</p>
+                      <span className="text-sm tabular-nums text-muted-foreground">
+                        {item.count} <span className="text-xs">({pct}%)</span>
+                      </span>
+                    </div>
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            <p className="pt-1 text-xs text-muted-foreground text-right">
+              {total} mentorado{total !== 1 ? "s" : ""} com origem informada
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 interface PrimaryIndicatorsProps {
   isBlockVisible?: (id: string) => boolean
 }
@@ -410,6 +476,17 @@ export function PrimaryIndicators({ isBlockVisible }: PrimaryIndicatorsProps = {
           </h3>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <ToolStatsBlock stats={stats} period={period} loading={loading} />
+          </div>
+        </div>
+      )}
+
+      {(!isBlockVisible || isBlockVisible("origens")) && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Aquisição por Origem
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <MenteesByOriginBlock data={stats?.menteesByOrigin ?? []} loading={loading} />
           </div>
         </div>
       )}

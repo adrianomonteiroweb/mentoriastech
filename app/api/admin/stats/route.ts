@@ -15,10 +15,12 @@ import {
   pageShares,
   paidMentorships,
   payments,
+  profiles,
 } from "@/lib/db"
 import type {
   AdminStats,
   AdminStatsTimeSeries,
+  MenteesByOrigin,
   MostRequestedMentorship,
   PeriodValues,
   TopContent,
@@ -69,6 +71,7 @@ export async function GET(request: Request) {
       Date.UTC(nowSp.getUTCFullYear(), nowSp.getUTCMonth() - 1, 1) + SP_OFFSET_MS,
     )
     const prevMonthEnd = visitsMonthStart
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
 
     const [
       totalBookings,
@@ -103,6 +106,8 @@ export async function GET(request: Request) {
       toolClicksTs,
       toolUsesTs,
       newMenteesTs,
+      visitsLastHourAgg,
+      menteesByOriginRows,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings).where(mentorFilter),
       db.select({ value: count() }).from(bookings).where(and(eq(bookings.status, "pending"), mentorFilter)),
@@ -230,6 +235,21 @@ export async function GET(request: Request) {
         newMenteesMonth: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${visitsMonthStart})`,
         newMenteesPrev: sql<number>`count(distinct ${bookings.menteeId}) filter (where ${bookings.createdAt} >= ${prevMonthStart} and ${bookings.createdAt} < ${prevMonthEnd})`,
       }).from(bookings).where(mentorFilter),
+      // Visitas na última hora
+      db.select({ value: count() }).from(pageEvents)
+        .where(and(eq(pageEvents.eventType, "visit"), gte(pageEvents.createdAt, oneHourAgo))),
+      // Mentorados por origem (origin_category)
+      db.select({
+        origin: profiles.originCategory,
+        count: count(),
+      })
+        .from(profiles)
+        .where(and(
+          eq(profiles.role, "mentee"),
+          sql`${profiles.originCategory} is not null`,
+        ))
+        .groupBy(profiles.originCategory)
+        .orderBy(desc(count())),
     ])
 
     const pageSharesTotal = totalPageShares[0]?.value || 0
@@ -253,6 +273,11 @@ export async function GET(request: Request) {
     const visitsToday = visitsTodayAgg[0]?.value || 0
     const visitsThisWeek = visitsWeekAgg[0]?.value || 0
     const visitsThisMonth = visitsMonthAgg[0]?.value || 0
+    const visitsLastHour = visitsLastHourAgg[0]?.value || 0
+
+    const menteesByOrigin: MenteesByOrigin[] = menteesByOriginRows
+      .filter((r) => r.origin !== null)
+      .map((r) => ({ origin: r.origin!, count: r.count }))
 
     const mostRequestedPaidRow = mostRequestedPaidRows[0]
     const mostRequestedPaid: MostRequestedMentorship | null =
@@ -424,6 +449,8 @@ export async function GET(request: Request) {
       visitsToday,
       visitsThisWeek,
       visitsThisMonth,
+      visitsLastHour,
+      menteesByOrigin,
       mostRequestedPaid,
       mostRequestedFree,
       timeSeries,

@@ -45,6 +45,8 @@ export type JobCategory = string
 export type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
 export type BookingAttachmentType = "file" | "note" | "audio"
 export type BookingTaskItemType = "comment" | "file" | "audio"
+export type CompanyFeedbackCategory = "salario_baixo" | "processo_longo" | "nao_confiavel" | "processos_inexistentes" | "outro"
+export type CompanyFeedbackStatus = "pending" | "reviewed" | "blocked"
 
 export interface BookingTaskApi {
   id: string
@@ -684,9 +686,16 @@ export interface AdminStats {
   visitsToday: number
   visitsThisWeek: number
   visitsThisMonth: number
+  visitsLastHour: number
+  menteesByOrigin: MenteesByOrigin[]
   mostRequestedPaid: MostRequestedMentorship | null
   mostRequestedFree: MostRequestedMentorship | null
   timeSeries: AdminStatsTimeSeries
+}
+
+export interface MenteesByOrigin {
+  origin: OriginCategory
+  count: number
 }
 
 // -----------------------------------------------------------------------------

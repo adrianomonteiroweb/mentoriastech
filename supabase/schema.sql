@@ -669,9 +669,10 @@ CREATE POLICY "Admin can manage page shares"
 CREATE TABLE public.page_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   path TEXT NOT NULL,
-  event_type TEXT NOT NULL CHECK (event_type IN ('visit', 'click')),
+  event_type TEXT NOT NULL CHECK (event_type IN ('visit', 'click', 'tool_view')),
   target TEXT,
   visitor_hash TEXT NOT NULL,
+  referrer TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -688,6 +689,34 @@ CREATE POLICY "Anyone can create page events"
 -- Admin pode ler eventos
 CREATE POLICY "Admin can read page events"
   ON public.page_events FOR SELECT
+  USING (public.current_user_is_admin());
+
+-- -----------------------------------------------------------------------------
+-- COMPANY_FEEDBACKS — feedbacks de usuários sobre empresas
+-- -----------------------------------------------------------------------------
+CREATE TABLE public.company_feedbacks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('salario_baixo', 'processo_longo', 'nao_confiavel', 'processos_inexistentes', 'outro')),
+  comment TEXT,
+  profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'blocked')),
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.company_feedbacks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can create company feedbacks"
+  ON public.company_feedbacks FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admin can read company feedbacks"
+  ON public.company_feedbacks FOR SELECT
+  USING (public.current_user_is_admin());
+
+CREATE POLICY "Admin can update company feedbacks"
+  ON public.company_feedbacks FOR UPDATE
   USING (public.current_user_is_admin());
 
 -- -----------------------------------------------------------------------------

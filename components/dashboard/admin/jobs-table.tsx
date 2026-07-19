@@ -824,6 +824,20 @@ export function JobsTable({
                 {showActions && (
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
+                      {job.application_url && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          title="Abrir link da vaga"
+                          asChild
+                        >
+                          <a href={job.application_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3 w-3 xl:mr-1" />
+                            <span className="hidden xl:inline">Link</span>
+                          </a>
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
