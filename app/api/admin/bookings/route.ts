@@ -254,7 +254,7 @@ export async function POST(request: Request) {
       !data.googleEventId
     ) {
       const [mentee] = await db
-        .select({ email: profiles.email, fullName: profiles.fullName })
+        .select({ email: profiles.email, fullName: profiles.fullName, whatsapp: profiles.whatsapp })
         .from(profiles)
         .where(eq(profiles.id, parsed.data.mentee_id))
         .limit(1)
@@ -313,6 +313,7 @@ export async function POST(request: Request) {
         bookingType: data.bookingType,
         googleEventId: data.googleEventId,
         googleMeetUrl: data.googleMeetUrl,
+        guestWhatsapp: mentee?.whatsapp || data.guestWhatsapp,
       })
     }
 

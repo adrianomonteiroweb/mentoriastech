@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { CheckCircle2, ShieldBan, Clock } from "lucide-react"
+import { CheckCircle2, ShieldBan, Clock, Trash2 } from "lucide-react"
 import type { CompanyFeedbackCategory, CompanyFeedbackStatus } from "@/lib/types/database"
 
 interface CompanyFeedbackRow {
@@ -57,6 +57,7 @@ export function CompanyFeedbacksTable() {
   const [feedbacks, setFeedbacks] = useState<CompanyFeedbackRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | CompanyFeedbackStatus>("all")
+  const [deletingCompany, setDeletingCompany] = useState<string | null>(null)
 
   function load() {
     setLoading(true)
@@ -78,11 +79,78 @@ export function CompanyFeedbacksTable() {
     load()
   }
 
+  async function deleteCompanyJobs(company: string) {
+    if (!confirm(`Tem certeza que deseja excluir TODAS as vagas da empresa "${company}"?`)) return
+
+    setDeletingCompany(company)
+    try {
+      const res = await fetch("/api/admin/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(`${data.deleted || 0} vaga(s) da empresa "${company}" excluída(s).`)
+      } else {
+        alert(data.error || "Erro ao excluir vagas")
+      }
+    } catch {
+      alert("Erro ao excluir vagas")
+    } finally {
+      setDeletingCompany(null)
+    }
+  }
+
   const filtered = filter === "all"
     ? feedbacks
     : feedbacks.filter((f) => f.status === filter)
 
   const pendingCount = feedbacks.filter((f) => f.status === "pending").length
+
+  function StatusActions({ f }: { f: CompanyFeedbackRow }) {
+    return (
+      <>
+        {f.status === "pending" && (
+          <>
+            <Button size="sm" variant="outline" className="h-7 text-xs"
+              onClick={() => updateStatus(f.id, "reviewed")}>
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Analisar
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
+              onClick={() => updateStatus(f.id, "blocked")}>
+              <ShieldBan className="h-3 w-3 mr-1" />
+              Bloquear
+            </Button>
+          </>
+        )}
+        {f.status === "reviewed" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
+            onClick={() => updateStatus(f.id, "blocked")}>
+            <ShieldBan className="h-3 w-3 mr-1" />
+            Bloquear
+          </Button>
+        )}
+        {f.status === "blocked" && (
+          <Button size="sm" variant="outline" className="h-7 text-xs"
+            onClick={() => updateStatus(f.id, "reviewed")}>
+            Desbloquear
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs text-destructive"
+          disabled={deletingCompany === f.company}
+          onClick={() => deleteCompanyJobs(f.company)}
+        >
+          <Trash2 className="h-3 w-3 mr-1" />
+          {deletingCompany === f.company ? "Excluindo..." : "Excluir vagas"}
+        </Button>
+      </>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -133,20 +201,9 @@ export function CompanyFeedbacksTable() {
               <p className="mt-2 text-[10px] text-muted-foreground">
                 {f.profileName || f.profileEmail || "Anônimo"} · {DATE_FORMATTER.format(new Date(f.createdAt))}
               </p>
-              {f.status === "pending" && (
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" variant="outline" className="h-7 text-xs"
-                    onClick={() => updateStatus(f.id, "reviewed")}>
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Analisar
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
-                    onClick={() => updateStatus(f.id, "blocked")}>
-                    <ShieldBan className="h-3 w-3 mr-1" />
-                    Bloquear
-                  </Button>
-                </div>
-              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusActions f={f} />
+              </div>
             </div>
           ))
         )}
@@ -208,34 +265,8 @@ export function CompanyFeedbacksTable() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      {f.status === "pending" && (
-                        <>
-                          <Button size="sm" variant="outline" className="h-7 text-xs"
-                            onClick={() => updateStatus(f.id, "reviewed")}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Analisar
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
-                            onClick={() => updateStatus(f.id, "blocked")}>
-                            <ShieldBan className="h-3 w-3 mr-1" />
-                            Bloquear
-                          </Button>
-                        </>
-                      )}
-                      {f.status === "reviewed" && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs text-destructive"
-                          onClick={() => updateStatus(f.id, "blocked")}>
-                          <ShieldBan className="h-3 w-3 mr-1" />
-                          Bloquear
-                        </Button>
-                      )}
-                      {f.status === "blocked" && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs"
-                          onClick={() => updateStatus(f.id, "reviewed")}>
-                          Desbloquear
-                        </Button>
-                      )}
+                    <div className="flex flex-wrap gap-1">
+                      <StatusActions f={f} />
                     </div>
                   </TableCell>
                 </TableRow>

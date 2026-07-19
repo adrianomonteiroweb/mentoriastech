@@ -122,6 +122,7 @@ async function createPhaseBooking(params: {
     startTime: normalizedTime,
     bookingType: "free",
     googleMeetUrl,
+    guestWhatsapp: enrollment.guestWhatsapp,
   })
 
   return booking

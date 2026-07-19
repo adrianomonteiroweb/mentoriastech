@@ -988,56 +988,19 @@ export default function JobsPage() {
               )}
 
               {isAuthenticated && !job.id.startsWith("fj") && (
-                <div className="mt-3 border-t border-border pt-3">
-                  <p className="mb-2 text-xs font-medium text-muted-foreground">
-                    Ajude a comunidade a manter as vagas atualizadas:
+                <div className="mt-4 rounded-lg border border-dashed border-primary/30 bg-primary/[0.03] p-4" role="region" aria-label="Colabore com a comunidade">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15">
+                      <AlertTriangle className="h-3.5 w-3.5 text-primary" />
+                    </span>
+                    <p className="text-sm font-semibold text-foreground">
+                      Algo errado com esta vaga?
+                    </p>
+                  </div>
+                  <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+                    Seu relato protege outros mentorados de experiências ruins. Leva 2 segundos.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => toggleAction(job.id, "applied")}
-                      disabled={actionLoading === `${job.id}:applied`}
-                      aria-pressed={hasAction(job.id, "applied")}
-                      title={
-                        hasAction(job.id, "applied")
-                          ? "Clique para desfazer"
-                          : "Marcar que se candidatou"
-                      }
-                      className={cn(
-                        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-all",
-                        hasAction(job.id, "applied")
-                          ? "border-green-500/40 bg-green-500/15 text-green-600 dark:text-green-400"
-                          : "border-border bg-card text-muted-foreground hover:border-green-500/40 hover:bg-green-500/10 hover:text-green-600 dark:hover:text-green-400",
-                      )}
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-                      {hasAction(job.id, "applied")
-                        ? "Candidatei-me ✓"
-                        : "Me candidatei"}
-                    </button>
-                    <button
-                      onClick={() => toggleAction(job.id, "link_issue")}
-                      disabled={
-                        hasAction(job.id, "link_issue") ||
-                        actionLoading === `${job.id}:link_issue`
-                      }
-                      aria-pressed={hasAction(job.id, "link_issue")}
-                      title={
-                        hasAction(job.id, "link_issue")
-                          ? "Já reportado — obrigado!"
-                          : "O link está quebrado ou redirecionando errado?"
-                      }
-                      className={cn(
-                        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-all",
-                        hasAction(job.id, "link_issue")
-                          ? "border-yellow-500/40 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400"
-                          : "border-border bg-card text-muted-foreground hover:border-yellow-500/40 hover:bg-yellow-500/10 hover:text-yellow-600 dark:hover:text-yellow-400",
-                      )}
-                    >
-                      <AlertTriangle className="h-4 w-4" />
-                      {hasAction(job.id, "link_issue")
-                        ? "Link reportado ✓"
-                        : "Link com problema?"}
-                    </button>
+                  <div className="flex flex-wrap gap-3">
                     <button
                       onClick={() => toggleAction(job.id, "closed")}
                       disabled={
@@ -1045,30 +1008,33 @@ export default function JobsPage() {
                         actionLoading === `${job.id}:closed`
                       }
                       aria-pressed={hasAction(job.id, "closed")}
-                      title={
+                      aria-label={
                         hasAction(job.id, "closed")
-                          ? "Já reportado — obrigado!"
-                          : "A vaga foi encerrada ou não aceita mais candidatos?"
+                          ? "Vaga já reportada como encerrada"
+                          : "Reportar que esta vaga foi encerrada"
                       }
                       className={cn(
-                        "inline-flex min-h-10 items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-all",
+                        "group inline-flex min-h-11 flex-1 items-center justify-center gap-2.5 rounded-lg border-2 px-4 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         hasAction(job.id, "closed")
-                          ? "border-red-500/40 bg-red-500/15 text-red-600 dark:text-red-400"
-                          : "border-border bg-card text-muted-foreground hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400",
+                          ? "border-red-500/50 bg-red-500/10 text-red-500 cursor-default"
+                          : "border-red-500/30 bg-card text-foreground shadow-sm hover:border-red-500/60 hover:bg-red-500/10 hover:shadow-md active:scale-[0.98]",
                       )}
                     >
-                      <XCircle className="h-4 w-4" />
+                      <XCircle className={cn(
+                        "h-5 w-5 transition-transform",
+                        !hasAction(job.id, "closed") && "group-hover:scale-110",
+                      )} />
                       {hasAction(job.id, "closed")
-                        ? "Encerramento reportado ✓"
-                        : "Vaga encerrada?"}
+                        ? "Reportado — obrigado!"
+                        : "Vaga encerrada"}
                     </button>
                     {job.company && (
                       <button
                         onClick={() => setFeedbackCompany(job.company)}
-                        title="Dar feedback sobre esta empresa"
-                        className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400"
+                        aria-label={`Dar feedback sobre a empresa ${job.company}`}
+                        className="group inline-flex min-h-11 flex-1 items-center justify-center gap-2.5 rounded-lg border-2 border-orange-500/30 bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-orange-500/60 hover:bg-orange-500/10 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
-                        <Flag className="h-4 w-4" />
+                        <Flag className="h-5 w-5 text-orange-500 transition-transform group-hover:scale-110" />
                         Feedback da empresa
                       </button>
                     )}

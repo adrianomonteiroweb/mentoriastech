@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/utils/auth"
 const bulkDeleteSchema = z.union([
   z.object({ status: z.enum(["pending", "approved", "rejected", "expired"]) }),
   z.object({ ids: z.array(z.string().uuid()).min(1) }),
+  z.object({ company: z.string().min(1) }),
 ])
 
 const bulkApproveSchema = z.union([
@@ -112,7 +113,9 @@ export async function DELETE(request: Request) {
     const condition =
       "ids" in parsed.data
         ? inArray(jobs.id, parsed.data.ids)
-        : eq(jobs.status, parsed.data.status)
+        : "company" in parsed.data
+          ? eq(jobs.company, parsed.data.company)
+          : eq(jobs.status, parsed.data.status)
 
     const deleted = await db
       .delete(jobs)

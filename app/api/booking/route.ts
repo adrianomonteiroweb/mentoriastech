@@ -243,6 +243,7 @@ export async function POST(request: Request) {
           time: data.time,
           bookingType: "free",
           notes: originNotes || undefined,
+          sessionDate: data.sessionDate,
         })
 
         await transporter.sendMail({

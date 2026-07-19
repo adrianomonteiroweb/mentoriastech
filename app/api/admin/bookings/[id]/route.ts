@@ -268,6 +268,7 @@ export async function PUT(
         bookingType: data.bookingType,
         googleEventId: data.googleEventId,
         googleMeetUrl: data.googleMeetUrl,
+        guestWhatsapp: row.profile?.whatsapp || row.booking.guestWhatsapp,
       })
     }
 

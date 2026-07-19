@@ -18,6 +18,7 @@ export interface BookingStatusEmailParams {
   bookingType: string
   googleEventId?: string | null
   googleMeetUrl?: string | null
+  guestWhatsapp?: string | null
 }
 
 /**
@@ -45,6 +46,7 @@ export async function sendBookingStatusEmail(
       bookingType: params.bookingType,
       googleEventId: params.googleEventId,
       googleMeetUrl: params.googleMeetUrl,
+      guestWhatsapp: params.guestWhatsapp || undefined,
     }
 
     let emailContent: { subject: string; html: string } | null = null

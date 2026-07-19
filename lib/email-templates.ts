@@ -1,5 +1,6 @@
 import { escapeHtml } from "@/lib/escape-html"
 import { formatWhatsAppNumber } from "@/lib/whatsapp"
+import { getTimezoneDisplay } from "@/lib/timezone"
 
 const BRAND_BG = "#0d1117"
 const BRAND_PRIMARY = "#3B82F6"
@@ -73,6 +74,7 @@ interface NewBookingToMentorParams {
   time: string
   bookingType: string
   notes?: string
+  sessionDate?: string
 }
 
 export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
@@ -101,11 +103,16 @@ export function newBookingToMentorEmail(params: NewBookingToMentorParams) {
     { label: "Tipo", value: typeBadge(params.bookingType) },
     { label: "Tema", value: `<span style="display: inline-block; background: ${BRAND_GREEN}; color: ${BRAND_GREEN_TEXT}; padding: 4px 12px; border-radius: 20px; font-size: 13px;">${safeTopic}</span>` },
     { label: "Dia", value: safeDay },
-    { label: "Horário", value: safeTime },
+    { label: "Horário", value: escapeHtml(formatTimeWithTimezone(params.sessionDate, params.time, params.whatsapp)) },
   ]
 
   if (params.notes) {
     rows.push({ label: "Observações", value: escapeHtml(params.notes) })
+  }
+
+  const tzInfo = params.whatsapp ? getTimezoneDisplay(params.whatsapp, params.sessionDate, params.time) : null
+  if (tzInfo) {
+    rows.push({ label: "Fuso do mentorado", value: escapeHtml(tzInfo.countryName) })
   }
 
   const subject = `Nova solicitação de mentoria ${typeLabel} - ${safeName} - ${safeTopic}`
@@ -209,6 +216,7 @@ interface StatusChangeParams {
   googleEventId?: string | null
   googleMeetUrl?: string | null
   mentorEmail?: string
+  guestWhatsapp?: string | null
 }
 
 function meetRow(url?: string | null) {
@@ -231,6 +239,33 @@ function formatTimeBR(timeStr?: string) {
   return timeStr.substring(0, 5)
 }
 
+function formatTimeWithTimezone(
+  sessionDate?: string,
+  startTime?: string,
+  guestWhatsapp?: string | null,
+): string {
+  if (!startTime) return "A definir"
+  const brTime = startTime.substring(0, 5)
+  if (!guestWhatsapp) return brTime
+
+  const tz = getTimezoneDisplay(guestWhatsapp, sessionDate, startTime)
+  if (!tz) return brTime
+  return tz.label
+}
+
+function timezoneNote(guestWhatsapp?: string | null, sessionDate?: string, startTime?: string): string {
+  if (!guestWhatsapp) return ""
+  const tz = getTimezoneDisplay(guestWhatsapp, sessionDate, startTime)
+  if (!tz) return ""
+  return `
+    <div style="margin-top: 12px; padding: 10px 16px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+      <p style="margin: 0; color: #92400e; font-size: 12px; line-height: 1.5;">
+        🌍 <strong>Fuso horário:</strong> ${tz.localTime && tz.localTime !== startTime?.substring(0, 5) ? `No seu horário (${escapeHtml(tz.countryName)}), a sessão será às <strong>${tz.localTime}</strong>.` : `Os horários são informados no horário de Brasília (Brasil).`}
+      </p>
+    </div>
+  `
+}
+
 export function bookingConfirmedEmail(params: StatusChangeParams) {
   const safeName = escapeHtml(params.menteeName)
   const safeTopic = escapeHtml(params.topicName)
@@ -241,7 +276,7 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
     { label: "Tema", value: safeTopic },
     { label: "Tipo", value: typeBadge(params.bookingType) },
     { label: "Data", value: formatDateBR(params.sessionDate) },
-    { label: "Horário", value: formatTimeBR(params.startTime) },
+    { label: "Horário", value: escapeHtml(formatTimeWithTimezone(params.sessionDate, params.startTime, params.guestWhatsapp)) },
   ]
 
   const confirmedMeetRow = meetRow(params.googleMeetUrl)
@@ -251,6 +286,7 @@ export function bookingConfirmedEmail(params: StatusChangeParams) {
     "Sua mentoria foi confirmada! ✓",
     `Olá, ${safeName}!`,
     infoTable(rows) +
+      timezoneNote(params.guestWhatsapp, params.sessionDate, params.startTime) +
       actionBox(
         params.bookingType === "free"
           ? `<strong>Próximo passo:</strong> Aguarde o link da reunião que será enviado em breve.`
@@ -270,7 +306,7 @@ export function bookingPaymentPendingEmail(params: StatusChangeParams) {
   const rows = [
     { label: "Tema", value: safeTopic },
     { label: "Data", value: formatDateBR(params.sessionDate) },
-    { label: "Horário", value: formatTimeBR(params.startTime) },
+    { label: "Horário", value: escapeHtml(formatTimeWithTimezone(params.sessionDate, params.startTime, params.guestWhatsapp)) },
   ]
 
   const html = baseLayout(
@@ -280,6 +316,7 @@ export function bookingPaymentPendingEmail(params: StatusChangeParams) {
       Sua mentoria foi confirmada e está aguardando pagamento.
     </p>` +
       infoTable(rows) +
+      timezoneNote(params.guestWhatsapp, params.sessionDate, params.startTime) +
       actionBox(
         `<strong>Importante:</strong> Após realizar o pagamento, envie o comprovante por WhatsApp ou responda este email para confirmarmos.`,
       ),
@@ -297,7 +334,7 @@ export function bookingScheduledEmail(params: StatusChangeParams) {
   const rows = [
     { label: "Tema", value: safeTopic },
     { label: "Data", value: formatDateBR(params.sessionDate) },
-    { label: "Horário", value: formatTimeBR(params.startTime) },
+    { label: "Horário", value: escapeHtml(formatTimeWithTimezone(params.sessionDate, params.startTime, params.guestWhatsapp)) },
   ]
 
   const scheduledMeetRow = meetRow(params.googleMeetUrl)
@@ -310,6 +347,7 @@ export function bookingScheduledEmail(params: StatusChangeParams) {
       Sua mentoria está confirmada e agendada. Você receberá um convite no Google Calendar com o link da reunião.
     </p>` +
       infoTable(rows) +
+      timezoneNote(params.guestWhatsapp, params.sessionDate, params.startTime) +
       actionBox(
         `<strong>Dica:</strong> Prepare suas dúvidas e materiais com antecedência para aproveitarmos ao máximo a sessão.`,
       ),
@@ -389,6 +427,55 @@ export function accessCodeEmail(params: AccessCodeParams) {
       </p>` +
       actionBox(
         `<strong>Importante:</strong> Este código é válido por ${params.minutesValid} minutos. Não compartilhe com ninguém. Caso você não tenha solicitado, pode ignorar este email.`,
+      ),
+  )
+
+  return { subject, html }
+}
+
+// ---------------------------------------------------------------------------
+// Notificação para o ADMIN quando recebe feedback de empresa
+// ---------------------------------------------------------------------------
+
+const FEEDBACK_CATEGORY_LABELS: Record<string, string> = {
+  salario_baixo: "Salário baixo",
+  processo_longo: "Processo seletivo longo",
+  nao_confiavel: "Não confiável",
+  processos_inexistentes: "Processos inexistentes",
+  outro: "Outro",
+}
+
+interface CompanyFeedbackNotificationParams {
+  company: string
+  category: string
+  comment?: string | null
+  userName?: string | null
+  userEmail?: string | null
+  adminUrl: string
+}
+
+export function companyFeedbackNotificationEmail(params: CompanyFeedbackNotificationParams) {
+  const safeCompany = escapeHtml(params.company)
+  const categoryLabel = FEEDBACK_CATEGORY_LABELS[params.category] || params.category
+
+  const subject = `Novo feedback de empresa - ${safeCompany}`
+
+  const rows = [
+    { label: "Empresa", value: `<strong>${safeCompany}</strong>` },
+    { label: "Categoria", value: escapeHtml(categoryLabel) },
+    { label: "Enviado por", value: escapeHtml(params.userName || params.userEmail || "Anônimo") },
+  ]
+
+  if (params.comment) {
+    rows.push({ label: "Comentário", value: escapeHtml(params.comment) })
+  }
+
+  const html = baseLayout(
+    "Novo feedback de empresa",
+    "Um usuário reportou uma empresa no painel de vagas",
+    infoTable(rows) +
+      actionBox(
+        `<strong>Ação recomendada:</strong> Acesse o <a href="${escapeHtml(params.adminUrl)}" style="color: #1e40af; text-decoration: underline;">painel administrativo</a> para analisar o feedback e decidir se as vagas da empresa devem ser removidas.`,
       ),
   )
 

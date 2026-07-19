@@ -6,11 +6,20 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Globe,
   Send,
   CheckCircle2,
   Loader2,
 } from "lucide-react"
 import { PhoneNumberInput } from "@/components/ui/phone-number-input"
+import {
+  isInternationalPhone,
+  getTimezoneDisplay,
+  convertBrazilTimeToTimezone,
+  getTimezoneFromPhone,
+  getCountryFromPhone,
+  getCountryNamePT,
+} from "@/lib/timezone"
 
 interface ScheduleSlot {
   id: string
@@ -113,6 +122,20 @@ export function BookingForm() {
         setDataLoaded(true)
       })
   }, [])
+
+  const isIntl = useMemo(() => {
+    return whatsapp ? isInternationalPhone(whatsapp) : false
+  }, [whatsapp])
+
+  const intlTimezone = useMemo(() => {
+    return whatsapp ? getTimezoneFromPhone(whatsapp) : null
+  }, [whatsapp])
+
+  const intlCountryName = useMemo(() => {
+    if (!whatsapp) return ""
+    const country = getCountryFromPhone(whatsapp)
+    return country ? getCountryNamePT(country) : ""
+  }, [whatsapp])
 
   const availableSlots = useMemo(
     () => slots.filter((s) => s.isAvailable && s.slotType === "free"),
@@ -220,6 +243,17 @@ export function BookingForm() {
   }
 
   if (status === "success") {
+    const confirmedSlot = usingFallback
+      ? fallbackSlotIdx !== null ? FALLBACK_SLOTS[fallbackSlotIdx] : null
+      : slots.find((s) => s.id === selectedSlot)
+
+    const confirmedTz = confirmedSlot && isIntl && intlTimezone && !usingFallback
+      ? (() => {
+          const slot = confirmedSlot as ScheduleSlot
+          return getTimezoneDisplay(whatsapp, slot.date, slot.startTime)
+        })()
+      : null
+
     return (
       <div className="flex flex-col items-center gap-4 rounded-xl border border-primary/30 bg-card p-8 text-center">
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
@@ -232,6 +266,17 @@ export function BookingForm() {
           Obrigado pelo interesse na mentoria! Entrarei em contato via WhatsApp
           em breve para confirmar o agendamento.
         </p>
+        {confirmedTz && confirmedTz.localTime && (
+          <div className="w-full rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-left">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-400">
+              <Globe className="h-3.5 w-3.5" />
+              Atenção ao fuso horário
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {confirmedTz.label}
+            </p>
+          </div>
+        )}
         <button
           onClick={resetForm}
           className="mt-2 text-sm font-medium text-primary hover:underline"
@@ -388,6 +433,15 @@ export function BookingForm() {
           </p>
         ) : (
           <>
+            {isIntl && intlCountryName && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                <Globe className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                <p className="text-[11px] text-muted-foreground">
+                  Horários exibidos no fuso de Brasília (Brasil). O horário no seu país ({intlCountryName}) é mostrado ao lado.
+                </p>
+              </div>
+            )}
+
             {weeks.length > 1 && (
               <div className="flex items-center justify-between gap-2">
                 <button
@@ -428,28 +482,40 @@ export function BookingForm() {
 
             <div className="grid grid-cols-1 gap-2">
               {currentWeek && currentWeek.slots.length > 0 ? (
-                currentWeek.slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot.id)}
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200 ${
-                      selectedSlot === slot.id
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-secondary text-secondary-foreground hover:border-muted-foreground/30"
-                    }`}
-                  >
-                    <CalendarDays className="h-4 w-4 shrink-0" />
-                    <span className="font-medium">{slot.dayName}</span>
-                    <span className="text-xs text-muted-foreground ml-1">
-                      {formatShort(slot.date)}
-                    </span>
-                    <span className="ml-auto flex items-center gap-1 text-xs">
-                      <Clock className="h-3 w-3" />
-                      {slot.startTime}
-                    </span>
-                  </button>
-                ))
+                currentWeek.slots.map((slot) => {
+                  const localTime = isIntl && intlTimezone
+                    ? convertBrazilTimeToTimezone(slot.date, slot.startTime, intlTimezone)
+                    : null
+                  const showLocal = localTime && localTime !== slot.startTime.substring(0, 5)
+
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setSelectedSlot(slot.id)}
+                      className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all duration-200 ${
+                        selectedSlot === slot.id
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary text-secondary-foreground hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <CalendarDays className="h-4 w-4 shrink-0" />
+                      <span className="font-medium">{slot.dayName}</span>
+                      <span className="text-xs text-muted-foreground ml-1">
+                        {formatShort(slot.date)}
+                      </span>
+                      <span className="ml-auto flex items-center gap-1 text-xs">
+                        <Clock className="h-3 w-3" />
+                        {slot.startTime}
+                        {showLocal && (
+                          <span className="text-amber-400 font-medium ml-1">
+                            · {localTime}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  )
+                })
               ) : (
                 <p className="text-xs text-muted-foreground py-2">
                   Esta semana esta cheia. Navegue para a proxima.
