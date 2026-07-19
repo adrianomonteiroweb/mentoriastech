@@ -29,6 +29,7 @@ import { AdBanner } from "@/components/ad-banner";
 import { DonateWidget } from "@/components/donate-widget";
 import { GoogleAd } from "@/components/google-ad";
 import { CompanyFeedbackDialog } from "@/components/jobs/company-feedback-dialog";
+import { JobCategoryFilter } from "@/components/jobs/job-category-filter";
 import { JobShareForm } from "@/components/jobs/job-share-form";
 import { JobsMatch } from "@/components/jobs/jobs-match";
 import { RandomTipCard } from "@/components/random-tip";
@@ -41,10 +42,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
-import {
-  getJobCategoryLabel,
-  mergeJobCategoryOptions,
-} from "@/lib/job-options";
+import { getJobCategoryLabel } from "@/lib/job-options";
 import { cn } from "@/lib/utils";
 import { formatJobActiveHours, getJobActiveHours } from "@/lib/job-active-time";
 import { parseSummaryRows } from "@/lib/job-summary";
@@ -144,7 +142,6 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [activeType, setActiveType] = useState<string>("all");
   const [activeScope, setActiveScope] = useState<string>("all");
-  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [onlySaved, setOnlySaved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
@@ -157,18 +154,7 @@ export default function JobsPage() {
   const [now, setNow] = useState(() => Date.now());
   const { hydrated, preferences, updatePreference } = useUserPreferences();
   const viewedJobs = useRef<Set<string>>(new Set());
-  const categoryTabs = useMemo(
-    () => [
-      { key: "all", label: "Todas" },
-      ...mergeJobCategoryOptions(jobs.map((job) => job.category)).map(
-        (category) => ({
-          key: category.value,
-          label: category.label,
-        }),
-      ),
-    ],
-    [jobs],
-  );
+  const selectedCategories = preferences.selectedJobCategories;
 
   function loadJobs() {
     fetch("/api/jobs")
@@ -214,7 +200,7 @@ export default function JobsPage() {
         setActiveTab("all");
         setActiveType("all");
         setActiveScope("all");
-        setActiveCategory("all");
+        updatePreference("selectedJobCategories", []);
         setOnlySaved(false);
         updatePreference("jobsViewMode", "list");
         setExpandedJobs((prev) => {
@@ -251,7 +237,7 @@ export default function JobsPage() {
 
     return () => window.cancelAnimationFrame(frame);
   }, [
-    activeCategory,
+    selectedCategories,
     activeScope,
     activeTab,
     activeType,
@@ -359,7 +345,7 @@ export default function JobsPage() {
     setActiveTab("all");
     setActiveType("all");
     setActiveScope("all");
-    setActiveCategory("all");
+    updatePreference("selectedJobCategories", []);
     setOnlySaved(false);
   }
 
@@ -380,7 +366,7 @@ export default function JobsPage() {
     if (activeType !== "all" && job.job_type !== activeType) return false;
     if (activeScope === "national" && job.is_international) return false;
     if (activeScope === "international" && !job.is_international) return false;
-    if (activeCategory !== "all" && job.category !== activeCategory)
+    if (selectedCategories.length > 0 && !selectedCategories.includes(job.category))
       return false;
     return true;
   });
@@ -529,6 +515,16 @@ export default function JobsPage() {
 
         {viewMode === "list" && <AdBanner />}
 
+        {hydrated && (
+          <JobCategoryFilter
+            jobs={jobs}
+            selectedCategories={selectedCategories}
+            onSelectionChange={(categories) =>
+              updatePreference("selectedJobCategories", categories)
+            }
+          />
+        )}
+
         {hydrated && viewMode === "list" && (
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -644,27 +640,6 @@ export default function JobsPage() {
               </div>
             </div>
 
-            <div role="group" aria-label="Filtrar por categoria">
-              <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Categoria
-              </span>
-              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                {categoryTabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveCategory(tab.key)}
-                    aria-pressed={activeCategory === tab.key}
-                    className={`min-h-8 shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm sm:px-4 ${
-                      activeCategory === tab.key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

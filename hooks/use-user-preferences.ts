@@ -17,6 +17,8 @@ export interface UserPreferences {
   hiddenJobIds: string[]
   // Modo de visualização das vagas escolhido pelo mentorado.
   jobsViewMode: "list" | "match"
+  // Categorias selecionadas no filtro de vagas (multi-select). Vazio = todas.
+  selectedJobCategories: string[]
 }
 
 const DEFAULT_USER_PREFERENCES: UserPreferences = {
@@ -25,6 +27,7 @@ const DEFAULT_USER_PREFERENCES: UserPreferences = {
   dashboardBlocks: {},
   hiddenJobIds: [],
   jobsViewMode: "list",
+  selectedJobCategories: [],
 }
 
 function readUserPreferences(): UserPreferences {
