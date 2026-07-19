@@ -95,6 +95,7 @@ export async function POST(request: Request) {
         salaryRange: parsed.data.salary_range ?? null,
         requiredLanguage: parsed.data.required_language ?? null,
         languageLevel: parsed.data.language_level ?? null,
+        category: parsed.data.category ?? "other",
         recommendationNote: parsed.data.recommendation_note,
         applicationUrl: parsed.data.application_url,
         level: parsed.data.level ?? "junior",

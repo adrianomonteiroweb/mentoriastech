@@ -60,6 +60,7 @@ export const jobShareSchema = z
     language_level: z
       .enum(["a1", "a2", "b1", "b2", "c1", "c2", "basic", "intermediate", "advanced", "fluent"])
       .optional(),
+    category: jobCategorySchema.optional(),
   })
   .strict()
 
