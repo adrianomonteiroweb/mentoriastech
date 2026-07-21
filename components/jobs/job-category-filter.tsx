@@ -144,19 +144,19 @@ export function JobCategoryFilter({
                   <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                 )}
                 <span className="truncate">{cat.label}</span>
-                {count > 0 && (
-                  <span
-                    className={cn(
-                      "ml-auto shrink-0 text-xs",
-                      isSelected
-                        ? "text-primary/70"
+                <span
+                  className={cn(
+                    "ml-auto shrink-0 text-xs tabular-nums",
+                    isSelected
+                      ? "text-primary/70"
+                      : count === 0
+                        ? "text-muted-foreground/40"
                         : "text-muted-foreground",
-                    )}
-                    aria-hidden="true"
-                  >
-                    {count}
-                  </span>
-                )}
+                  )}
+                  aria-hidden="true"
+                >
+                  {count}
+                </span>
               </button>
             )
           })}
@@ -202,19 +202,19 @@ export function JobCategoryFilter({
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
                   )}
                   <span className="truncate">{cat.label}</span>
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        "ml-auto shrink-0 text-xs",
-                        isSelected
-                          ? "text-primary/70"
+                  <span
+                    className={cn(
+                      "ml-auto shrink-0 text-xs tabular-nums",
+                      isSelected
+                        ? "text-primary/70"
+                        : count === 0
+                          ? "text-muted-foreground/40"
                           : "text-muted-foreground",
-                      )}
-                      aria-hidden="true"
-                    >
-                      {count}
-                    </span>
-                  )}
+                    )}
+                    aria-hidden="true"
+                  >
+                    {count}
+                  </span>
                 </button>
               )
             })}

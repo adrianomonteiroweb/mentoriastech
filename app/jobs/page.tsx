@@ -341,6 +341,19 @@ export default function JobsPage() {
     updatePreference("jobsViewMode", mode);
   }
 
+  function scrollToJobs() {
+    requestAnimationFrame(() => {
+      document
+        .getElementById("vagas")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function handleCategorySelection(categories: string[]) {
+    updatePreference("selectedJobCategories", categories);
+    scrollToJobs();
+  }
+
   function resetFilters() {
     setActiveTab("all");
     setActiveType("all");
@@ -519,9 +532,7 @@ export default function JobsPage() {
           <JobCategoryFilter
             jobs={jobs}
             selectedCategories={selectedCategories}
-            onSelectionChange={(categories) =>
-              updatePreference("selectedJobCategories", categories)
-            }
+            onSelectionChange={handleCategorySelection}
           />
         )}
 
@@ -1023,13 +1034,46 @@ export default function JobsPage() {
             </Fragment>
           ))}
 
-          {filtered.length === 0 && (
-            <p className="py-8 text-center text-base text-muted-foreground">
-              {onlySaved
-                ? "Você ainda não salvou nenhuma vaga."
-                : `Nenhuma vaga disponível${activeTab !== "all" ? " neste nível" : " no momento"}.`}
-            </p>
-          )}
+          {filtered.length === 0 &&
+            (() => {
+              if (onlySaved) {
+                return (
+                  <p className="py-8 text-center text-base text-muted-foreground">
+                    Você ainda não salvou nenhuma vaga.
+                  </p>
+                );
+              }
+
+              const hasActiveFilters =
+                selectedCategories.length > 0 ||
+                activeTab !== "all" ||
+                activeType !== "all" ||
+                activeScope !== "all";
+
+              if (hasActiveFilters) {
+                return (
+                  <div className="flex flex-col items-center gap-3 py-8 text-center">
+                    <p className="text-base text-muted-foreground">
+                      Nenhuma vaga corresponde aos filtros selecionados.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Limpar filtros
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <p className="py-8 text-center text-base text-muted-foreground">
+                  Nenhuma vaga disponível no momento.
+                </p>
+              );
+            })()}
             </>
           )}
         </div>
