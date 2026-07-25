@@ -358,6 +358,40 @@ export default function JobsPage() {
     updatePreference("hiddenJobIds", []);
   }
 
+  const activeSectionFilter = useMemo(() => {
+    if (activeType === "remote" && activeScope === "national") return "remote-national";
+    if (activeType === "remote" && activeScope === "international") return "remote-international";
+    if (activeType === "hybrid") return "hybrid";
+    if (activeType === "onsite") return "onsite";
+    return null;
+  }, [activeType, activeScope]);
+
+  function toggleSectionFilter(key: string) {
+    if (activeSectionFilter === key) {
+      setActiveType("all");
+      setActiveScope("all");
+      return;
+    }
+    switch (key) {
+      case "remote-national":
+        setActiveType("remote");
+        setActiveScope("national");
+        break;
+      case "remote-international":
+        setActiveType("remote");
+        setActiveScope("international");
+        break;
+      case "hybrid":
+        setActiveType("hybrid");
+        setActiveScope("all");
+        break;
+      case "onsite":
+        setActiveType("onsite");
+        setActiveScope("all");
+        break;
+    }
+  }
+
   function setViewMode(mode: "list" | "match") {
     updatePreference("jobsViewMode", mode);
   }
@@ -721,19 +755,46 @@ export default function JobsPage() {
             />
           ) : (
             <>
+          {activeSectionFilter && !showSectionHeaders && (
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <div className="flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5">
+                {activeSectionFilter === "remote-international" && (
+                  <Globe className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                )}
+                <span className="text-xs font-semibold text-primary">
+                  {JOB_SECTION_LABELS[activeSectionFilter]}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSectionFilter(activeSectionFilter)}
+                  className="ml-0.5 text-primary/60 transition-colors hover:text-primary"
+                  aria-label={`Remover filtro: ${JOB_SECTION_LABELS[activeSectionFilter]}`}
+                >
+                  <XCircle className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          )}
           {sortedFiltered.map((job, jobIndex) => (
             <Fragment key={job.id}>
             {showSectionHeaders && (jobIndex === 0 || jobSectionKey(job) !== jobSectionKey(sortedFiltered[jobIndex - 1])) && (
-              <div className="flex items-center gap-3 pb-1 pt-3">
-                <div className="h-px flex-1 bg-border" />
-                <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => toggleSectionFilter(jobSectionKey(job))}
+                className="group flex w-full items-center gap-3 pb-1 pt-3 text-left"
+                aria-label={`Filtrar por ${JOB_SECTION_LABELS[jobSectionKey(job)]}`}
+              >
+                <div className="h-px flex-1 bg-border transition-colors group-hover:bg-primary/40" />
+                <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-primary">
                   {jobSectionKey(job) === "remote-international" && (
                     <Globe className="h-3.5 w-3.5" aria-hidden="true" />
                   )}
                   {JOB_SECTION_LABELS[jobSectionKey(job)]}
                 </span>
-                <div className="h-px flex-1 bg-border" />
-              </div>
+                <div className="h-px flex-1 bg-border transition-colors group-hover:bg-primary/40" />
+              </button>
             )}
             <div
               id={`vaga-${job.id}`}
