@@ -123,6 +123,27 @@ const SCOPE_TABS = [
   { key: "international", label: "Internacional" },
 ] as const;
 
+function jobSectionKey(job: { job_type: string; is_international: boolean }): string {
+  if (job.job_type === "remote" && !job.is_international) return "remote-national";
+  if (job.job_type === "remote" && job.is_international) return "remote-international";
+  if (job.job_type === "hybrid") return "hybrid";
+  return "onsite";
+}
+
+const JOB_SECTION_LABELS: Record<string, string> = {
+  "remote-national": "Remoto · Brasil",
+  "remote-international": "Remoto · Internacional",
+  "hybrid": "Híbrido",
+  "onsite": "Presencial",
+};
+
+const JOB_SECTION_ORDER: Record<string, number> = {
+  "remote-national": 0,
+  "remote-international": 1,
+  "hybrid": 2,
+  "onsite": 3,
+};
+
 function trackJobEvent(jobId: string, event: "view" | "click") {
   fetch(`/api/jobs/${jobId}/track`, {
     method: "POST",
@@ -384,6 +405,15 @@ export default function JobsPage() {
     return true;
   });
 
+  const { sortedFiltered, showSectionHeaders } = useMemo(() => {
+    const keys = new Set(filtered.map(jobSectionKey));
+    if (keys.size <= 1) return { sortedFiltered: filtered, showSectionHeaders: false };
+    const sorted = [...filtered].sort(
+      (a, b) => JOB_SECTION_ORDER[jobSectionKey(a)] - JOB_SECTION_ORDER[jobSectionKey(b)],
+    );
+    return { sortedFiltered: sorted, showSectionHeaders: true };
+  }, [filtered]);
+
   const viewMode = preferences.jobsViewMode;
   const hiddenCount = preferences.hiddenJobIds.length;
 
@@ -528,12 +558,33 @@ export default function JobsPage() {
 
         {viewMode === "list" && <AdBanner />}
 
-        {hydrated && (
+        {hydrated && viewMode === "list" && (
           <JobCategoryFilter
             jobs={jobs}
             selectedCategories={selectedCategories}
             onSelectionChange={handleCategorySelection}
           />
+        )}
+        {hydrated && viewMode === "match" && selectedCategories.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>Filtrando por:</span>
+            {selectedCategories.map((c) => (
+              <span
+                key={c}
+                className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary"
+              >
+                {getJobCategoryLabel(c as JobCategory)}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => updatePreference("selectedJobCategories", [])}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Limpar
+            </button>
+          </div>
         )}
 
         {hydrated && viewMode === "list" && (
@@ -670,8 +721,20 @@ export default function JobsPage() {
             />
           ) : (
             <>
-          {filtered.map((job, jobIndex) => (
+          {sortedFiltered.map((job, jobIndex) => (
             <Fragment key={job.id}>
+            {showSectionHeaders && (jobIndex === 0 || jobSectionKey(job) !== jobSectionKey(sortedFiltered[jobIndex - 1])) && (
+              <div className="flex items-center gap-3 pb-1 pt-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {jobSectionKey(job) === "remote-international" && (
+                    <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  {JOB_SECTION_LABELS[jobSectionKey(job)]}
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            )}
             <div
               id={`vaga-${job.id}`}
               className={cn(
@@ -727,7 +790,7 @@ export default function JobsPage() {
                 </div>
               </div>
 
-              {job.recommendation_note && (
+              {!job.id.startsWith("fj") && job.recommendation_note && (
                 <p className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
                   <span className="mr-1.5 font-medium text-primary">Indicação:</span>
                   {job.recommendation_note}
@@ -961,13 +1024,13 @@ export default function JobsPage() {
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      Candidatar-se
+                      Ver Vaga
                     </a>
                   )}
                 </div>
               </div>
 
-              {job.profiles?.full_name && (
+              {!job.id.startsWith("fj") && job.profiles?.full_name && (
                 <p className="mt-3 text-xs text-muted-foreground">
                   Publicado por {job.profiles.full_name}
                 </p>
@@ -1028,7 +1091,7 @@ export default function JobsPage() {
                 </div>
               )}
             </div>
-            {(jobIndex + 1) % 2 === 0 && jobIndex < filtered.length - 1 && (
+            {(jobIndex + 1) % 2 === 0 && jobIndex < sortedFiltered.length - 1 && (
               <GoogleAd />
             )}
             </Fragment>

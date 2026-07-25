@@ -94,9 +94,9 @@ export function JobsMatch({
   const [index, setIndex] = useState(0);
   const [translatedJobs, setTranslatedJobs] = useState<Set<string>>(new Set());
 
-  // Se o baralho encolher (ex.: vaga escondida pela lista), garante índice válido.
+  // Se o baralho encolher (filtros/vagas escondidas), garante índice válido.
   useEffect(() => {
-    if (index > jobs.length) setIndex(jobs.length);
+    if (index >= jobs.length && jobs.length > 0) setIndex(0);
   }, [jobs.length, index]);
 
   const job = jobs[index];
@@ -334,7 +334,7 @@ export function JobsMatch({
               </div>
             )}
 
-            {job.recommendation_note && (
+            {!job.id.startsWith("fj") && job.recommendation_note && (
               <p className="shrink-0 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm leading-relaxed text-muted-foreground">
                 <span className="mr-1.5 font-medium text-primary">Indicação:</span>
                 {job.recommendation_note}
@@ -391,7 +391,7 @@ export function JobsMatch({
               className="inline-flex h-12 items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:h-14 sm:px-6 sm:text-base"
             >
               <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
-              Candidatar-se
+              Ver Vaga
             </a>
           ) : (
             <button
@@ -402,7 +402,7 @@ export function JobsMatch({
               className="inline-flex h-12 items-center gap-2 rounded-full border border-border bg-card px-5 text-sm font-medium text-muted-foreground/40 sm:h-14 sm:px-6 sm:text-base"
             >
               <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
-              Candidatar-se
+              Ver Vaga
             </button>
           )}
         </div>
@@ -415,7 +415,7 @@ export function JobsMatch({
             <Heart className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Salvar
           </span>
           <span className="inline-flex items-center gap-1">
-            <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Candidatar-se
+            <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> Ver Vaga
           </span>
         </div>
       </div>
