@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Lock } from "lucide-react";
 import { SiteLogo } from "@/components/site-logo";
 import { ShareButton } from "@/components/share-button";
@@ -24,6 +25,18 @@ export function SiteFooter() {
           />
           <SocialLinks />
         </div>
+
+        <nav className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2" aria-label="Links do site">
+          <Link href="/sobre" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+            Sobre
+          </Link>
+          <Link href="/politica-de-privacidade" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+            Política de Privacidade
+          </Link>
+          <Link href="/termos-de-uso" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
+            Termos de Uso
+          </Link>
+        </nav>
 
         <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
           <p className="text-xs text-muted-foreground">

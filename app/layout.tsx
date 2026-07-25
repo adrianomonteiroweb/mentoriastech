@@ -5,6 +5,7 @@ import 'react-phone-number-input/style.css'
 import './globals.css'
 import { PWARegister } from '@/components/pwa-register'
 import { InstallPrompt } from '@/components/install-prompt'
+import { CookieConsent } from '@/components/cookie-consent'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeColorMeta, ThemeToggle } from '@/components/theme-toggle'
 import { SITE_URL } from '@/lib/site'
@@ -71,6 +72,35 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4937617018904097"
           crossOrigin="anonymous"
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "MentoriasTech",
+              url: SITE_URL,
+              logo: `${SITE_URL}/icons/icon.svg`,
+              description:
+                "Plataforma de mentorias em desenvolvimento de software e carreira em tecnologia.",
+              sameAs: [
+                "https://www.linkedin.com/company/mentoriastech",
+                "https://www.instagram.com/mentoriastech/",
+              ],
+            }),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "MentoriasTech",
+              url: SITE_URL,
+            }),
+          }}
+        />
       </head>
       <body className={`${_geistSans.variable} ${_geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
@@ -85,6 +115,7 @@ export default function RootLayout({
           <ThemeToggle />
           <PWARegister />
           <InstallPrompt />
+          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>
