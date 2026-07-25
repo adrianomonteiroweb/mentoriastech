@@ -622,6 +622,38 @@ export default function JobsPage() {
         )}
 
         {hydrated && viewMode === "list" && (
+          <div role="group" aria-label="Filtrar por escopo" className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => toggleSectionFilter("remote-national")}
+              aria-pressed={activeSectionFilter === "remote-national"}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                activeSectionFilter === "remote-national"
+                  ? "border-green-500/40 bg-green-500/10 text-green-400"
+                  : "border-border bg-card text-foreground hover:border-primary/40",
+              )}
+            >
+              Remoto · Brasil
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSectionFilter("remote-international")}
+              aria-pressed={activeSectionFilter === "remote-international"}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors",
+                activeSectionFilter === "remote-international"
+                  ? "border-violet-400/40 bg-violet-400/15 text-violet-300"
+                  : "border-border bg-card text-foreground hover:border-primary/40",
+              )}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Remoto · Internacional
+            </button>
+          </div>
+        )}
+
+        {hydrated && viewMode === "list" && (
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
