@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
-  // BookOpenCheck,
+  BookOpenCheck,
   // Briefcase,
   Linkedin,
   Sparkles,
@@ -51,14 +51,15 @@ const TOOLS = [
     badge: "Grátis · sem cadastro",
     available: true,
   },
-  // {
-  //   href: "/minhas-mentorias/plano-de-estudos",
-  //   icon: BookOpenCheck,
-  //   title: "Plano de Estudos",
-  //   description: "Trilha de aprendizado personalizada para acelerar sua evolução.",
-  //   badge: "Na área do mentorado",
-  //   available: false,
-  // },
+  {
+    href: "/ferramentas/plano-de-estudos",
+    icon: BookOpenCheck,
+    title: "Plano de Estudos por Vaga",
+    description:
+      "Cole uma vaga e baixe uma planilha .xlsx com um plano de estudos semana a semana, projeto final e rotina.",
+    badge: "Grátis · sem cadastro",
+    available: true,
+  },
   // {
   //   href: "/jobs",
   //   icon: Briefcase,

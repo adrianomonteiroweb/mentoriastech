@@ -16,6 +16,11 @@ import {
   type LinkedInChecklistItem,
 } from "@/lib/linkedin/checklist"
 import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
+import { buildStudyPlanSystemPrompt } from "@/lib/study-plan-xlsx/prompt"
+import {
+  normalizeStudyPlanData,
+  type StudyPlanData,
+} from "@/lib/study-plan-xlsx/types"
 import {
   TRANSCRIPTION_PROMPT,
   composeMeetingSummaryPrompt,
@@ -700,6 +705,78 @@ export async function generateStudyPlan({
     return text
   } catch (error) {
     throw toResumeAIError(error, "Falha ao gerar o plano de estudos com IA")
+  }
+}
+
+export interface JobStudyPlanInput {
+  jobDescription: string
+  hoursPerWeek?: number
+  candidateName?: string
+  level?: string
+  jobUrl?: string
+}
+
+/**
+ * Gera, a partir da descrição de uma vaga, um plano de estudos estruturado
+ * (JSON) usado para montar a planilha .xlsx. Diferente de `generateStudyPlan`,
+ * que devolve markdown para a área do mentorado. Saída JSON via
+ * `responseMimeType` + validação defensiva com `normalizeStudyPlanData`.
+ */
+export async function generateJobStudyPlan(
+  input: JobStudyPlanInput,
+): Promise<StudyPlanData> {
+  const { ai, model } = getClient()
+  const hoursPerWeek =
+    input.hoursPerWeek && input.hoursPerWeek > 0 ? input.hoursPerWeek : 15
+
+  const lines: (string | null)[] = [
+    "Analise a vaga abaixo e gere o plano de estudos em JSON, seguindo estritamente o schema e as regras.",
+    "",
+    `Horas disponíveis por semana: ${hoursPerWeek}`,
+    input.level ? `Nível-alvo: ${input.level}` : null,
+    input.candidateName ? `Nome do candidato: ${input.candidateName}` : null,
+    input.jobUrl ? `Link da vaga: ${input.jobUrl}` : null,
+    "",
+    "Descrição da vaga:",
+    input.jobDescription,
+  ]
+  const userText = lines.filter((l) => l !== null).join("\n")
+
+  const config: Record<string, unknown> = {
+    systemInstruction: buildStudyPlanSystemPrompt(),
+    temperature: 0.45,
+    responseMimeType: "application/json",
+    maxOutputTokens: 32768,
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await generateContentWithRetry(ai, {
+      model,
+      contents: [{ role: "user", parts: [{ text: userText }] }],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+
+    const parsed = JSON.parse(text)
+    const plan = normalizeStudyPlanData(parsed, {
+      jobUrl: input.jobUrl,
+      hoursPerWeek,
+    })
+    if (plan.planoSemanal.length === 0) {
+      throw new ResumeAIError(
+        "A IA não conseguiu montar o plano. Tente novamente com uma descrição de vaga mais completa.",
+      )
+    }
+    return plan
+  } catch (error) {
+    throw toResumeAIError(error, "Falha ao gerar o plano de estudos")
   }
 }
 
