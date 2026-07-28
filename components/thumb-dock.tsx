@@ -1,21 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Briefcase, Route, Wrench } from "lucide-react";
+import { ArrowRight, Briefcase, Globe, Route, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { trackPageEvent } from "@/lib/track-page";
 
 /**
  * Dock de ações fixo na base (mobile/tablet), na zona de alcance do polegar.
- * Traz as 4 ações principais em 1 toque, sem rolar: Vagas, Ferramentas e
- * Trilhas como navegação, e "Solicitar" como CTA primário destacado à direita
- * (posição mais confortável para o polegar direito — Fitts + thumb zone).
  * Some quando a seção de agendamento (#booking) está em vista, para não cobrir
  * o formulário. Oculto em telas grandes (lg:hidden), onde não há polegar.
  */
 const NAV = [
-  { label: "Vagas", href: "/jobs", icon: Briefcase },
+  { label: "Vagas BR", href: "/jobs?scope=national", icon: Briefcase },
+  { label: "Vagas Global", href: "/jobs?scope=international", icon: Globe },
   { label: "Ferramentas", href: "/ferramentas", icon: Wrench },
   { label: "Trilhas", href: "/trilhas", icon: Route },
 ];

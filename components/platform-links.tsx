@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   BookOpen,
   Briefcase,
+  Globe,
   NotebookPen,
   Route,
   Wrench,
@@ -24,11 +25,16 @@ type PlatformLink = {
 
 const links: PlatformLink[] = [
   {
-    label: "Vagas",
-    description: "Oportunidades em tecnologia para seu próximo passo",
-    href: "/jobs",
+    label: "Vagas Brasil",
+    description: "Oportunidades nacionais em tecnologia para seu próximo passo",
+    href: "/jobs?scope=national",
     icon: Briefcase,
-    featured: true,
+  },
+  {
+    label: "Vagas Internacionais",
+    description: "Vagas globais remotas com requisito de inglês",
+    href: "/jobs?scope=international",
+    icon: Globe,
   },
   {
     label: "Conteúdos",

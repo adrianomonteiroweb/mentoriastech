@@ -162,7 +162,11 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [activeType, setActiveType] = useState<string>("all");
-  const [activeScope, setActiveScope] = useState<string>("all");
+  const [activeScope, setActiveScope] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    const p = new URLSearchParams(window.location.search).get("scope");
+    return p === "international" || p === "national" ? p : "all";
+  });
   const [onlySaved, setOnlySaved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userActions, setUserActions] = useState<UserAction[]>([]);
