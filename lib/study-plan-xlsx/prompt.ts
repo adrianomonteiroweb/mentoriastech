@@ -32,7 +32,10 @@ Responda SOMENTE com um objeto JSON válido (sem markdown, sem comentários, sem
       "tipo": "Obrigatório | Diferencial | Bônus escolhido | Bônus adicional",
       "competencia": "ex.: PHP, Laravel, MySQL, Git, Docker...",
       "ondeEstudar": "em que semanas do plano essa competência é trabalhada (ex.: 'Semanas 3–5')",
-      "evidenciaPortfolio": "o que no portfólio prova essa competência"
+      "evidenciaPortfolio": "o que no portfólio prova essa competência",
+      "recursos": [
+        { "titulo": "tema/título de busca do material (ex.: 'Laravel Eloquent relacionamentos')", "tipo": "vídeo | artigo | curso | documentação | exercícios" }
+      ]
     }
   ],
   "planoSemanal": [
@@ -62,8 +65,43 @@ Regras rígidas:
 - "planoSemanal": gere entre 8 e 16 semanas (escolha o número coerente com a quantidade de requisitos e com as horas/semana informadas). NÃO numere as semanas — a ordem do array é a ordem das semanas.
 - "horas" de cada semana deve ficar próxima das horas/semana informadas pelo usuário.
 - "requisitos": inclua TODOS os requisitos citados na vaga, classificando obrigatórios e diferenciais; você pode adicionar 1–3 "Bônus escolhido/adicional" quando fizer sentido.
+- "requisitos[].recursos": para cada requisito, sugira de 2 a 4 materiais de estudo, cada um com "titulo" (um bom tema/frase de busca) e "tipo" ("vídeo", "artigo", "curso", "documentação" ou "exercícios"). NÃO invente URLs nem inclua links — forneça apenas "titulo" e "tipo"; o sistema monta o link de busca. Varie os tipos (pelo menos 1 vídeo e 1 material escrito por requisito quando possível).
+- Calibração por nível autodeclarado: quando o usuário informar o nível de um requisito, ajuste a profundidade e as horas — "fluente" = cobrir como revisão rápida (menos horas, direto ao avançado); "intermediario" = profundidade média; "iniciante" = começar pelos fundamentos com mais horas. Isso deve se refletir na distribuição de semanas/horas do "planoSemanal".
 - "projetoFinal.tarefas": entre 10 e 15 tarefas, cobrindo as principais competências.
 - "rotinaSemanal": 7 itens (Segunda a Domingo); a soma das horas deve ficar próxima das horas/semana informadas.
 - Cada campo textual deve ser objetivo: no máximo ~160 caracteres, 1 frase. Seja específico e prático, evite generalidades.
 - Se a descrição da vaga tiver poucos detalhes, infira um plano coerente para o cargo/senioridade mencionados.`
+}
+
+/**
+ * System prompt (pt-BR) do passo 1: extrai apenas os metadados da vaga e a lista
+ * de requisitos (tipo + competência). Saída pequena e barata — o usuário marca o
+ * nível de cada requisito antes de gerar o plano completo.
+ */
+export function buildRequirementsExtractionPrompt(): string {
+  return `Você é um mentor de tecnologia que lê a descrição de uma vaga e extrai os requisitos técnicos.
+
+Responda SOMENTE com um objeto JSON válido (sem markdown, sem comentários, sem texto fora do JSON), em português do Brasil, exatamente neste formato:
+
+{
+  "vaga": {
+    "titulo": "cargo da vaga",
+    "empresa": "empresa (ou 'Não informada')",
+    "local": "cidade/estado ou 'Remoto' (ou 'Não informado')",
+    "modelo": "Remoto | Híbrido | Presencial + tipo de contrato, se houver"
+  },
+  "requisitos": [
+    {
+      "tipo": "Obrigatório | Diferencial | Bônus escolhido | Bônus adicional",
+      "competencia": "ex.: PHP, Laravel, MySQL, Git, Docker..."
+    }
+  ]
+}
+
+Regras:
+- Inclua TODOS os requisitos técnicos citados na vaga, classificando obrigatórios e diferenciais.
+- Uma competência por item; use nomes curtos e reconhecíveis (ex.: "PHP", "Laravel", "MySQL", "Docker", "Testes automatizados").
+- Não repita a mesma competência.
+- Se a vaga tiver poucos detalhes, infira os requisitos típicos do cargo/senioridade mencionados.
+- Não gere plano de estudos, semanas nem recursos — apenas a vaga e os requisitos.`
 }

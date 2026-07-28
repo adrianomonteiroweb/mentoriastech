@@ -16,9 +16,15 @@ import {
   type LinkedInChecklistItem,
 } from "@/lib/linkedin/checklist"
 import { composeStudyPlanPrompt } from "@/lib/study-plan-ai-prompt"
-import { buildStudyPlanSystemPrompt } from "@/lib/study-plan-xlsx/prompt"
 import {
+  buildRequirementsExtractionPrompt,
+  buildStudyPlanSystemPrompt,
+} from "@/lib/study-plan-xlsx/prompt"
+import {
+  normalizeRequirementsPreview,
   normalizeStudyPlanData,
+  type JobRequirementsPreview,
+  type NivelUsuario,
   type StudyPlanData,
 } from "@/lib/study-plan-xlsx/types"
 import {
@@ -714,6 +720,60 @@ export interface JobStudyPlanInput {
   candidateName?: string
   level?: string
   jobUrl?: string
+  niveis?: { competencia: string; nivel: NivelUsuario }[]
+}
+
+/**
+ * Passo 1: extrai apenas os metadados da vaga + a lista de requisitos (tipo +
+ * competência), para o mentorado marcar o nível de cada um antes de gerar o
+ * plano completo. Chamada leve (saída pequena, temperatura baixa).
+ */
+export async function extractJobRequirements(input: {
+  jobDescription: string
+  jobUrl?: string
+}): Promise<JobRequirementsPreview> {
+  const { ai, model } = getClient()
+
+  const userText = [
+    "Extraia a vaga e os requisitos em JSON, seguindo estritamente o schema e as regras.",
+    "",
+    "Descrição da vaga:",
+    input.jobDescription,
+  ].join("\n")
+
+  const config: Record<string, unknown> = {
+    systemInstruction: buildRequirementsExtractionPrompt(),
+    temperature: 0.2,
+    responseMimeType: "application/json",
+    maxOutputTokens: 4096,
+  }
+  if (model.includes("flash")) {
+    config.thinkingConfig = { thinkingBudget: 0 }
+  }
+
+  try {
+    const response = await generateContentWithRetry(ai, {
+      model,
+      contents: [{ role: "user", parts: [{ text: userText }] }],
+      config,
+    })
+
+    const text = (response.text || "").trim()
+    if (!text) {
+      throw new ResumeAIError("A IA não retornou nenhum conteúdo. Tente novamente.")
+    }
+
+    const parsed = JSON.parse(text)
+    const preview = normalizeRequirementsPreview(parsed)
+    if (preview.requisitos.length === 0) {
+      throw new ResumeAIError(
+        "Não foi possível identificar os requisitos. Tente uma descrição de vaga mais completa.",
+      )
+    }
+    return preview
+  } catch (error) {
+    throw toResumeAIError(error, "Falha ao extrair os requisitos da vaga")
+  }
 }
 
 /**
@@ -729,6 +789,16 @@ export async function generateJobStudyPlan(
   const hoursPerWeek =
     input.hoursPerWeek && input.hoursPerWeek > 0 ? input.hoursPerWeek : 15
 
+  const niveis = (input.niveis ?? []).filter((n) => n.competencia.trim())
+  const niveisBlock =
+    niveis.length > 0
+      ? [
+          "",
+          "Nível autodeclarado do candidato por requisito (calibre a profundidade e as horas):",
+          ...niveis.map((n) => `- ${n.competencia}: ${n.nivel}`),
+        ]
+      : []
+
   const lines: (string | null)[] = [
     "Analise a vaga abaixo e gere o plano de estudos em JSON, seguindo estritamente o schema e as regras.",
     "",
@@ -736,6 +806,7 @@ export async function generateJobStudyPlan(
     input.level ? `Nível-alvo: ${input.level}` : null,
     input.candidateName ? `Nome do candidato: ${input.candidateName}` : null,
     input.jobUrl ? `Link da vaga: ${input.jobUrl}` : null,
+    ...niveisBlock,
     "",
     "Descrição da vaga:",
     input.jobDescription,
@@ -768,6 +839,7 @@ export async function generateJobStudyPlan(
     const plan = normalizeStudyPlanData(parsed, {
       jobUrl: input.jobUrl,
       hoursPerWeek,
+      niveis,
     })
     if (plan.planoSemanal.length === 0) {
       throw new ResumeAIError(

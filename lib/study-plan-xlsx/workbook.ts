@@ -229,15 +229,22 @@ function buildPlanoSemanal(wb: ExcelJS.Workbook, data: StudyPlanData) {
   })
 }
 
+const NIVEL_LABEL: Record<string, string> = {
+  iniciante: "Iniciante",
+  intermediario: "Intermediário",
+  fluente: "Fluente",
+}
+
 function buildRequisitos(wb: ExcelJS.Workbook, data: StudyPlanData) {
   const ws = wb.addWorksheet("Requisitos da vaga", {
     views: [{ state: "frozen", ySplit: 2 }],
   })
-  setWidths(ws, [18, 24, 27, 48, 20, 3, 20, 50])
-  brandBand(ws, 8, "Requisitos e comprovação")
+  setWidths(ws, [18, 24, 16, 27, 48, 20, 3, 20, 50])
+  brandBand(ws, 9, "Requisitos e comprovação")
   tableHeader(ws, 2, [
     "Tipo",
     "Competência",
+    "Seu nível",
     "Onde estudar",
     "Evidência no portfólio",
     "Situação",
@@ -247,16 +254,20 @@ function buildRequisitos(wb: ExcelJS.Workbook, data: StudyPlanData) {
     const z = i % 2 === 1
     dataCell(ws, r, 1, q.tipo, { zebra: z })
     dataCell(ws, r, 2, q.competencia, { bold: true, zebra: z })
-    dataCell(ws, r, 3, q.ondeEstudar, { zebra: z })
-    dataCell(ws, r, 4, q.evidenciaPortfolio, { zebra: z })
-    dataCell(ws, r, 5, "Pendente", { zebra: z })
+    dataCell(ws, r, 3, q.nivelUsuario ? NIVEL_LABEL[q.nivelUsuario] : "—", {
+      align: "center",
+      zebra: z,
+    })
+    dataCell(ws, r, 4, q.ondeEstudar, { zebra: z })
+    dataCell(ws, r, 5, q.evidenciaPortfolio, { zebra: z })
+    dataCell(ws, r, 6, "Pendente", { zebra: z })
     ws.getRow(r).height = 34
   })
 
-  // Bloco lateral: referência / link da vaga (colunas G:H)
-  tableHeader(ws, 2, ["Referência", "Link"], 7)
-  dataCell(ws, 3, 7, "Vaga oficial")
-  const linkCell = ws.getCell(3, 8)
+  // Bloco lateral: referência / link da vaga (colunas H:I)
+  tableHeader(ws, 2, ["Referência", "Link"], 8)
+  dataCell(ws, 3, 8, "Vaga oficial")
+  const linkCell = ws.getCell(3, 9)
   if (data.vaga.link) {
     linkCell.value = { text: data.vaga.link, hyperlink: data.vaga.link }
     linkCell.font = { name: FONT, size: 10, color: { argb: BRAND_BLUE }, underline: true }
@@ -266,8 +277,44 @@ function buildRequisitos(wb: ExcelJS.Workbook, data: StudyPlanData) {
   }
   linkCell.alignment = { vertical: "top", horizontal: "left", wrapText: true }
   linkCell.border = border()
-  dataCell(ws, 4, 7, "Observação")
-  dataCell(ws, 4, 8, "Confirme se a vaga continua ativa antes de se candidatar.")
+  dataCell(ws, 4, 8, "Observação")
+  dataCell(ws, 4, 9, "Confirme se a vaga continua ativa antes de se candidatar.")
+}
+
+function buildMateriais(wb: ExcelJS.Workbook, data: StudyPlanData) {
+  const ws = wb.addWorksheet("Materiais de estudo", {
+    views: [{ state: "frozen", ySplit: 2 }],
+  })
+  setWidths(ws, [26, 16, 46, 46])
+  brandBand(ws, 4, "Materiais por competência")
+  tableHeader(ws, 2, ["Competência", "Tipo", "Título", "Link"])
+
+  const linhas = data.requisitos.flatMap((q) =>
+    q.recursos.map((rec) => ({ competencia: q.competencia, ...rec })),
+  )
+
+  if (linhas.length === 0) {
+    ws.mergeCells(3, 1, 3, 4)
+    dataCell(ws, 3, 1, "Nenhum material sugerido para este plano.", {
+      align: "center",
+    })
+    return
+  }
+
+  linhas.forEach((l, i) => {
+    const r = 3 + i
+    const z = i % 2 === 1
+    dataCell(ws, r, 1, l.competencia, { bold: true, zebra: z })
+    dataCell(ws, r, 2, l.tipo, { zebra: z })
+    dataCell(ws, r, 3, l.titulo, { zebra: z })
+    const linkCell = ws.getCell(r, 4)
+    linkCell.value = { text: "Buscar material", hyperlink: l.url }
+    linkCell.font = { name: FONT, size: 10, color: { argb: BRAND_BLUE }, underline: true }
+    linkCell.alignment = { vertical: "top", horizontal: "left", wrapText: true }
+    linkCell.border = border()
+    if (z) linkCell.fill = solid(ZEBRA)
+    ws.getRow(r).height = 26
+  })
 }
 
 function buildProjetoFinal(wb: ExcelJS.Workbook, data: StudyPlanData) {
@@ -342,6 +389,7 @@ export async function buildStudyPlanWorkbook(data: StudyPlanData): Promise<Buffe
   buildVisaoGeral(wb, data)
   buildPlanoSemanal(wb, data)
   buildRequisitos(wb, data)
+  buildMateriais(wb, data)
   buildProjetoFinal(wb, data)
   buildRotina(wb, data)
 

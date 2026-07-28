@@ -9,6 +9,7 @@ import {
   Calendar,
   ChevronDown,
   Download,
+  ListChecks,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -35,7 +36,20 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
 import { JobPicker, type PickedJob } from "@/components/tools/study-plan/job-picker"
-import type { StudyPlanData } from "@/lib/study-plan-xlsx/types"
+import { cn } from "@/lib/utils"
+import type {
+  JobRequirementsPreview,
+  NivelUsuario,
+  StudyPlanData,
+} from "@/lib/study-plan-xlsx/types"
+
+type RequisitoPreview = JobRequirementsPreview["requisitos"][number]
+
+const NIVEL_OPTIONS: { value: NivelUsuario; label: string }[] = [
+  { value: "iniciante", label: "Iniciante" },
+  { value: "intermediario", label: "Intermediário" },
+  { value: "fluente", label: "Fluente" },
+]
 
 const EXAMPLE = `Desenvolvedor de Sistemas Jr — PHP/Laravel
 FitBank / Fits — Fortaleza-CE — Presencial, período integral, PJ
@@ -51,11 +65,11 @@ Requisitos:
 
 Sobre a vaga: buscamos alguém em início de carreira com fundamentos sólidos de lógica e vontade de aprender.`
 
-type Status = "idle" | "analyzing" | "ready" | "error"
+type Status = "idle" | "extracting" | "assessing" | "analyzing" | "ready" | "error"
 
 const STEPS = [
-  "Lendo a descrição da vaga",
-  "Extraindo requisitos",
+  "Analisando seus níveis",
+  "Selecionando materiais de estudo",
   "Montando o plano semanal",
   "Preparando a planilha",
 ]
@@ -75,6 +89,9 @@ export function StudyPlanGenerator() {
   const [error, setError] = useState<string | null>(null)
   const [plan, setPlan] = useState<StudyPlanData | null>(null)
   const [xlsxBase64, setXlsxBase64] = useState<string | null>(null)
+  const [vagaPreview, setVagaPreview] = useState<JobRequirementsPreview["vaga"] | null>(null)
+  const [requisitosPreview, setRequisitosPreview] = useState<RequisitoPreview[]>([])
+  const [niveis, setNiveis] = useState<Record<string, NivelUsuario>>({})
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -105,6 +122,7 @@ export function StudyPlanGenerator() {
     setPickedTitle("")
   }
 
+  // Passo 1: extrai os requisitos da vaga para o usuário marcar o nível de cada um.
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
     if (jobDescription.trim().length < MIN_CHARS) {
@@ -113,8 +131,56 @@ export function StudyPlanGenerator() {
       return
     }
     setError(null)
+    setStatus("extracting")
+    try {
+      const res = await fetch("/api/tools/study-plan/requirements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobDescription: jobDescription.trim(),
+          jobUrl: jobUrl || undefined,
+        }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(json?.error || "Não foi possível ler a vaga. Tente novamente.")
+      }
+      const preview = json as JobRequirementsPreview
+      setVagaPreview(preview.vaga)
+      setRequisitosPreview(preview.requisitos)
+      setNiveis(
+        Object.fromEntries(
+          preview.requisitos.map((r) => [r.competencia, "iniciante" as NivelUsuario]),
+        ),
+      )
+      setStatus("assessing")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível ler a vaga.")
+      setStatus("error")
+    }
+  }
+
+  function setNivel(competencia: string, nivel: NivelUsuario) {
+    setNiveis((prev) => ({ ...prev, [competencia]: nivel }))
+  }
+
+  function backToForm() {
+    setStatus("idle")
+    setError(null)
+    setRequisitosPreview([])
+    setVagaPreview(null)
+    setNiveis({})
+  }
+
+  // Passo 2: gera o plano completo já com o nível marcado em cada requisito.
+  async function handleGenerate() {
+    setError(null)
     setStatus("analyzing")
     try {
+      const niveisArr = requisitosPreview.map((r) => ({
+        competencia: r.competencia,
+        nivel: niveis[r.competencia] ?? ("iniciante" as NivelUsuario),
+      }))
       const res = await fetch("/api/tools/study-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,6 +190,7 @@ export function StudyPlanGenerator() {
           candidateName: candidateName.trim() || undefined,
           level: level !== "auto" ? level : undefined,
           jobUrl: jobUrl || undefined,
+          niveis: niveisArr,
         }),
       })
       const json = await res.json().catch(() => null)
@@ -135,7 +202,8 @@ export function StudyPlanGenerator() {
       setStatus("ready")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível gerar o plano.")
-      setStatus("error")
+      // Volta para a tela de avaliação para o usuário tentar de novo sem perder os níveis.
+      setStatus("assessing")
     }
   }
 
@@ -175,6 +243,9 @@ export function StudyPlanGenerator() {
     setXlsxBase64(null)
     setError(null)
     setJobDescription("")
+    setVagaPreview(null)
+    setRequisitosPreview([])
+    setNiveis({})
     clearPicked()
     setTimeout(() => textareaRef.current?.focus(), 50)
   }
@@ -205,6 +276,18 @@ export function StudyPlanGenerator() {
 
       {status === "ready" && plan ? (
         <ReadyView plan={plan} onDownload={downloadXlsx} onReset={reset} />
+      ) : status === "analyzing" ? (
+        <AnalyzingCard stepIdx={stepIdx} />
+      ) : status === "assessing" ? (
+        <AssessView
+          vaga={vagaPreview}
+          requisitos={requisitosPreview}
+          niveis={niveis}
+          onChangeNivel={setNivel}
+          onBack={backToForm}
+          onGenerate={handleGenerate}
+          error={error}
+        />
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
@@ -236,7 +319,7 @@ export function StudyPlanGenerator() {
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={status === "analyzing"}
+              disabled={status === "extracting"}
               placeholder="Cole aqui o texto completo da vaga (requisitos, tecnologias, senioridade, empresa, local…) ou escolha uma vaga da plataforma."
               rows={10}
               className="resize-y leading-relaxed"
@@ -337,66 +420,198 @@ export function StudyPlanGenerator() {
             <Button
               type="submit"
               size="lg"
-              disabled={status === "analyzing" || jobDescription.trim().length < MIN_CHARS}
+              disabled={status === "extracting" || jobDescription.trim().length < MIN_CHARS}
               className="w-full gap-2 sm:w-auto"
             >
-              {status === "analyzing" ? (
+              {status === "extracting" ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Gerando…
+                  Lendo a vaga…
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Gerar plano de estudos
+                  Analisar requisitos
                 </>
               )}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Dica:{" "}
+              Próximo passo: você marca seu nível em cada requisito antes de gerar o
+              plano. Dica:{" "}
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px]">
                 ⌘/Ctrl
               </kbd>{" "}
               +{" "}
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px]">
                 Enter
-              </kbd>{" "}
-              para gerar.
+              </kbd>
+              .
             </p>
           </div>
 
-          {status === "analyzing" && (
+          {status === "extracting" && (
             <div
               aria-live="polite"
-              className="rounded-lg border border-border bg-card p-5"
+              className="flex items-center gap-3 rounded-lg border border-border bg-card p-5 text-sm text-muted-foreground"
             >
-              <p className="mb-3 text-sm font-medium text-foreground">Analisando com IA…</p>
-              <ol className="flex flex-col gap-2 text-sm">
-                {STEPS.map((s, i) => (
-                  <li key={s} className="flex items-center gap-2">
-                    {i < stepIdx ? (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                        ✓
-                      </span>
-                    ) : i === stepIdx ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    ) : (
-                      <span className="h-5 w-5 rounded-full border border-border" />
-                    )}
-                    <span className={i <= stepIdx ? "text-foreground" : "text-muted-foreground"}>
-                      {s}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Isso costuma levar entre 15 e 40 segundos.
-              </p>
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+              Lendo a vaga e extraindo os requisitos…
             </div>
           )}
         </form>
       )}
     </main>
+  )
+}
+
+function AnalyzingCard({ stepIdx }: { stepIdx: number }) {
+  return (
+    <div aria-live="polite" className="rounded-lg border border-border bg-card p-5">
+      <p className="mb-3 text-sm font-medium text-foreground">Montando seu plano com IA…</p>
+      <ol className="flex flex-col gap-2 text-sm">
+        {STEPS.map((s, i) => (
+          <li key={s} className="flex items-center gap-2">
+            {i < stepIdx ? (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                ✓
+              </span>
+            ) : i === stepIdx ? (
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            ) : (
+              <span className="h-5 w-5 rounded-full border border-border" />
+            )}
+            <span className={i <= stepIdx ? "text-foreground" : "text-muted-foreground"}>
+              {s}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Isso costuma levar entre 15 e 40 segundos.
+      </p>
+    </div>
+  )
+}
+
+function NivelToggle({
+  value,
+  onChange,
+}: {
+  value: NivelUsuario
+  onChange: (n: NivelUsuario) => void
+}) {
+  return (
+    <div className="inline-flex shrink-0 rounded-md border border-border bg-background p-0.5">
+      {NIVEL_OPTIONS.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          aria-pressed={value === o.value}
+          className={cn(
+            "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+            value === o.value
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function AssessView({
+  vaga,
+  requisitos,
+  niveis,
+  onChangeNivel,
+  onBack,
+  onGenerate,
+  error,
+}: {
+  vaga: JobRequirementsPreview["vaga"] | null
+  requisitos: RequisitoPreview[]
+  niveis: Record<string, NivelUsuario>
+  onChangeNivel: (competencia: string, nivel: NivelUsuario) => void
+  onBack: () => void
+  onGenerate: () => void
+  error: string | null
+}) {
+  const obrigatorios = requisitos.filter((r) => r.tipo === "Obrigatório")
+  const outros = requisitos.filter((r) => r.tipo !== "Obrigatório")
+
+  function Group({ title, items }: { title: string; items: RequisitoPreview[] }) {
+    if (items.length === 0) return null
+    return (
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="mb-4 text-sm font-semibold text-foreground">
+            {title} ({items.length})
+          </h3>
+          <ul className="flex flex-col divide-y divide-border">
+            {items.map((r) => (
+              <li
+                key={r.competencia}
+                className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="text-sm font-medium text-foreground">{r.competencia}</span>
+                <NivelToggle
+                  value={niveis[r.competencia] ?? "iniciante"}
+                  onChange={(n) => onChangeNivel(r.competencia, n)}
+                />
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <ListChecks className="h-3.5 w-3.5" />
+            Requisitos identificados
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">
+            {vaga?.titulo || "Vaga"}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Marque seu nível em cada requisito. A IA usa isso para calibrar a
+            profundidade do plano — mais fundamentos onde você é iniciante, revisão
+            rápida onde já é fluente.
+          </p>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <Group title="Requisitos obrigatórios" items={obrigatorios} />
+      <Group title="Diferenciais e bônus" items={outros} />
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button size="lg" onClick={onGenerate} className="gap-2">
+          <Sparkles className="h-4 w-4" />
+          Gerar plano de estudos
+        </Button>
+        <Button variant="outline" onClick={onBack} className="gap-2">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Voltar
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -442,6 +657,10 @@ function ReadyView({
 }) {
   const obrigatorios = plan.requisitos.filter((r) => r.tipo === "Obrigatório")
   const diferenciais = plan.requisitos.filter((r) => r.tipo !== "Obrigatório")
+  const materiais = plan.requisitos.flatMap((r) =>
+    r.recursos.map((rec) => ({ competencia: r.competencia, ...rec })),
+  )
+  const totalRecursos = materiais.length
 
   return (
     <div className="flex flex-col gap-6">
@@ -494,7 +713,8 @@ function ReadyView({
             {obrigatorios.slice(0, 8).map((r) => (
               <li key={r.competencia} className="flex items-start gap-2">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                {r.competencia}
+                <span>{r.competencia}</span>
+                {r.nivelUsuario && <NivelBadge nivel={r.nivelUsuario} />}
               </li>
             ))}
             {obrigatorios.length === 0 && (
@@ -507,7 +727,8 @@ function ReadyView({
             {diferenciais.slice(0, 8).map((r) => (
               <li key={r.competencia} className="flex items-start gap-2">
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
-                {r.competencia}
+                <span>{r.competencia}</span>
+                {r.nivelUsuario && <NivelBadge nivel={r.nivelUsuario} />}
               </li>
             ))}
             {diferenciais.length === 0 && <li>Nenhum diferencial identificado.</li>}
@@ -537,6 +758,48 @@ function ReadyView({
           entregáveis e colunas de progresso.
         </p>
       </PreviewCard>
+
+      {materiais.length > 0 && (
+        <PreviewCard title={`Materiais de estudo (${totalRecursos})`}>
+          <ul className="flex flex-col gap-2 text-sm">
+            {materiais.slice(0, 6).map((m, i) => (
+              <li key={`${m.competencia}-${i}`} className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {m.tipo}
+                </span>
+                <a
+                  href={m.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground underline-offset-4 hover:text-primary hover:underline"
+                >
+                  {m.titulo}
+                </a>
+                <span className="text-xs text-muted-foreground">· {m.competencia}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            A aba <span className="font-medium text-foreground">Materiais de estudo</span> da
+            planilha traz todos os {totalRecursos} materiais com links de busca por
+            competência.
+          </p>
+        </PreviewCard>
+      )}
     </div>
+  )
+}
+
+const NIVEL_BADGE_LABEL: Record<NivelUsuario, string> = {
+  iniciante: "Iniciante",
+  intermediario: "Intermediário",
+  fluente: "Fluente",
+}
+
+function NivelBadge({ nivel }: { nivel: NivelUsuario }) {
+  return (
+    <span className="rounded-full border border-border bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground">
+      {NIVEL_BADGE_LABEL[nivel]}
+    </span>
   )
 }

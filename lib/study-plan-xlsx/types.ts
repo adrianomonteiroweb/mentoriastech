@@ -11,6 +11,8 @@
  * Requisitos da vaga, Projeto final e Rotina semanal.
  */
 
+import { buildResourceUrl } from "./resources"
+
 export type RequisitoTipo =
   | "Obrigatório"
   | "Diferencial"
@@ -18,6 +20,27 @@ export type RequisitoTipo =
   | "Bônus adicional"
 
 export type Prioridade = "Alta" | "Média" | "Baixa"
+
+/** Nível autodeclarado pelo mentorado em cada requisito da vaga. */
+export type NivelUsuario = "iniciante" | "intermediario" | "fluente"
+
+/** Tipo do material de estudo sugerido para uma competência. */
+export type RecursoTipo =
+  | "vídeo"
+  | "artigo"
+  | "curso"
+  | "documentação"
+  | "exercícios"
+
+/**
+ * Material de estudo de uma competência. A IA fornece `titulo` + `tipo`; a `url`
+ * (link de busca confiável) é montada no servidor por `buildResourceUrl`.
+ */
+export interface Recurso {
+  titulo: string
+  tipo: RecursoTipo
+  url: string
+}
 
 export interface StudyPlanVaga {
   titulo: string
@@ -38,6 +61,27 @@ export interface StudyPlanRequisito {
   competencia: string
   ondeEstudar: string
   evidenciaPortfolio: string
+  /** Nível autodeclarado pelo mentorado (quando informado no passo de avaliação). */
+  nivelUsuario?: NivelUsuario
+  /** Materiais de estudo (vídeo/artigo/curso/doc) com link de busca já montado. */
+  recursos: Recurso[]
+}
+
+/**
+ * Prévia leve extraída no passo 1 (antes do usuário marcar os níveis). Apenas
+ * metadados da vaga + a lista de requisitos, sem o plano completo.
+ */
+export interface JobRequirementsPreview {
+  vaga: {
+    titulo: string
+    empresa: string
+    local: string
+    modelo: string
+  }
+  requisitos: {
+    tipo: RequisitoTipo
+    competencia: string
+  }[]
 }
 
 export interface SemanaPlano {
@@ -98,6 +142,15 @@ const REQUISITO_TIPOS: RequisitoTipo[] = [
   "Bônus adicional",
 ]
 const PRIORIDADES: Prioridade[] = ["Alta", "Média", "Baixa"]
+const RECURSO_TIPOS: RecursoTipo[] = [
+  "vídeo",
+  "artigo",
+  "curso",
+  "documentação",
+  "exercícios",
+]
+const NIVEIS: NivelUsuario[] = ["iniciante", "intermediario", "fluente"]
+const MAX_RECURSOS_POR_REQUISITO = 4
 
 const DIAS = [
   "Segunda",
@@ -149,15 +202,63 @@ function oneOf<T extends string>(v: unknown, allowed: T[], fallback: T): T {
 }
 
 /**
+ * Valida e coage o JSON devolvido pela IA no passo 1 (extração de requisitos).
+ * Mantém apenas metadados da vaga + a lista de requisitos (tipo + competência).
+ */
+export function normalizeRequirementsPreview(
+  raw: unknown,
+): JobRequirementsPreview {
+  const r = obj(raw)
+  const vagaRaw = obj(r.vaga)
+  const requisitos = arr(r.requisitos)
+    .map((q) => {
+      const o = obj(q)
+      return {
+        tipo: oneOf<RequisitoTipo>(o.tipo, REQUISITO_TIPOS, "Obrigatório"),
+        competencia: str(o.competencia || o.nome),
+      }
+    })
+    .filter((q) => q.competencia)
+  return {
+    vaga: {
+      titulo: str(vagaRaw.titulo, "Plano de estudos"),
+      empresa: str(vagaRaw.empresa, "Não informada"),
+      local: str(vagaRaw.local, "Não informado"),
+      modelo: str(vagaRaw.modelo, "Não informado"),
+    },
+    requisitos,
+  }
+}
+
+/** Coage a lista de recursos crua da IA (`{ titulo, tipo }`) e monta a URL. */
+function coerceRecursos(v: unknown, competencia: string): Recurso[] {
+  return arr(v)
+    .map((rc): Recurso => {
+      const o = obj(rc)
+      const tipo = oneOf<RecursoTipo>(o.tipo, RECURSO_TIPOS, "artigo")
+      const titulo = str(o.titulo || o.nome || o.tema)
+      return { titulo, tipo, url: buildResourceUrl(tipo, titulo, competencia) }
+    })
+    .filter((rc) => rc.titulo)
+    .slice(0, MAX_RECURSOS_POR_REQUISITO)
+}
+
+/**
  * Valida e coage o JSON devolvido pela IA para o shape `StudyPlanData`.
  * - Renumera as semanas sequencialmente (não confia no índice da IA).
  * - Recalcula `indicadores` a partir de `planoSemanal` (aritmética não é da IA).
  * - Deriva `etapasResumo` do plano semanal quando a IA não fornece.
  * - Usa `opts.jobUrl` como link oficial da vaga (sobrepõe o extraído do texto).
+ * - Casa `opts.niveis` (por competência) com os requisitos para preencher o nível
+ *   autodeclarado e monta os links dos recursos no servidor.
  */
 export function normalizeStudyPlanData(
   raw: unknown,
-  opts: { jobUrl?: string; hoursPerWeek?: number } = {},
+  opts: {
+    jobUrl?: string
+    hoursPerWeek?: number
+    niveis?: { competencia: string; nivel: NivelUsuario }[]
+  } = {},
 ): StudyPlanData {
   const r = obj(raw)
   const vagaRaw = obj(r.vaga)
@@ -207,14 +308,25 @@ export function normalizeStudyPlanData(
     etapasResumo = [...map.entries()].map(([etapa, horas]) => ({ etapa, horas }))
   }
 
+  const niveisMap = new Map<string, NivelUsuario>()
+  for (const n of arr(opts.niveis)) {
+    const o = obj(n)
+    const competencia = str(o.competencia)
+    const nivel = oneOf<NivelUsuario>(o.nivel, NIVEIS, "iniciante")
+    if (competencia) niveisMap.set(competencia.toLowerCase(), nivel)
+  }
+
   const requisitos: StudyPlanRequisito[] = arr(r.requisitos)
     .map((q): StudyPlanRequisito => {
       const o = obj(q)
+      const competencia = str(o.competencia || o.nome)
       return {
         tipo: oneOf<RequisitoTipo>(o.tipo, REQUISITO_TIPOS, "Obrigatório"),
-        competencia: str(o.competencia || o.nome),
+        competencia,
         ondeEstudar: str(o.ondeEstudar),
         evidenciaPortfolio: str(o.evidenciaPortfolio || o.comprovacao),
+        nivelUsuario: niveisMap.get(competencia.toLowerCase()),
+        recursos: coerceRecursos(o.recursos, competencia),
       }
     })
     .filter((q) => q.competencia)

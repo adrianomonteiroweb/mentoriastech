@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { generateJobStudyPlan, ResumeAIError } from "@/lib/ai/gemini"
-import { buildStudyPlanWorkbook } from "@/lib/study-plan-xlsx/workbook"
+import { extractJobRequirements, ResumeAIError } from "@/lib/ai/gemini"
 import {
   enforceToolRateLimit,
   ToolRateLimitError,
@@ -9,7 +8,7 @@ import {
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 30
 
 const dataSchema = z.object({
   jobDescription: z
@@ -17,27 +16,12 @@ const dataSchema = z.object({
     .trim()
     .min(40, "Descreva a vaga com mais detalhes (mínimo 40 caracteres).")
     .max(8000, "Descrição muito longa (máximo 8000 caracteres)."),
-  hoursPerWeek: z.number().int().min(5).max(40).optional(),
-  candidateName: z.string().trim().max(120).optional().or(z.literal("")),
-  level: z
-    .enum(["internship", "junior", "mid", "senior"])
-    .optional()
-    .or(z.literal("")),
   jobUrl: z.string().url().max(500).optional().or(z.literal("")),
-  niveis: z
-    .array(
-      z.object({
-        competencia: z.string().trim().min(1).max(120),
-        nivel: z.enum(["iniciante", "intermediario", "fluente"]),
-      }),
-    )
-    .max(60)
-    .optional(),
 })
 
 export async function POST(request: Request) {
   try {
-    await enforceToolRateLimit(request, "study_plan_generate", 5)
+    await enforceToolRateLimit(request, "study_plan_requirements", 10)
 
     let body: unknown
     try {
@@ -54,18 +38,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const plan = await generateJobStudyPlan({
+    const preview = await extractJobRequirements({
       jobDescription: parsed.data.jobDescription,
-      hoursPerWeek: parsed.data.hoursPerWeek,
-      candidateName: parsed.data.candidateName || undefined,
-      level: parsed.data.level || undefined,
       jobUrl: parsed.data.jobUrl || undefined,
-      niveis: parsed.data.niveis,
     })
 
-    const buffer = await buildStudyPlanWorkbook(plan)
-
-    return NextResponse.json({ plan, xlsxBase64: buffer.toString("base64") })
+    return NextResponse.json(preview)
   } catch (error) {
     if (error instanceof ResumeAIError || error instanceof ToolRateLimitError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
