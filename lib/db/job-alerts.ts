@@ -14,6 +14,57 @@ export const LEVEL_OPTIONS: { value: LevelValue; label: string }[] = [
   { value: "senior", label: "Sênior" },
 ]
 
+/** Modalidade das vagas que o mentorado quer receber. */
+export const WORK_MODEL_VALUES = ["all", "remote", "onsite_hybrid"] as const
+export type WorkModelValue = (typeof WORK_MODEL_VALUES)[number]
+
+/** Rótulos pt-BR para o seletor de modalidade na UI. */
+export const WORK_MODEL_OPTIONS: { value: WorkModelValue; label: string }[] = [
+  { value: "all", label: "Todas as modalidades" },
+  { value: "remote", label: "Apenas remotas" },
+  { value: "onsite_hybrid", label: "Apenas presenciais e híbridas" },
+]
+
+/**
+ * Cidades sugeridas p/ vagas presenciais/híbridas — as que o bot
+ * search-jobs-linkedin tem geoId cadastrado (fonte: rodadas onsite do
+ * searchRounds.js). Uma cidade fora desta lista é aceita, mas o bot só
+ * classifica vagas se tiver o geoId dela.
+ */
+export const SUGGESTED_CITIES = [
+  "fortaleza",
+  "belo horizonte",
+  "são paulo",
+  "rio de janeiro",
+  "curitiba",
+  "porto alegre",
+  "florianópolis",
+  "recife",
+  "salvador",
+  "brasília",
+  "goiânia",
+  "belém",
+  "manaus",
+  "natal",
+  "joão pessoa",
+  "campina grande",
+  "vitória",
+  "uberlândia",
+  "blumenau",
+  "joinville",
+  "maceió",
+  "aracaju",
+  "teresina",
+  "são luís",
+  "cuiabá",
+  "campo grande",
+  "palmas",
+  "macapá",
+  "boa vista",
+  "rio branco",
+  "porto velho",
+]
+
 /** Chips sugeridos p/ Posições — casados como substring no título da vaga. */
 export const SUGGESTED_POSITIONS = [
   "desenvolvedor",
@@ -61,6 +112,8 @@ export interface JobAlertPayload {
   stack: string[]
   levels: string[]
   ignore_words: string[]
+  work_model: string
+  cities: string[]
   is_international: boolean
   daily_limit: number
 }
@@ -74,6 +127,8 @@ export function mapJobAlert(row: JobAlertRow): JobAlertPayload {
     stack: row.stack ?? [],
     levels: row.levels ?? [],
     ignore_words: row.ignoreWords ?? [],
+    work_model: row.workModel ?? "all",
+    cities: row.cities ?? [],
     is_international: row.isInternational,
     daily_limit: row.dailyLimit,
   }
@@ -141,6 +196,8 @@ export function defaultJobAlert(prefill: {
     stack: [],
     levels: [],
     ignore_words: [],
+    work_model: "all",
+    cities: [],
     is_international: true,
     daily_limit: 10,
   }

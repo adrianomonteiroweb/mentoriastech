@@ -9,6 +9,7 @@ import {
   dedupeList,
   mapJobAlertAdmin,
   normalizeKeywords,
+  WORK_MODEL_VALUES,
   type AdminJobAlertRow,
 } from "@/lib/db/job-alerts"
 
@@ -16,6 +17,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
+const cityArray = z.array(z.string().trim().min(1).max(80)).max(30)
 
 const whatsappField = requiredWhatsAppSchema
 
@@ -27,6 +29,8 @@ const alertFields = {
   stack: keywordArray.default([]),
   levels: z.array(z.enum(["internship", "junior", "mid", "senior"])).max(4).default([]),
   ignore_words: keywordArray.default([]),
+  work_model: z.enum(WORK_MODEL_VALUES).default("all"),
+  cities: cityArray.default([]),
   is_international: z.boolean().default(true),
   daily_limit: z.number().int().min(1).max(50).default(10),
 }
@@ -124,6 +128,9 @@ export async function POST(request: Request) {
         stack: normalizeKeywords(data.stack),
         levels: dedupeList(data.levels),
         ignoreWords: normalizeKeywords(data.ignore_words),
+        workModel: data.work_model,
+        // Cidades só fazem sentido p/ presencial/híbrida; em "remote" descarta.
+        cities: data.work_model === "remote" ? [] : normalizeKeywords(data.cities),
         isInternational: data.is_international,
         dailyLimit: data.daily_limit,
       })
@@ -140,6 +147,8 @@ export async function POST(request: Request) {
         stack: jobAlertSubscriptions.stack,
         levels: jobAlertSubscriptions.levels,
         ignoreWords: jobAlertSubscriptions.ignoreWords,
+        workModel: jobAlertSubscriptions.workModel,
+        cities: jobAlertSubscriptions.cities,
         isInternational: jobAlertSubscriptions.isInternational,
         dailyLimit: jobAlertSubscriptions.dailyLimit,
         createdAt: jobAlertSubscriptions.createdAt,
@@ -195,6 +204,8 @@ export async function GET() {
         stack: jobAlertSubscriptions.stack,
         levels: jobAlertSubscriptions.levels,
         ignoreWords: jobAlertSubscriptions.ignoreWords,
+        workModel: jobAlertSubscriptions.workModel,
+        cities: jobAlertSubscriptions.cities,
         isInternational: jobAlertSubscriptions.isInternational,
         dailyLimit: jobAlertSubscriptions.dailyLimit,
         createdAt: jobAlertSubscriptions.createdAt,

@@ -72,6 +72,14 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4937617018904097"
           crossOrigin="anonymous"
         />
+      </head>
+      <body className={`${_geistSans.variable} ${_geistMono.variable} font-sans antialiased`}>
+        {/*
+          JSON-LD renderizado no body (padrão do Next.js), não no <head>: em React
+          19 o <script async> do AdSense é "hoisted" e reordena o <head> na
+          hidratação, desalinhando estes <script type="application/ld+json"> (gerava
+          hydration mismatch type="application/ld+json" vs type={null}).
+        */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -101,8 +109,6 @@ export default function RootLayout({
             }),
           }}
         />
-      </head>
-      <body className={`${_geistSans.variable} ${_geistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

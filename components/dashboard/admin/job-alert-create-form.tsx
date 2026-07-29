@@ -8,10 +8,13 @@ import { PhoneNumberInput } from "@/components/ui/phone-number-input"
 import { TagInput } from "@/components/minhas-mentorias/shared/tag-input"
 import { TagSelect } from "@/components/minhas-mentorias/shared/tag-select"
 import { PillMultiSelect } from "@/components/minhas-mentorias/shared/pill-multi-select"
+import { PillSingleSelect } from "@/components/minhas-mentorias/shared/pill-single-select"
 import {
   LEVEL_OPTIONS,
+  SUGGESTED_CITIES,
   SUGGESTED_POSITIONS,
   SUGGESTED_STACK,
+  WORK_MODEL_OPTIONS,
 } from "@/lib/db/job-alerts"
 
 interface Mentee {
@@ -48,6 +51,8 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
   const [stack, setStack] = useState<string[]>([])
   const [levels, setLevels] = useState<string[]>([])
   const [ignoreWords, setIgnoreWords] = useState<string[]>([])
+  const [workModel, setWorkModel] = useState("all")
+  const [cities, setCities] = useState<string[]>([])
   const [isInternational, setIsInternational] = useState(true)
   const [dailyLimit, setDailyLimit] = useState(10)
 
@@ -128,6 +133,8 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
         stack,
         levels,
         ignore_words: ignoreWords,
+        work_model: workModel,
+        cities: workModel === "remote" ? [] : cities,
         is_international: isInternational,
         daily_limit: dailyLimit,
       }
@@ -336,6 +343,28 @@ export function JobAlertCreateForm({ onSuccess }: Props) {
         values={ignoreWords}
         onChange={setIgnoreWords}
       />
+
+      <PillSingleSelect
+        legend="Modalidade das vagas"
+        options={WORK_MODEL_OPTIONS}
+        value={workModel}
+        onChange={setWorkModel}
+      />
+
+      {workModel !== "remote" && (
+        <div className="flex flex-col gap-1.5">
+          <TagSelect
+            label="Cidades (presenciais/híbridas)"
+            placeholder="Ex: belo horizonte — Enter para adicionar"
+            suggestions={SUGGESTED_CITIES}
+            values={cities}
+            onChange={setCities}
+          />
+          <p className="text-xs text-muted-foreground">
+            Usado só para vagas presenciais/híbridas. Se vazio, o bot casa pelo DDD do WhatsApp.
+          </p>
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-4">
         <div>

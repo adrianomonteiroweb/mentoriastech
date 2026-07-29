@@ -50,6 +50,8 @@ export async function GET(request: Request) {
         stack: jobAlertSubscriptions.stack,
         levels: jobAlertSubscriptions.levels,
         ignoreWords: jobAlertSubscriptions.ignoreWords,
+        workModel: jobAlertSubscriptions.workModel,
+        cities: jobAlertSubscriptions.cities,
         isInternational: jobAlertSubscriptions.isInternational,
         dailyLimit: jobAlertSubscriptions.dailyLimit,
       })
@@ -65,6 +67,8 @@ export async function GET(request: Request) {
       stack: row.stack ?? [],
       levels: row.levels ?? [],
       ignore: row.ignoreWords ?? [],
+      work_model: row.workModel ?? "all",
+      cities: row.cities ?? [],
       internacional: row.isInternational,
       daily_limit: row.dailyLimit,
     }))

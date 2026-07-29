@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BellOff, BellRing, Globe, Pencil, Plus, Trash2 } from "lucide-react"
+import { BellOff, BellRing, Globe, MapPin, Pencil, Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,6 +31,11 @@ interface JobAlertsTableProps {
 const LEVEL_LABELS: Record<string, string> = Object.fromEntries(
   LEVEL_OPTIONS.map((o) => [o.value, o.label]),
 )
+
+const WORK_MODEL_BADGES: Record<string, string> = {
+  remote: "Remotas",
+  onsite_hybrid: "Presenciais/híbridas",
+}
 
 export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
   const [items, setItems] = useState<AdminJobAlert[]>([])
@@ -169,6 +174,17 @@ export function JobAlertsTable({ refreshKey = 0 }: JobAlertsTableProps) {
                       {item.is_international && (
                         <Badge variant="outline" className="gap-1 text-xs">
                           <Globe className="h-3 w-3" /> Intl
+                        </Badge>
+                      )}
+                      {WORK_MODEL_BADGES[item.work_model] && (
+                        <Badge variant="outline" className="text-xs">
+                          {WORK_MODEL_BADGES[item.work_model]}
+                        </Badge>
+                      )}
+                      {item.work_model !== "remote" && item.cities.length > 0 && (
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <MapPin className="h-3 w-3" />
+                          {item.cities.length} cidade{item.cities.length !== 1 ? "s" : ""}
                         </Badge>
                       )}
                       {item.levels.length === 0 &&

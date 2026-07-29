@@ -960,6 +960,13 @@ export const jobAlertSubscriptions = pgTable(
     levels: text("levels").array().notNull().default([]),
     // Se qualquer palavra aparecer no título, a vaga é ignorada.
     ignoreWords: text("ignore_words").array().notNull().default([]),
+    // Modalidade desejada: all (remotas + presenciais/híbridas) | remote (só
+    // remotas) | onsite_hybrid (só presenciais/híbridas). O bot usa isto para
+    // não enviar remotas a quem só quer presencial e vice-versa.
+    workModel: text("work_model").notNull().default("all"),
+    // Cidades para vagas presenciais/híbridas (minúsculas). Só usadas quando
+    // work_model != 'remote'; se vazio, o bot casa pelo DDD do WhatsApp.
+    cities: text("cities").array().notNull().default([]),
     // Ver vagas internacionais (padrão true, como o default do bot).
     isInternational: boolean("is_international").notNull().default(true),
     // Máximo de vagas por dia (aplicado pelo bot na Fase B).
@@ -975,6 +982,10 @@ export const jobAlertSubscriptions = pgTable(
     check(
       "job_alert_subscriptions_daily_limit_range",
       sql`${table.dailyLimit} BETWEEN 1 AND 50`,
+    ),
+    check(
+      "job_alert_subscriptions_work_model_check",
+      sql`${table.workModel} IN ('all', 'remote', 'onsite_hybrid')`,
     ),
   ],
 );

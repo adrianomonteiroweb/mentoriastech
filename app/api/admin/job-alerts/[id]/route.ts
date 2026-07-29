@@ -9,6 +9,7 @@ import {
   dedupeList,
   mapJobAlertAdmin,
   normalizeKeywords,
+  WORK_MODEL_VALUES,
   type AdminJobAlertRow,
 } from "@/lib/db/job-alerts"
 
@@ -16,6 +17,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const keywordArray = z.array(z.string().trim().min(1).max(60)).max(30)
+const cityArray = z.array(z.string().trim().min(1).max(80)).max(30)
 
 // Todos os campos opcionais: o admin pode salvar só o toggle (enabled) ou o
 // formulário completo. WhatsApp é normalizado no padrão internacional E.164.
@@ -27,6 +29,8 @@ const updateSchema = z.object({
   stack: keywordArray.optional(),
   levels: z.array(z.enum(["internship", "junior", "mid", "senior"])).max(4).optional(),
   ignore_words: keywordArray.optional(),
+  work_model: z.enum(WORK_MODEL_VALUES).optional(),
+  cities: cityArray.optional(),
   is_international: z.boolean().optional(),
   daily_limit: z.number().int().min(1).max(50).optional(),
 })
@@ -44,6 +48,8 @@ async function loadAdminRow(id: string): Promise<AdminJobAlertRow | undefined> {
       stack: jobAlertSubscriptions.stack,
       levels: jobAlertSubscriptions.levels,
       ignoreWords: jobAlertSubscriptions.ignoreWords,
+      workModel: jobAlertSubscriptions.workModel,
+      cities: jobAlertSubscriptions.cities,
       isInternational: jobAlertSubscriptions.isInternational,
       dailyLimit: jobAlertSubscriptions.dailyLimit,
       createdAt: jobAlertSubscriptions.createdAt,
@@ -97,6 +103,11 @@ export async function PUT(
     if (data.levels !== undefined) updateData.levels = dedupeList(data.levels)
     if (data.ignore_words !== undefined)
       updateData.ignoreWords = normalizeKeywords(data.ignore_words)
+    if (data.work_model !== undefined) updateData.workModel = data.work_model
+    // Cidades só valem p/ presencial/híbrida; em "remote" descarta.
+    if (data.cities !== undefined)
+      updateData.cities = data.work_model === "remote" ? [] : normalizeKeywords(data.cities)
+    else if (data.work_model === "remote") updateData.cities = []
     if (data.is_international !== undefined) updateData.isInternational = data.is_international
     if (data.daily_limit !== undefined) updateData.dailyLimit = data.daily_limit
 
