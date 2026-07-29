@@ -123,9 +123,21 @@ const SCOPE_TABS = [
   { key: "international", label: "Internacional" },
 ] as const;
 
-function jobSectionKey(job: { job_type: string; is_international: boolean }): string {
-  if (job.job_type === "remote" && !job.is_international) return "remote-national";
-  if (job.job_type === "remote" && job.is_international) return "remote-international";
+// Detecta localidade claramente brasileira para corrigir vagas marcadas como
+// internacionais pelo bot mas cuja localidade aponta para o Brasil.
+function hasBrazilianLocation(location: string | null | undefined): boolean {
+  if (!location) return false;
+  return /brasil|brazil|,\s*br\b/i.test(location);
+}
+
+function isNationalJob(job: { is_international: boolean; location?: string | null }): boolean {
+  if (!job.is_international) return true;
+  return hasBrazilianLocation(job.location);
+}
+
+function jobSectionKey(job: { job_type: string; is_international: boolean; location?: string | null }): string {
+  if (job.job_type === "remote" && isNationalJob(job)) return "remote-national";
+  if (job.job_type === "remote" && !isNationalJob(job)) return "remote-international";
   if (job.job_type === "hybrid") return "hybrid";
   return "onsite";
 }
@@ -436,8 +448,8 @@ export default function JobsPage() {
     if (onlySaved && !hasAction(job.id, "liked")) return false;
     if (activeTab !== "all" && job.level !== activeTab) return false;
     if (activeType !== "all" && job.job_type !== activeType) return false;
-    if (activeScope === "national" && job.is_international) return false;
-    if (activeScope === "international" && !job.is_international) return false;
+    if (activeScope === "national" && !isNationalJob(job)) return false;
+    if (activeScope === "international" && isNationalJob(job)) return false;
     if (selectedCategories.length > 0 && !selectedCategories.includes(job.category))
       return false;
     return true;
