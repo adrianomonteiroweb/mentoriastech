@@ -94,6 +94,9 @@ export function JobsTable({
   const [regionFilter, setRegionFilter] = useState<"all" | "brazil" | "international">(
     () => readParam("region", ["brazil", "international"], "all"),
   )
+  const [dateFilter, setDateFilter] = useState<"all" | "not_today" | "today">(
+    () => readParam("date", ["not_today", "today"], "all"),
+  )
   const [favoriteCompanies, setFavoriteCompanies] = useState<Set<string>>(new Set())
   const [onlyFavorites, setOnlyFavorites] = useState(() => syncUrl && searchParams.get("fav") === "1")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -127,10 +130,11 @@ export function JobsTable({
     if (categoryFilter !== "all") params.set("category", categoryFilter)
     if (sourceFilter !== "all") params.set("source", sourceFilter)
     if (regionFilter !== "all") params.set("region", regionFilter)
+    if (dateFilter !== "all") params.set("date", dateFilter)
     if (onlyFavorites) params.set("fav", "1")
     const qs = params.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, onlyFavorites, syncUrl, pathname, router])
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, dateFilter, onlyFavorites, syncUrl, pathname, router])
 
   function toggleFavoriteCompany(company: string) {
     setFavoriteCompanies((prev) => {
@@ -316,6 +320,8 @@ export function JobsTable({
     ...(adminMode ? [{ label: "Curtidas", value: String(job.action_counts?.liked ?? 0), icon: Heart }] : []),
   ]
 
+  const todayStr = new Date().toISOString().slice(0, 10)
+
   const showControls = adminMode && showAll
   const visibleJobs = showAll
     ? jobs.filter((j) => {
@@ -330,6 +336,12 @@ export function JobsTable({
         if (regionFilter !== "all") {
           const isInternational = regionFilter === "international"
           if (j.is_international !== isInternational) return false
+        }
+        if (dateFilter !== "all") {
+          const jobDate = j.created_at ? j.created_at.slice(0, 10) : ""
+          const isToday = jobDate === todayStr
+          if (dateFilter === "today" && !isToday) return false
+          if (dateFilter === "not_today" && isToday) return false
         }
         if (onlyFavorites && !(j.company && favoriteCompanies.has(j.company)))
           return false
@@ -391,7 +403,7 @@ export function JobsTable({
       return changed ? next : prev
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, onlyFavorites, favoriteCompanies, jobs])
+  }, [statusFilter, companyFilter, levelFilter, categoryFilter, sourceFilter, regionFilter, dateFilter, onlyFavorites, favoriteCompanies, jobs])
 
   const allVisibleSelected =
     visibleJobs.length > 0 && visibleJobs.every((j) => selectedIds.has(j.id))
@@ -497,6 +509,19 @@ export function JobsTable({
                     {option.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={dateFilter}
+              onValueChange={(value) => setDateFilter(value as "all" | "not_today" | "today")}
+            >
+              <SelectTrigger className="h-8 w-full text-xs sm:w-44">
+                <SelectValue placeholder="Data" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as datas</SelectItem>
+                <SelectItem value="not_today">Excluir de hoje</SelectItem>
+                <SelectItem value="today">Só de hoje</SelectItem>
               </SelectContent>
             </Select>
             <Button
