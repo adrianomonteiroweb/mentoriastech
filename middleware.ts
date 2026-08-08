@@ -7,12 +7,12 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagservices.com https://adservice.google.com https://www.google-analytics.com https://tpc.googlesyndication.com https://partner.googleadservices.com",
-  "style-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com",
-  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.pagar.me https://*.mundipagg.com https://pagead2.googlesyndication.com https://www.google.com https://googleads.g.doubleclick.net https://www.gstatic.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google-analytics.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://*.public.blob.vercel-storage.com https://*.pagar.me https://*.mundipagg.com https://www.google.com https://www.gstatic.com",
   "font-src 'self' data:",
-  "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.vercel-storage.com https://*.public.blob.vercel-storage.com https://pagead2.googlesyndication.com https://www.google-analytics.com https://adservice.google.com",
-  "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com",
+  "connect-src 'self' ws: wss: http://localhost:* http://127.0.0.1:* https://*.vercel-storage.com https://*.public.blob.vercel-storage.com https://www.google-analytics.com",
+  "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

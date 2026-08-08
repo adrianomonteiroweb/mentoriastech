@@ -24,7 +24,7 @@ export default function PoliticaDePrivacidadePage() {
       </h1>
 
       <p className="mb-6 text-sm text-muted-foreground">
-        Última atualização: julho de 2025
+        Última atualização: agosto de 2026
       </p>
 
       <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
@@ -64,25 +64,8 @@ export default function PoliticaDePrivacidadePage() {
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>Manter sua sessão autenticada.</li>
             <li>Salvar suas preferências (tema claro/escuro).</li>
-            <li>
-              Exibir anúncios personalizados por meio do Google AdSense.
-            </li>
             <li>Analisar o uso da plataforma para melhorias contínuas.</li>
           </ul>
-          <p className="mt-3">
-            O Google utiliza cookies para exibir anúncios com base em visitas
-            anteriores ao nosso site e a outros sites. Você pode desativar a
-            publicidade personalizada acessando as{" "}
-            <a
-              href="https://www.google.com/settings/ads"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
-            >
-              Configurações de Anúncios do Google
-            </a>
-            .
-          </p>
         </section>
 
         <section>
@@ -114,10 +97,6 @@ export default function PoliticaDePrivacidadePage() {
             com:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-1">
-            <li>
-              <strong className="text-foreground">Google AdSense:</strong> dados
-              de navegação para exibição de anúncios.
-            </li>
             <li>
               <strong className="text-foreground">Supabase:</strong>{" "}
               armazenamento seguro de dados com criptografia e controle de

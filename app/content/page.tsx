@@ -17,7 +17,6 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { ContentSuggestionForm } from "@/components/content/content-suggestion-form";
-import { GoogleAd } from "@/components/google-ad";
 import { DonateWidget } from "@/components/donate-widget";
 import { RandomTipCard } from "@/components/random-tip";
 import { ShareButton } from "@/components/share-button";
@@ -192,7 +191,7 @@ export default function ContentPage() {
         )}
 
         <div id="conteudos" className="scroll-mt-6 flex flex-col gap-3">
-          {filtered.map((item, itemIndex) => {
+          {filtered.map((item) => {
             const config = TYPE_CONFIG[item.content_type];
             const Icon = config.icon;
             return (
@@ -253,9 +252,6 @@ export default function ContentPage() {
                   />
                 </div>
               </div>
-              {(itemIndex + 1) % 2 === 0 && itemIndex < filtered.length - 1 && (
-                <GoogleAd />
-              )}
               </Fragment>
             );
           })}

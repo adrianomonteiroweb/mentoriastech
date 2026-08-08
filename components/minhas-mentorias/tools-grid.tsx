@@ -1,15 +1,16 @@
 import Link from "next/link"
-import { ArrowRight, Sparkles, Linkedin, Briefcase, BookOpenCheck, Route, SquareKanban, BellRing } from "lucide-react"
+import { ArrowRight, Sparkles, Linkedin, BookOpenCheck, BellRing } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 
 const TOOLS = [
-  {
-    href: "/minhas-mentorias/trilha",
-    icon: Route,
-    title: "Minha Trilha",
-    description: "Acompanhe seu percurso de recolocação fase a fase e seus conteúdos",
-    badge: "Novo",
-  },
+  // Ferramenta temporariamente oculta:
+  // {
+  //   href: "/minhas-mentorias/trilha",
+  //   icon: Route,
+  //   title: "Minha Trilha",
+  //   description: "Acompanhe seu percurso de recolocação fase a fase e seus conteúdos",
+  //   badge: "Novo",
+  // },
   {
     href: "/minhas-mentorias/curriculo",
     icon: Sparkles,
@@ -24,13 +25,14 @@ const TOOLS = [
     description: "Fortaleça seu perfil profissional e atraia mais recrutadores",
     badge: "IA",
   },
-  {
-    href: "/minhas-mentorias/oportunidades",
-    icon: Briefcase,
-    title: "Painel de Oportunidades",
-    description: "Gerencie suas candidaturas e acompanhe cada processo seletivo",
-    badge: undefined,
-  },
+  // Ferramenta temporariamente oculta:
+  // {
+  //   href: "/minhas-mentorias/oportunidades",
+  //   icon: Briefcase,
+  //   title: "Painel de Oportunidades",
+  //   description: "Gerencie suas candidaturas e acompanhe cada processo seletivo",
+  //   badge: undefined,
+  // },
   {
     href: "/minhas-mentorias/receber-vagas",
     icon: BellRing,
@@ -45,13 +47,14 @@ const TOOLS = [
     description: "Trilha de aprendizado personalizada para acelerar sua evolução",
     badge: "IA",
   },
-  {
-    href: "/minhas-mentorias/sprint",
-    icon: SquareKanban,
-    title: "Simulador de Sprint",
-    description: "Viva uma sprint real em uma empresa fictícia: kanban, daily com o Tech Lead e pontuação",
-    badge: "Novo",
-  },
+  // Ferramenta temporariamente oculta:
+  // {
+  //   href: "/minhas-mentorias/sprint",
+  //   icon: SquareKanban,
+  //   title: "Simulador de Sprint",
+  //   description: "Viva uma sprint real em uma empresa fictícia: kanban, daily com o Tech Lead e pontuação",
+  //   badge: "Novo",
+  // },
 ] as const
 
 export function ToolsGrid() {

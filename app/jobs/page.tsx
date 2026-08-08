@@ -27,7 +27,6 @@ import {
 import Link from "next/link";
 import { AdBanner } from "@/components/ad-banner";
 import { DonateWidget } from "@/components/donate-widget";
-import { GoogleAd } from "@/components/google-ad";
 import { CompanyFeedbackDialog } from "@/components/jobs/company-feedback-dialog";
 import { JobCategoryFilter } from "@/components/jobs/job-category-filter";
 import { JobShareForm } from "@/components/jobs/job-share-form";
@@ -1200,9 +1199,6 @@ export default function JobsPage() {
                 </div>
               )}
             </div>
-            {(jobIndex + 1) % 2 === 0 && jobIndex < sortedFiltered.length - 1 && (
-              <GoogleAd />
-            )}
             </Fragment>
           ))}
 

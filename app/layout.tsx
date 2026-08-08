@@ -5,7 +5,6 @@ import 'react-phone-number-input/style.css'
 import './globals.css'
 import { PWARegister } from '@/components/pwa-register'
 import { InstallPrompt } from '@/components/install-prompt'
-import { CookieConsent } from '@/components/cookie-consent'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeColorMeta, ThemeToggle } from '@/components/theme-toggle'
 import { SITE_URL } from '@/lib/site'
@@ -66,20 +65,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4937617018904097"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body className={`${_geistSans.variable} ${_geistMono.variable} font-sans antialiased`}>
-        {/*
-          JSON-LD renderizado no body (padrão do Next.js), não no <head>: em React
-          19 o <script async> do AdSense é "hoisted" e reordena o <head> na
-          hidratação, desalinhando estes <script type="application/ld+json"> (gerava
-          hydration mismatch type="application/ld+json" vs type={null}).
-        */}
+        {/* JSON-LD renderizado no body, conforme o padrão do Next.js. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -121,7 +108,6 @@ export default function RootLayout({
           <ThemeToggle />
           <PWARegister />
           <InstallPrompt />
-          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>
