@@ -75,6 +75,7 @@ export const GET = botOnly(async (request) => {
       company: jobs.company,
       description: jobs.description,
       location: jobs.location,
+      created_at: jobs.createdAt,
     })
     .from(jobs)
     .where(and(eq(jobs.status, status), isNotNull(jobs.applicationUrl)))
