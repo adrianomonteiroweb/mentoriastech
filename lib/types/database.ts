@@ -687,6 +687,10 @@ export interface AdminStats {
   visitsThisWeek: number
   visitsThisMonth: number
   visitsLastHour: number
+  jobsUniqueVisitors: number
+  jobsUniqueVisitorsToday: number
+  jobsUniqueVisitorsWeek: number
+  jobsUniqueVisitorsMonth: number
   menteesByOrigin: MenteesByOrigin[]
   mostRequestedPaid: MostRequestedMentorship | null
   mostRequestedFree: MostRequestedMentorship | null

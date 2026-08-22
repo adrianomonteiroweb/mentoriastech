@@ -107,6 +107,7 @@ export async function GET(request: Request) {
       toolUsesTs,
       newMenteesTs,
       visitsLastHourAgg,
+      jobsUniqueVisitorsAgg,
       menteesByOriginRows,
     ] = await Promise.all([
       db.select({ value: count() }).from(bookings).where(mentorFilter),
@@ -238,6 +239,14 @@ export async function GET(request: Request) {
       // Visitas na última hora
       db.select({ value: count() }).from(pageEvents)
         .where(and(eq(pageEvents.eventType, "visit"), gte(pageEvents.createdAt, oneHourAgo))),
+      // Visitantes únicos do portal de vagas (/jobs) por período
+      db.select({
+        total: countDistinct(pageEvents.visitorHash),
+        today: sql<number>`count(distinct ${pageEvents.visitorHash}) filter (where ${pageEvents.createdAt} >= ${visitsDayStart})`,
+        week: sql<number>`count(distinct ${pageEvents.visitorHash}) filter (where ${pageEvents.createdAt} >= ${visitsWeekStart})`,
+        month: sql<number>`count(distinct ${pageEvents.visitorHash}) filter (where ${pageEvents.createdAt} >= ${visitsMonthStart})`,
+      }).from(pageEvents)
+        .where(and(eq(pageEvents.eventType, "visit"), eq(pageEvents.path, "/jobs"))),
       // Mentorados por origem (origin_category)
       db.select({
         origin: profiles.originCategory,
@@ -450,6 +459,10 @@ export async function GET(request: Request) {
       visitsThisWeek,
       visitsThisMonth,
       visitsLastHour,
+      jobsUniqueVisitors: jobsUniqueVisitorsAgg[0]?.total || 0,
+      jobsUniqueVisitorsToday: jobsUniqueVisitorsAgg[0]?.today || 0,
+      jobsUniqueVisitorsWeek: jobsUniqueVisitorsAgg[0]?.week || 0,
+      jobsUniqueVisitorsMonth: jobsUniqueVisitorsAgg[0]?.month || 0,
       menteesByOrigin,
       mostRequestedPaid,
       mostRequestedFree,

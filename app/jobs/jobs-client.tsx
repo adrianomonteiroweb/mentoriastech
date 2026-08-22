@@ -40,6 +40,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUserPreferences } from "@/hooks/use-user-preferences";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import { getJobCategoryLabel } from "@/lib/job-options";
 import { cn } from "@/lib/utils";
 import { formatJobActiveHours, getJobActiveHours } from "@/lib/job-active-time";
@@ -537,6 +538,7 @@ export default function JobsPortal() {
         viewMode === "match" ? "py-3 sm:py-6 md:py-10" : "py-6 md:py-10",
       )}
     >
+      <PageViewTracker path="/jobs" />
       <div
         className={cn(
           "flex w-full max-w-3xl flex-col",

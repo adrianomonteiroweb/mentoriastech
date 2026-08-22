@@ -7,6 +7,7 @@ import {
   ArrowDown,
   ArrowUp,
   BadgeDollarSign,
+  Briefcase,
   CheckCircle2,
   Clock,
   CreditCard,
@@ -103,6 +104,12 @@ function buildGroups(stats: AdminStats | null, period: Period): IndicatorGroup[]
   const visitsVal = pickPeriod(ts?.publico.visits, period)
   const clicksVal = pickPeriod(ts?.publico.clicks, period)
   const newMenteesVal = pickPeriod(ts?.publico.newMentees, period)
+
+  const jobsUniqByPeriod: Record<Period, number> = {
+    today: stats?.jobsUniqueVisitorsToday ?? 0,
+    week: stats?.jobsUniqueVisitorsWeek ?? 0,
+    month: stats?.jobsUniqueVisitorsMonth ?? 0,
+  }
 
   return [
     {
@@ -228,6 +235,13 @@ function buildGroups(stats: AdminStats | null, period: Period): IndicatorGroup[]
           icon: Gift,
           color: "text-pink-400",
           compactValue: true,
+        },
+        {
+          label: "Visitantes Únicos Vagas",
+          value: jobsUniqByPeriod[period],
+          sublabel: `${numberFormatter.format(stats?.jobsUniqueVisitors ?? 0)} no total`,
+          icon: Briefcase,
+          color: "text-emerald-400",
         },
       ],
     },
