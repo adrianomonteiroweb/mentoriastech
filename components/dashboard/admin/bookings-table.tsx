@@ -138,6 +138,8 @@ function buildConfirmationMessage(
     msg += "\n\n📄 Assim que possível, envie seu currículo e link do LinkedIn."
   }
 
+  msg += "\n\nCaso precise remarcar, basta realizar novo agendamento em https://www.mentoriastech.com.br 📅"
+
   return msg
 }
 

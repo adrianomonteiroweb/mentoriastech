@@ -24,7 +24,10 @@ export function BookingSuccess({ email, onReset }: BookingSuccessProps) {
       </h3>
       <p className="text-sm text-muted-foreground max-w-sm">
         Obrigado pelo interesse na mentoria! Entrarei em contato via WhatsApp
-        em breve para confirmar o agendamento.
+        para confirmar o agendamento.{" "}
+        <span className="font-medium text-foreground">
+          Caso a mensagem não seja respondida, a mentoria será desconsiderada.
+        </span>
       </p>
 
       <div className="w-full flex flex-col gap-2 mt-2">

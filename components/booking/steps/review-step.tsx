@@ -125,6 +125,13 @@ export function ReviewStep({ state, onGoToStep, onSubmit }: ReviewStepProps) {
         <p className="text-sm text-destructive">{state.errorMsg}</p>
       )}
 
+      <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
+        <span className="mt-0.5 text-base leading-none">💬</span>
+        <p>
+          A mentoria será confirmada via WhatsApp. Caso a mensagem não seja respondida, o agendamento será desconsiderado.
+        </p>
+      </div>
+
       <StepNavigation
         onBack={() => onGoToStep(2)}
         onNext={onSubmit}

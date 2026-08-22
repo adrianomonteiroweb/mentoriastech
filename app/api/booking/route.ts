@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import nodemailer from "nodemailer"
 import { z } from "zod"
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq, inArray, not } from "drizzle-orm"
 import { bookings, db, profiles } from "@/lib/db"
 import { hasBookingConflict, normalizeBookingTime } from "@/lib/db/booking-conflicts"
 import { ensureMenteeProfile } from "@/lib/db/mentees"
@@ -161,6 +161,18 @@ export async function POST(request: Request) {
             originDescription,
             updateOriginIfMissing: Boolean(data.originCategory),
           })
+
+      if (isPersistedId(data.topicId)) {
+        await db
+          .delete(bookings)
+          .where(
+            and(
+              eq(bookings.menteeId, mentee.id),
+              eq(bookings.topicId, data.topicId!),
+              not(inArray(bookings.status, ["completed", "cancelled"])),
+            ),
+          )
+      }
 
       const bookingData: typeof bookings.$inferInsert = {
         mentorId,
