@@ -182,7 +182,7 @@ export const bookings = pgTable("bookings", {
   slotId: uuid("slot_id").references(() => mentoringSlots.id, {
     onDelete: "set null",
   }),
-  topicId: uuid("topic_id").references(() => mentoringTopics.id),
+  topicId: uuid("topic_id").references(() => mentoringTopics.id, { onDelete: "set null" }),
   paidMentorshipId: uuid("paid_mentorship_id").references(
     () => paidMentorships.id,
     { onDelete: "set null" },

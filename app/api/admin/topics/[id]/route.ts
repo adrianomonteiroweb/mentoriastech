@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { and, eq } from "drizzle-orm"
 import { requireMentorAccess, getMentorId } from "@/lib/utils/auth"
-import { db, mentoringTopics } from "@/lib/db"
+import { db, bookings, mentoringTopics } from "@/lib/db"
 import { toMentoringTopic } from "@/lib/db/mappers"
 import { z } from "zod"
 
@@ -70,6 +70,9 @@ export async function DELETE(
     const ownershipFilter = profile.role === "admin"
       ? eq(mentoringTopics.id, id)
       : and(eq(mentoringTopics.id, id), eq(mentoringTopics.mentorId, mentorId))
+
+    // Zera topic_id nos bookings para evitar violação de FK
+    await db.update(bookings).set({ topicId: null }).where(eq(bookings.topicId, id))
 
     await db.delete(mentoringTopics).where(ownershipFilter)
 
