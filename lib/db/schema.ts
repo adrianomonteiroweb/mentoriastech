@@ -533,7 +533,29 @@ export const pageEvents = pgTable("page_events", {
   target: text("target"), // clicks: 'booking_submit' | 'platform_link' | 'social_link' | ...
   visitorHash: text("visitor_hash").notNull(),
   referrer: text("referrer"),
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// TRACKING_LINKS — links rastreáveis gerenciados pelo admin (UTM builder)
+// -----------------------------------------------------------------------------
+export const trackingLinks = pgTable("tracking_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  utmSource: text("utm_source").notNull(),
+  utmMedium: text("utm_medium").notNull(),
+  utmCampaign: text("utm_campaign"),
+  destinationPath: text("destination_path").notNull().default("/"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });

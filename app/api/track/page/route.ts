@@ -14,6 +14,9 @@ const trackSchema = z.object({
     .refine((value) => !value.includes("://"), "Path invalido"),
   target: z.string().min(1).max(60).optional(),
   referrer: z.string().max(500).optional(),
+  utm_source: z.string().max(100).optional(),
+  utm_medium: z.string().max(100).optional(),
+  utm_campaign: z.string().max(200).optional(),
 })
 
 export async function POST(request: Request) {
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Dados invalidos" }, { status: 400 })
     }
 
-    const { event, path, target, referrer } = parsed.data
+    const { event, path, target, referrer, utm_source, utm_medium, utm_campaign } = parsed.data
 
     let visitorHash: string
     const session = await getSession().catch(() => null)
@@ -43,12 +46,14 @@ export async function POST(request: Request) {
       target: target ?? null,
       visitorHash,
       referrer: referrer || null,
+      utmSource: utm_source || null,
+      utmMedium: utm_medium || null,
+      utmCampaign: utm_campaign || null,
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("[track/page] Error:", error)
-    // Tracking nunca deve quebrar a UX do visitante
     return NextResponse.json({ success: false }, { status: 200 })
   }
 }
