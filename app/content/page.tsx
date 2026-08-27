@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import { AdBanner } from "@/components/ad-banner";
 import { ContentSuggestionForm } from "@/components/content/content-suggestion-form";
 import { DonateWidget } from "@/components/donate-widget";
@@ -96,6 +97,7 @@ export default function ContentPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-10 sm:px-6 md:py-16">
+      <PageViewTracker path="/content" />
       <div className="flex w-full max-w-2xl flex-col gap-8">
         <div className="flex flex-col gap-2">
           <Link

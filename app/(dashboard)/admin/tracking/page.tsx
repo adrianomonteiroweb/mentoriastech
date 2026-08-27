@@ -11,6 +11,7 @@ import { Plus } from "lucide-react"
 export default function AdminTrackingPage() {
   const [showForm, setShowForm] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [period, setPeriod] = useState("1h")
 
   function handleSuccess() {
     setShowForm(false)
@@ -26,13 +27,13 @@ export default function AdminTrackingPage() {
         </Button>
       </DashboardHeader>
       <div className="flex flex-col gap-6 p-4 md:p-6">
-        <TrackingAnalytics refreshKey={refreshKey} />
+        <TrackingAnalytics refreshKey={refreshKey} period={period} onPeriodChange={setPeriod} />
         {showForm && (
           <div className="rounded-lg border p-4">
             <TrackingLinkForm onSuccess={handleSuccess} />
           </div>
         )}
-        <TrackingLinksTable refreshKey={refreshKey} onRefresh={() => setRefreshKey((k) => k + 1)} />
+        <TrackingLinksTable refreshKey={refreshKey} period={period} onRefresh={() => setRefreshKey((k) => k + 1)} />
       </div>
     </>
   )

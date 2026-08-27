@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { desc, eq, and, sql, count, countDistinct } from "drizzle-orm"
+import { desc, eq, and, gte, sql, count, countDistinct } from "drizzle-orm"
 import { z } from "zod"
 import { db, trackingLinks, pageEvents } from "@/lib/db"
 import { AuthError, requireRole } from "@/lib/utils/auth"
@@ -12,9 +12,24 @@ const createSchema = z.object({
   destination_path: z.string().min(1).max(200).startsWith("/").default("/"),
 })
 
-export async function GET() {
+function periodToSince(period: string): Date | null {
+  if (!period) return null
+  const now = Date.now()
+  const match = period.match(/^(\d+)([hd])$/)
+  if (match) {
+    const value = Math.min(Number(match[1]), match[2] === "d" ? 365 : 8760)
+    const ms = match[2] === "h" ? value * 3600_000 : value * 86400_000
+    return new Date(now - ms)
+  }
+  return null
+}
+
+export async function GET(request: Request) {
   try {
     await requireRole("admin")
+
+    const { searchParams } = new URL(request.url)
+    const since = periodToSince(searchParams.get("period") || "")
 
     const links = await db
       .select()
@@ -26,6 +41,9 @@ export async function GET() {
         const conditions = [eq(pageEvents.utmSource, link.utmSource), eq(pageEvents.utmMedium, link.utmMedium)]
         if (link.utmCampaign) {
           conditions.push(eq(pageEvents.utmCampaign, link.utmCampaign))
+        }
+        if (since) {
+          conditions.push(gte(pageEvents.createdAt, since))
         }
 
         const [stats] = await db

@@ -29,20 +29,21 @@ interface TrackingLink {
 
 interface TrackingLinksTableProps {
   refreshKey: number
+  period: string
   onRefresh: () => void
 }
 
-export function TrackingLinksTable({ refreshKey, onRefresh }: TrackingLinksTableProps) {
+export function TrackingLinksTable({ refreshKey, period, onRefresh }: TrackingLinksTableProps) {
   const [links, setLinks] = useState<TrackingLink[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    fetch("/api/admin/tracking-links")
+    fetch(`/api/admin/tracking-links?period=${period}`)
       .then((res) => res.json())
       .then((json) => setLinks(json.data || []))
       .finally(() => setLoading(false))
-  }, [refreshKey])
+  }, [refreshKey, period])
 
   function buildUrl(link: TrackingLink) {
     const base = typeof window !== "undefined" ? window.location.origin : ""

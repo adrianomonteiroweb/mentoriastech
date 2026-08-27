@@ -8,6 +8,7 @@ import {
   Linkedin,
   Sparkles,
 } from "lucide-react";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -72,6 +73,7 @@ const TOOLS = [
 export default function FerramentasPage() {
   return (
     <main className="flex min-h-screen flex-col items-center px-4 py-10 sm:px-6 md:py-16">
+      <PageViewTracker path="/ferramentas" />
       <div className="flex w-full max-w-2xl flex-col gap-8">
         <div className="flex flex-col gap-2">
           <Link
