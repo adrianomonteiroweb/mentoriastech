@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
 import { db, profiles } from "@/lib/db"
 
-type OriginCategory = "linkedin" | "palestra" | "indicacao" | "instagram" | "evento"
+type OriginCategory = "linkedin" | "google" | "ia" | "palestra" | "indicacao" | "instagram" | "evento"
 
 interface EnsureMenteeInput {
   email: string

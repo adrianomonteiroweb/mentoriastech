@@ -21,7 +21,7 @@ const menteeProfileUpdateSchema = z.object({
   seniority: z.enum(["junior", "mid", "senior", "undefined"]).nullable().optional(),
   career_focus: z.string().nullable().optional(),
   origin_category: z
-    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .enum(["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"])
     .nullable()
     .optional(),
   origin_description: z.string().nullable().optional(),
@@ -59,7 +59,7 @@ const updateSchema = z.object({
   admin_notes: z.string().optional(),
   mentorship_checklist: z.array(mentorshipChecklistItemSchema).optional(),
   origin_category: z
-    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .enum(["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"])
     .nullable()
     .optional(),
   origin_description: z.string().nullable().optional(),

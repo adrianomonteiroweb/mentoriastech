@@ -166,14 +166,22 @@ export function ContactStep({
               htmlFor="booking-origin-description"
               className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Detalhes opcionais
+              {originCategory === "indicacao" ? "Quem indicou? (opcional)" : "Detalhes (opcional)"}
             </label>
             <input
               id="booking-origin-description"
               type="text"
               value={originDescription}
               onChange={(e) => onChangeOrigin(originCategory, e.target.value)}
-              placeholder="Ex.: nome do evento, pessoa que indicou..."
+              placeholder={
+                originCategory === "indicacao"
+                  ? "Nome de quem indicou"
+                  : originCategory === "ia"
+                    ? "Ex.: ChatGPT, Gemini, Copilot..."
+                    : originCategory === "google"
+                      ? "Ex.: o que pesquisou"
+                      : "Ex.: nome do evento, palestra..."
+              }
               className="rounded-lg border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             />
           </div>

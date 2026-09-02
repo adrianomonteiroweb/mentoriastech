@@ -46,7 +46,7 @@ export const profiles = pgTable("profiles", {
   careerFocus: text("career_focus"),
   passwordHash: text("password_hash"),
   originCategory: text("origin_category", {
-    enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
+    enum: ["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"],
   }),
   originDescription: text("origin_description"),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -222,7 +222,7 @@ export const bookings = pgTable("bookings", {
     { id: string; label: string; checked: boolean }[]
   >(),
   originCategory: text("origin_category", {
-    enum: ["linkedin", "palestra", "indicacao", "instagram", "evento"],
+    enum: ["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"],
   }),
   originDescription: text("origin_description"),
   // Vincula o agendamento a uma fase de trilha (quando criado a partir de uma inscrição).

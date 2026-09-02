@@ -26,7 +26,7 @@ const updateSchema = z.object({
     .or(z.literal("")),
   career_focus: z.string().nullable().optional(),
   origin_category: z
-    .enum(["linkedin", "palestra", "indicacao", "instagram", "evento"])
+    .enum(["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"])
     .nullable()
     .optional()
     .or(z.literal("")),

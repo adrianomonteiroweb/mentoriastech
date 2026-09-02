@@ -17,7 +17,7 @@ const createMenteeSchema = z.object({
 
 const careerStatusValues = ["seeking", "interning", "employed", "student", "other"] as const
 const seniorityValues = ["junior", "mid", "senior", "undefined"] as const
-const originCategoryValues = ["linkedin", "palestra", "indicacao", "instagram", "evento"] as const
+const originCategoryValues = ["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"] as const
 
 function isInValues<T extends readonly string[]>(value: string | null, values: T): value is T[number] {
   return !!value && values.includes(value as T[number])

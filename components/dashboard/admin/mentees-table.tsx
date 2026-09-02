@@ -68,6 +68,8 @@ const SENIORITY_LABEL: Record<Seniority, string> = {
 
 const ORIGIN_CATEGORY_LABEL: Record<OriginCategory, string> = {
   linkedin: "LinkedIn",
+  google: "Google",
+  ia: "IA",
   palestra: "Palestra",
   indicacao: "Indicação",
   instagram: "Instagram",
@@ -76,6 +78,8 @@ const ORIGIN_CATEGORY_LABEL: Record<OriginCategory, string> = {
 
 const ORIGIN_CATEGORY_COLORS: Record<OriginCategory, string> = {
   linkedin: "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  google: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  ia: "border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300",
   palestra: "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300",
   indicacao: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
   instagram: "border-pink-500/30 bg-pink-500/10 text-pink-700 dark:text-pink-300",

@@ -70,8 +70,10 @@ export type BookingAction =
 
 export const ORIGIN_OPTIONS = [
   { value: "linkedin", label: "LinkedIn" },
+  { value: "google", label: "Pesquisa no Google" },
+  { value: "ia", label: "IA (ChatGPT, Gemini, etc.)" },
+  { value: "indicacao", label: "Indicação" },
   { value: "palestra", label: "Palestra" },
-  { value: "indicacao", label: "Indicacao" },
   { value: "instagram", label: "Instagram" },
   { value: "evento", label: "Evento" },
 ] as const;

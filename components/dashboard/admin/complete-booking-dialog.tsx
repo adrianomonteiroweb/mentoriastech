@@ -63,8 +63,10 @@ const SENIORITY_OPTIONS: { value: Seniority; label: string }[] = [
 
 const ORIGIN_CATEGORY_OPTIONS: { value: OriginCategory; label: string }[] = [
   { value: "linkedin", label: "LinkedIn" },
-  { value: "palestra", label: "Palestra" },
+  { value: "google", label: "Pesquisa no Google" },
+  { value: "ia", label: "IA (ChatGPT, Gemini, etc.)" },
   { value: "indicacao", label: "Indicação" },
+  { value: "palestra", label: "Palestra" },
   { value: "instagram", label: "Instagram" },
   { value: "evento", label: "Evento" },
 ]

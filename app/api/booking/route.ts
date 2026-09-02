@@ -22,15 +22,17 @@ const schema = z.object({
   topicId: z.string().optional(),
   sessionDate: z.string().optional(),
   isReturningMentee: z.boolean().optional(),
-  originCategory: z.enum(["linkedin", "palestra", "indicacao", "instagram", "evento"]).optional(),
+  originCategory: z.enum(["linkedin", "google", "ia", "palestra", "indicacao", "instagram", "evento"]).optional(),
   originDescription: z.string().max(500).optional(),
   mentorId: z.string().uuid().optional(),
 })
 
 const ORIGIN_LABELS = {
   linkedin: "LinkedIn",
+  google: "Pesquisa no Google",
+  ia: "IA (ChatGPT, Gemini, etc.)",
   palestra: "Palestra",
-  indicacao: "Indicacao",
+  indicacao: "Indicação",
   instagram: "Instagram",
   evento: "Evento",
 } as const

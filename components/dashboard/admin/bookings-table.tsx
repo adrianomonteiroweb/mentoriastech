@@ -71,6 +71,8 @@ const REQUESTED_AT_FORMATTER = new Intl.DateTimeFormat("pt-BR", {
 
 const ORIGIN_LABELS: Record<OriginCategory, string> = {
   linkedin: "LinkedIn",
+  google: "Google",
+  ia: "IA",
   palestra: "Palestra",
   indicacao: "Indicação",
   instagram: "Instagram",

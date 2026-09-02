@@ -340,6 +340,8 @@ function ToolStatsBlock({ stats, period, loading }: { stats: AdminStats | null; 
 
 const ORIGIN_LABELS: Record<string, string> = {
   linkedin: "LinkedIn",
+  google: "Google",
+  ia: "IA",
   instagram: "Instagram",
   palestra: "Palestra",
   indicacao: "Indicação",
