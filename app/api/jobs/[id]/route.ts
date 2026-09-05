@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db, jobs } from "@/lib/db"
+import { resolveJobTaxonomyColumns, resyncJobStacks } from "@/lib/db/job-taxonomy"
 import { toJob } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { jobActiveHoursSchema, jobCategorySchema } from "@/lib/job-validation"
@@ -80,11 +81,33 @@ export async function PUT(
       updateData.sourcePostedAt = getJobSourcePostedAt(parsed.data.active_hours)
     }
 
+    // Taxonomia normalizada — ver o comentario equivalente em
+    // app/api/admin/jobs/[id]/route.ts.
+    Object.assign(
+      updateData,
+      await resolveJobTaxonomyColumns({
+        company: parsed.data.company,
+        location: parsed.data.location,
+        isInternational: parsed.data.is_international,
+      }),
+    )
+
     const [data] = await db
       .update(jobs)
       .set(updateData)
       .where(eq(jobs.id, id))
       .returning()
+
+    if (parsed.data.stack_tags !== undefined) {
+      try {
+        await resyncJobStacks(id, parsed.data.stack_tags)
+      } catch (error) {
+        console.error("[jobs/:id] falha ao sincronizar stacks", {
+          id,
+          message: (error as Error).message,
+        })
+      }
+    }
 
     return NextResponse.json({ data: toJob(data) })
   } catch (error) {

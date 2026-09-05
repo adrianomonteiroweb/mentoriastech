@@ -24,6 +24,7 @@ import {
   SquareKanban,
   Tags,
   Target,
+  TrendingUp,
   User,
   Users,
 } from "lucide-react"
@@ -62,6 +63,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Trilhas", href: "/admin/trilhas", icon: Route },
     { label: "Inscrições Trilhas", href: "/admin/trilha-enrollments", icon: ClipboardList },
     { label: "Vagas", href: "/admin/jobs", icon: Briefcase },
+    { label: "Radar de vagas", href: "/jobs/insights", icon: TrendingUp },
     { label: "Receber Vagas", href: "/admin/job-alerts", icon: BellRing },
     { label: "Sprints", href: "/admin/sprints", icon: SquareKanban },
     { label: "Dicas", href: "/admin/tips", icon: Lightbulb },
@@ -77,6 +79,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Perfil", href: "/mentee/profile", icon: User },
     { label: "Agendamentos", href: "/mentee/bookings", icon: BookOpen },
     { label: "Nova Mentoria", href: "/mentee/bookings/new", icon: PlusCircle },
+    { label: "Radar de vagas", href: "/jobs/insights", icon: TrendingUp },
   ],
   mentor: [
     { label: "Visao Geral", href: "/mentor", icon: BarChart3 },
@@ -93,6 +96,7 @@ const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: "Visao Geral", href: "/hr", icon: Home },
     { label: "Vagas", href: "/hr/jobs", icon: Briefcase },
     { label: "Nova Vaga", href: "/hr/jobs/new", icon: PlusCircle },
+    { label: "Radar de vagas", href: "/jobs/insights", icon: TrendingUp },
     { label: "Mentorados", href: "/hr/mentees", icon: Users },
   ],
 }

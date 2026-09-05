@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { requireRole } from "@/lib/utils/auth"
 import { db, jobs } from "@/lib/db"
+import { resolveJobTaxonomyColumns, resyncJobStacks } from "@/lib/db/job-taxonomy"
 import { toJob } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { jobActiveHoursSchema, jobCategorySchema } from "@/lib/job-validation"
@@ -73,6 +74,18 @@ export async function PUT(
       updateData.approvedAt = null
     }
 
+    // Taxonomia normalizada: trocar o texto da empresa ou da localidade sem
+    // reresolver deixaria company_id / country_code apontando para o dado
+    // antigo, e o painel de indicadores mostraria numero errado.
+    Object.assign(
+      updateData,
+      await resolveJobTaxonomyColumns({
+        company: parsed.data.company,
+        location: parsed.data.location,
+        isInternational: parsed.data.is_international,
+      }),
+    )
+
     const [data] = await db
       .update(jobs)
       .set(updateData)
@@ -81,6 +94,19 @@ export async function PUT(
 
     if (!data) {
       return NextResponse.json({ error: "Vaga nao encontrada" }, { status: 404 })
+    }
+
+    // Depois do update: o PUT troca stack_tags inteiro, entao os vinculos
+    // precisam ser RE-sincronizados (inserir os novos e apagar os que sairam).
+    if (parsed.data.stack_tags !== undefined) {
+      try {
+        await resyncJobStacks(id, parsed.data.stack_tags)
+      } catch (error) {
+        console.error("[admin/jobs] falha ao sincronizar stacks", {
+          id,
+          message: (error as Error).message,
+        })
+      }
     }
 
     return NextResponse.json({ data: toJob(data) })

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { and, desc, eq, or, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
+import { resolveJobTaxonomyColumns, syncJobStacks } from "@/lib/db/job-taxonomy"
 import { toJob, toProfile } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import {
@@ -142,6 +143,20 @@ export async function POST(request: Request) {
     // HR e admin: vaga auto-aprovada. Mentee: pendente
     const autoApprove = profile.role === "hr" || profile.role === "admin"
 
+    // Vaga cadastrada a mao tambem entra na taxonomia normalizada — senao ela
+    // aparece no portal mas some dos indicadores. Nenhuma falha aqui pode
+    // impedir a criacao da vaga.
+    const taxonomy = await resolveJobTaxonomyColumns({
+      company: parsed.data.company,
+      location: parsed.data.location,
+      isInternational: parsed.data.is_international,
+    }).catch((error) => {
+      console.error("[jobs] falha na taxonomia ao criar vaga", {
+        message: (error as Error).message,
+      })
+      return {}
+    })
+
     const [data] = await db
       .insert(jobs)
       .values({
@@ -151,6 +166,7 @@ export async function POST(request: Request) {
         descriptionEn: parsed.data.description_en || null,
         stackTags: parsed.data.stack_tags,
         location: parsed.data.location,
+        ...taxonomy,
         jobType: parsed.data.job_type,
         level: parsed.data.level,
         category: parsed.data.category,
@@ -168,6 +184,17 @@ export async function POST(request: Request) {
         approvedAt: autoApprove ? new Date() : null,
       })
       .returning()
+
+    if (parsed.data.stack_tags.length > 0) {
+      try {
+        await syncJobStacks(data.id, parsed.data.stack_tags)
+      } catch (error) {
+        console.error("[jobs] falha ao sincronizar stacks", {
+          id: data.id,
+          message: (error as Error).message,
+        })
+      }
+    }
 
     return NextResponse.json({ data: toJob(data) }, { status: 201 })
   } catch (error) {

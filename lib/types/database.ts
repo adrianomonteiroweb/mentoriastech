@@ -311,12 +311,23 @@ export interface Job {
   description_en: string | null
   stack_tags: string[]
   recommendation_note: string | null
+  /** Localização crua, como veio da vaga ("São Paulo, São Paulo, Brasil"). */
   location: string | null
+  /** Localização normalizada (lib/job-location.ts). Null nas vagas antigas até
+   *  o backfill rodar, e nas que o parse não conseguiu resolver com segurança. */
+  city: string | null
+  city_key: string | null
+  region: string | null
+  country_name: string | null
+  country_code: string | null
   job_type: JobType
   level: JobLevel
   category: JobCategory
   salary_range: string | null
   application_url: string | null
+  /** FK para o registro global de empresas (job_companies). `company` continua
+   *  sendo o texto de exibição. */
+  company_id: string | null
   is_international: boolean
   required_language: string | null
   language_level: LanguageLevel | null

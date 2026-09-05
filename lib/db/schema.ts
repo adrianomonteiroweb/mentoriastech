@@ -3,9 +3,11 @@ import {
   boolean,
   check,
   date,
+  index,
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   time,
   timestamp,
@@ -473,7 +475,18 @@ export const jobs = pgTable("jobs", {
   descriptionEn: text("description_en"),
   stackTags: text("stack_tags").array().notNull().default([]),
   recommendationNote: text("recommendation_note"),
+  // Localizacao crua, como veio da vaga ("São Paulo, São Paulo, Brasil").
+  // Continua sendo a fonte para exibicao e para o parse de quem nao manda os
+  // campos normalizados abaixo (Glassdoor, cadastro manual).
   location: text("location"),
+  // Localizacao normalizada (lib/job-location.ts). `cityKey` e a chave de
+  // AGRUPAMENTO do painel de indicadores — agrupar por `city` espalharia
+  // "São Paulo" / "Sao Paulo" / "sao paulo" em tres barras do grafico.
+  city: text("city"),
+  cityKey: text("city_key"),
+  region: text("region"),
+  countryName: text("country_name"),
+  countryCode: text("country_code"),
   jobType: text("job_type", { enum: ["remote", "hybrid", "onsite"] })
     .notNull()
     .default("remote"),
@@ -483,6 +496,12 @@ export const jobs = pgTable("jobs", {
   category: text("category").notNull().default("other"),
   salaryRange: text("salary_range"),
   applicationUrl: text("application_url"),
+  // Empresa normalizada. `company` (texto livre) CONTINUA sendo escrito — o
+  // admin, os filtros e o portal publico dependem dele. Esta FK e camada
+  // adicional, para o painel conseguir relacionar empresa <-> stacks.
+  companyId: uuid("company_id").references((): AnyPgColumn => jobCompanies.id, {
+    onDelete: "set null",
+  }),
   isInternational: boolean("is_international").notNull().default(false),
   requiredLanguage: text("required_language"),
   languageLevel: text("language_level", {
@@ -511,6 +530,108 @@ export const jobs = pgTable("jobs", {
     .notNull()
     .defaultNow(),
 });
+
+// -----------------------------------------------------------------------------
+// JOB_COMPANIES — registro GLOBAL de empresas das vagas.
+//
+// NAO confundir com `companies` (mais abaixo neste arquivo), que e POR
+// MENTORADO, do pipeline de oportunidades, e nao serve como registro.
+//
+// `slug` e a chave canonica derivada do nome (lib/job-companies.ts).
+// `linkedinSlug` e a chave FORTE quando o bot manda company_url: imune ao
+// problema "Google" x "Google LLC" x "Google Brasil".
+// -----------------------------------------------------------------------------
+export const jobCompanies = pgTable(
+  "job_companies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    linkedinSlug: text("linkedin_slug"),
+    linkedinUrl: text("linkedin_url"),
+    website: text("website"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_job_companies_slug_unique").on(table.slug),
+    uniqueIndex("idx_job_companies_linkedin_slug_unique")
+      .on(table.linkedinSlug)
+      .where(sql`${table.linkedinSlug} is not null`),
+  ],
+);
+
+// Apelidos de empresa. Quando um admin funde duas empresas duplicadas, o slug
+// perdedor entra aqui apontando para a sobrevivente — senao o proximo run do
+// bot recria a duplicata e a fusao se desfaz sozinha.
+export const jobCompanyAliases = pgTable("job_company_aliases", {
+  aliasSlug: text("alias_slug").primaryKey(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => jobCompanies.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// -----------------------------------------------------------------------------
+// STACKS — tecnologias canonicas (lib/job-stacks.ts).
+// `key` e a forma normalizada (nodejs, typescript, csharp); `label` e o que a
+// UI mostra (Node.js, TypeScript, C# / .NET).
+// -----------------------------------------------------------------------------
+export const stacks = pgTable(
+  "stacks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    category: text("category", {
+      enum: ["language", "framework", "database", "cloud", "tool", "other"],
+    })
+      .notNull()
+      .default("other"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [uniqueIndex("idx_stacks_key_unique").on(table.key)],
+);
+
+// Ligacao vaga <-> stack. `jobs.stack_tags` (array de texto cru) continua
+// existindo para os filtros da UI atual; esta tabela e o que o painel agrega,
+// porque agrupar pela tag crua faria "node", "Node.js" e "nodejs" virarem tres
+// barras distintas no grafico.
+export const jobStacks = pgTable(
+  "job_stacks",
+  {
+    jobId: uuid("job_id")
+      .notNull()
+      .references(() => jobs.id, { onDelete: "cascade" }),
+    stackId: uuid("stack_id")
+      .notNull()
+      .references(() => stacks.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.jobId, table.stackId] }),
+    index("idx_job_stacks_stack_id").on(table.stackId),
+  ],
+);
 
 // -----------------------------------------------------------------------------
 // SITE_SETTINGS
@@ -2170,6 +2291,12 @@ export type Payment = typeof payments.$inferSelect;
 export type ContentCategory = typeof contentCategories.$inferSelect;
 export type ContentItem = typeof contentItems.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
+export type JobCompany = typeof jobCompanies.$inferSelect;
+export type NewJobCompany = typeof jobCompanies.$inferInsert;
+export type JobCompanyAlias = typeof jobCompanyAliases.$inferSelect;
+export type Stack = typeof stacks.$inferSelect;
+export type NewStack = typeof stacks.$inferInsert;
+export type JobStack = typeof jobStacks.$inferSelect;
 export type PageShare = typeof pageShares.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type ContentView = typeof contentViews.$inferSelect;

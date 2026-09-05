@@ -36,10 +36,18 @@ const httpUrlSchema = z
 
 // Indicação da comunidade / bot: link + por que achou interessante (+ título).
 // Os campos de enriquecimento (description, location, stack_tags, job_type,
-// required_language, language_level) são OPCIONAIS — o bot de busca os envia
-// quando abriu a página da vaga e derivou a descrição. Antes só o
-// update-jobs-info preenchia description/location depois; agora a vaga já pode
-// nascer enriquecida.
+// required_language, language_level, company_url, city, region, country,
+// country_code) são OPCIONAIS — o bot de busca os envia quando abriu a página
+// da vaga e derivou a descrição. Antes só o update-jobs-info preenchia
+// description/location depois; agora a vaga já pode nascer enriquecida.
+//
+// ATENÇÃO — o schema é .strict(): chave desconhecida vira 400 "Dados
+// invalidos", e o bot trata 400 como falha SEM RETRY, ou seja, a vaga é perdida
+// em silêncio. Ao adicionar um campo novo, o backend sobe PRIMEIRO (campos
+// opcionais não mudam nada para o bot atual) e só depois o bot passa a enviá-lo.
+// Não troque o .strict() por .passthrough() para contornar isso: o strict é o
+// que pega typo de chave no payload do bot (ver o teste em
+// __tests__/lib/job-share-schema.test.ts).
 export const jobShareSchema = z
   .object({
     title: z.string().min(3).max(200),
@@ -53,6 +61,21 @@ export const jobShareSchema = z
     is_international: z.boolean().default(false),
     description: z.string().max(10000).optional(),
     location: z.string().max(500).optional(),
+    // Empresa: URL da página no LinkedIn (/company/<slug>). É a chave FORTE do
+    // registro global de empresas — resolve "Google" x "Google LLC" x "Google
+    // Brasil" sem heurística de string.
+    company_url: httpUrlSchema.optional(),
+    // Localidade granular. O bot manda o que conseguiu extrair; o que faltar o
+    // backend deriva do `location` livre (lib/job-location.ts), que é o que põe
+    // as vagas do Glassdoor e as cadastradas à mão nos mesmos gráficos.
+    city: z.string().max(120).optional(),
+    region: z.string().max(120).optional(),
+    country: z.string().max(120).optional(),
+    country_code: z
+      .string()
+      .regex(/^[A-Za-z]{2}$/)
+      .transform((value) => value.toUpperCase())
+      .optional(),
     stack_tags: z.array(z.string().min(1).max(50)).max(30).optional(),
     job_type: z.enum(["remote", "hybrid", "onsite"]).optional(),
     salary_range: z.string().max(200).optional(),

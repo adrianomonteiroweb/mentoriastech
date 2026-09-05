@@ -64,4 +64,44 @@ describe("jobShareSchema", () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it("aceita empresa e localidade normalizadas do bot", () => {
+    const parsed = jobShareSchema.parse({
+      ...base,
+      company: "Nubank",
+      company_url: "https://www.linkedin.com/company/nubank/",
+      city: "São Paulo",
+      region: "SP",
+      country: "Brasil",
+      country_code: "br",
+    })
+    expect(parsed.company_url).toBe("https://www.linkedin.com/company/nubank/")
+    expect(parsed.city).toBe("São Paulo")
+    expect(parsed.region).toBe("SP")
+    expect(parsed.country).toBe("Brasil")
+    // Normalizado para maiúsculas: a coluna tem CHECK '^[A-Z]{2}$'.
+    expect(parsed.country_code).toBe("BR")
+  })
+
+  // Os campos novos precisam ser opcionais para o backend poder subir ANTES do
+  // bot — se o schema exigisse qualquer um deles, o payload atual passaria a
+  // dar 400 e as vagas se perderiam em silêncio entre os dois deploys.
+  it("continua aceitando o payload antigo, sem os campos novos", () => {
+    const parsed = jobShareSchema.parse(base)
+    expect(parsed.company_url).toBeUndefined()
+    expect(parsed.city).toBeUndefined()
+    expect(parsed.country_code).toBeUndefined()
+  })
+
+  it("rejeita country_code que não seja ISO-2", () => {
+    expect(jobShareSchema.safeParse({ ...base, country_code: "BRA" }).success).toBe(false)
+    expect(jobShareSchema.safeParse({ ...base, country_code: "1" }).success).toBe(false)
+  })
+
+  it("rejeita company_url que não seja http(s)", () => {
+    expect(
+      jobShareSchema.safeParse({ ...base, company_url: "ftp://linkedin.com/company/x" })
+        .success,
+    ).toBe(false)
+  })
 })
