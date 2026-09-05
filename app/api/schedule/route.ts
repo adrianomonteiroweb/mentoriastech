@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm"
-import { bookings, db, mentoringSlots, mentoringTopics, profiles } from "@/lib/db"
+import { bookings, db, mentoringSlotExceptions, mentoringSlots, mentoringTopics, profiles } from "@/lib/db"
 import { expandRRuleDates } from "@/lib/rrule-utils"
 
 const DAY_NAMES = [
@@ -62,6 +62,22 @@ export async function GET(request: Request) {
     const mondayStr = monday.toISOString().split("T")[0]
     const sundayStr = sunday.toISOString().split("T")[0]
     const horizonStr = horizonOut.toISOString().split("T")[0]
+
+    const slotIds = slots.map((s) => s.id)
+    const exceptionRows = slotIds.length
+      ? await db
+          .select({ slotId: mentoringSlotExceptions.slotId, blockedDate: mentoringSlotExceptions.blockedDate })
+          .from(mentoringSlotExceptions)
+          .where(
+            and(
+              inArray(mentoringSlotExceptions.slotId, slotIds),
+              gte(mentoringSlotExceptions.blockedDate, mondayStr),
+              lte(mentoringSlotExceptions.blockedDate, horizonStr),
+            ),
+          )
+      : []
+
+    const blockedDates = new Set(exceptionRows.map((e) => `${e.slotId}::${e.blockedDate}`))
 
     const bookingRows = await db
       .select({
@@ -147,6 +163,8 @@ export async function GET(request: Request) {
         const slotDateStr = slotDate.toISOString().split("T")[0]
         const slotBookings = getSlotBookings(slotDateStr, slot.startTime)
 
+        if (blockedDates.has(`${slot.id}::${slotDateStr}`)) continue
+
         freeSchedule.push({
           id: `${slot.id}_${slotDateStr}`,
           slotId: slot.id,
@@ -174,6 +192,8 @@ export async function GET(request: Request) {
       )
 
       for (const dateStr of dates) {
+        if (blockedDates.has(`${slot.id}::${dateStr}`)) continue
+
         const dayOfWeek = new Date(dateStr + "T12:00:00").getDay()
         const startTime = slot.startTime.substring(0, 5)
         const slotBookings = getSlotBookings(dateStr, slot.startTime)

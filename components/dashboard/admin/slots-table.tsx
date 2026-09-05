@@ -16,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Trash2, Ban, CheckCircle2 } from "lucide-react"
+import { Plus, Trash2, Ban, CheckCircle2, CalendarX, X } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
@@ -27,6 +27,188 @@ import { useMentorFilter } from "@/components/dashboard/admin/mentor-filter"
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"]
 const DAY_ABBR = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+
+type SlotException = {
+  id: string
+  slot_id: string
+  blocked_date: string
+  reason: string | null
+  created_at: string
+}
+
+function nextOccurrence(dayOfWeek: number): string {
+  const today = new Date()
+  const todayDow = today.getDay()
+  let daysUntil = dayOfWeek - todayDow
+  if (daysUntil <= 0) daysUntil += 7
+  const next = new Date(today)
+  next.setDate(today.getDate() + daysUntil)
+  return next.toISOString().split("T")[0]
+}
+
+function BlockDateDialog({ slot, onSaved }: { slot: MentoringSlot; onSaved: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [exceptions, setExceptions] = useState<SlotException[]>([])
+  const [loadingExceptions, setLoadingExceptions] = useState(false)
+  const [blockedDate, setBlockedDate] = useState("")
+  const [reason, setReason] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [deletingDate, setDeletingDate] = useState<string | null>(null)
+
+  function defaultDate() {
+    if (slot.day_of_week !== null && slot.day_of_week !== undefined) {
+      return nextOccurrence(slot.day_of_week)
+    }
+    const today = new Date()
+    today.setDate(today.getDate() + 1)
+    return today.toISOString().split("T")[0]
+  }
+
+  function loadExceptions() {
+    setLoadingExceptions(true)
+    fetch(`/api/admin/slots/${slot.id}/exceptions`)
+      .then((r) => r.json())
+      .then((json) => setExceptions(json.data || []))
+      .catch(console.error)
+      .finally(() => setLoadingExceptions(false))
+  }
+
+  function handleOpen(isOpen: boolean) {
+    setOpen(isOpen)
+    if (isOpen) {
+      setBlockedDate(defaultDate())
+      setReason("")
+      loadExceptions()
+    }
+  }
+
+  async function handleSubmit() {
+    if (!blockedDate) return
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/admin/slots/${slot.id}/exceptions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocked_date: blockedDate, reason: reason || undefined }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || "Erro ao bloquear data")
+        return
+      }
+      setBlockedDate(defaultDate())
+      setReason("")
+      loadExceptions()
+      onSaved()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleDelete(date: string) {
+    setDeletingDate(date)
+    try {
+      const res = await fetch(`/api/admin/slots/${slot.id}/exceptions/${date}`, { method: "DELETE" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error || "Erro ao remover bloqueio")
+        return
+      }
+      loadExceptions()
+      onSaved()
+    } finally {
+      setDeletingDate(null)
+    }
+  }
+
+  const slotLabel = slot.rrule
+    ? describeRRule(slot.rrule)
+    : slot.day_of_week !== null && slot.day_of_week !== undefined
+      ? DAY_NAMES[slot.day_of_week]
+      : "—"
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" title="Bloquear data específica">
+          <CalendarX className="h-3.5 w-3.5 text-orange-500" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Bloquear data — {slotLabel} {slot.start_time.substring(0, 5)}</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 pt-2">
+          <div className="flex flex-col gap-1.5">
+            <Label>Data a bloquear</Label>
+            <Input
+              type="date"
+              value={blockedDate}
+              min={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setBlockedDate(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Motivo (opcional)</Label>
+            <Input
+              type="text"
+              placeholder="ex: viagem, feriado..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          <Button onClick={handleSubmit} disabled={submitting || !blockedDate}>
+            {submitting ? "Salvando..." : "Bloquear esta data"}
+          </Button>
+
+          {/* Lista de datas bloqueadas */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium text-muted-foreground">Datas bloqueadas</p>
+            {loadingExceptions ? (
+              <Skeleton className="h-8 w-full" />
+            ) : exceptions.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhuma data bloqueada.</p>
+            ) : (
+              <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                {exceptions.map((ex) => (
+                  <div
+                    key={ex.id}
+                    className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-1.5"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-xs font-medium">
+                        {new Date(ex.blocked_date + "T12:00:00").toLocaleDateString("pt-BR", {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })}
+                      </span>
+                      {ex.reason && (
+                        <span className="text-[10px] text-muted-foreground">{ex.reason}</span>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={deletingDate === ex.blocked_date}
+                      onClick={() => handleDelete(ex.blocked_date)}
+                    >
+                      <X className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export function SlotsTable() {
   const [slots, setSlots] = useState<MentoringSlot[]>([])
@@ -314,9 +496,21 @@ export function SlotsTable() {
                     </TooltipProvider>
                   </TableCell>
                   <TableCell>
-                    <Button size="sm" variant="ghost" onClick={() => deleteSlot(slot.id)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <BlockDateDialog slot={slot} onSaved={loadSlots} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Bloquear data específica (ex: próximo sábado)</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <Button size="sm" variant="ghost" onClick={() => deleteSlot(slot.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

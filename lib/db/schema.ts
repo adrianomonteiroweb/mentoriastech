@@ -101,6 +101,30 @@ export const mentoringSlots = pgTable("mentoring_slots", {
 });
 
 // -----------------------------------------------------------------------------
+// MENTORING_SLOT_EXCEPTIONS — datas específicas bloqueadas em um slot recorrente
+// -----------------------------------------------------------------------------
+export const mentoringSlotExceptions = pgTable(
+  "mentoring_slot_exceptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slotId: uuid("slot_id")
+      .notNull()
+      .references(() => mentoringSlots.id, { onDelete: "cascade" }),
+    blockedDate: date("blocked_date").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("mentoring_slot_exceptions_slot_date_unique").on(
+      table.slotId,
+      table.blockedDate,
+    ),
+  ],
+)
+
+// -----------------------------------------------------------------------------
 // MENTORING_TOPICS — temas de mentoria
 // -----------------------------------------------------------------------------
 export const mentoringTopics = pgTable("mentoring_topics", {
