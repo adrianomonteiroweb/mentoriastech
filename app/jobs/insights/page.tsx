@@ -276,6 +276,23 @@ export default async function JobsInsightsPage({
           />
         </section>
 
+        <section aria-label="Empresas que mais contratam" className="mb-6">
+          <ChartCard
+            title="Empresas que mais contratam"
+            summary="Clique numa empresa para ver todas as stacks que ela pede, os níveis e as localidades."
+            caveat="O ranking respeita o período selecionado; o perfil que abre ao clicar mostra o histórico completo da empresa."
+            isEmpty={data.top_companies.length === 0}
+            emptyMessage="Nenhuma vaga do período tem empresa identificada."
+            tableHeaders={["Empresa", "Vagas"]}
+            tableRows={data.top_companies.map((company) => [
+              company.name,
+              formatNumber(company.job_count),
+            ])}
+          >
+            <CompaniesPanel companies={data.top_companies} />
+          </ChartCard>
+        </section>
+
         <div className="grid gap-4 lg:grid-cols-2">
           <ChartCard
             title="Principais stacks"
@@ -409,34 +426,21 @@ export default async function JobsInsightsPage({
             </div>
           </ChartCard>
 
-          <ChartCard
-            title="Empresas que mais contratam"
-            summary="Clique numa empresa para ver todas as stacks que ela pede, os níveis e as localidades."
-            caveat="O ranking respeita o período selecionado; o perfil que abre ao clicar mostra o histórico completo da empresa."
-            isEmpty={data.top_companies.length === 0}
-            emptyMessage="Nenhuma vaga do período tem empresa identificada."
-            tableHeaders={["Empresa", "Vagas"]}
-            tableRows={data.top_companies.map((company) => [
-              company.name,
-              formatNumber(company.job_count),
-            ])}
-          >
-            <CompaniesPanel companies={data.top_companies} />
-          </ChartCard>
-
-          <ChartCard
-            title="Evolução no tempo"
-            summary={`Vagas aprovadas por ${data.period.bucket === "day" ? "dia" : data.period.bucket === "week" ? "semana" : "mês"}, no fuso de São Paulo.`}
-            caveat="A faixa sombreada à direita é o período ainda em curso, portanto incompleto — não leia aquela queda como tendência. O eixo vertical começa em zero."
-            isEmpty={data.time_series.length < 2}
-            tableHeaders={["Data", "Vagas (internacionais)"]}
-            tableRows={data.time_series.map((point) => [
-              point.date.split("-").reverse().join("/"),
-              `${formatNumber(point.total)} (${formatNumber(point.international)})`,
-            ])}
-          >
-            <TimeseriesChart points={data.time_series} />
-          </ChartCard>
+          <div className="lg:col-span-2">
+            <ChartCard
+              title="Evolução no tempo"
+              summary={`Vagas aprovadas por ${data.period.bucket === "day" ? "dia" : data.period.bucket === "week" ? "semana" : "mês"}, no fuso de São Paulo.`}
+              caveat="A faixa sombreada à direita é o período ainda em curso, portanto incompleto — não leia aquela queda como tendência. O eixo vertical começa em zero."
+              isEmpty={data.time_series.length < 2}
+              tableHeaders={["Data", "Vagas (internacionais)"]}
+              tableRows={data.time_series.map((point) => [
+                point.date.split("-").reverse().join("/"),
+                `${formatNumber(point.total)} (${formatNumber(point.international)})`,
+              ])}
+            >
+              <TimeseriesChart points={data.time_series} />
+            </ChartCard>
+          </div>
         </div>
 
         <section className="mt-8 rounded-lg border border-border bg-muted/30 p-4">

@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState, useRef, type ReactNode } from "
 import {
   AlertTriangle,
   ArrowLeft,
+  BarChart3,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -617,6 +618,14 @@ export default function JobsPortal() {
                   </span>
                 </>
               )}
+              <span aria-hidden="true">·</span>
+              <Link
+                href="/jobs/insights"
+                className="inline-flex items-center gap-1 font-medium text-primary hover:underline underline-offset-4"
+              >
+                <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />
+                Radar
+              </Link>
             </div>
           </header>
         ) : (
