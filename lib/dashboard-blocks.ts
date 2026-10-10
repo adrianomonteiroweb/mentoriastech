@@ -7,6 +7,7 @@ export interface DashboardBlock {
 }
 
 export const DASHBOARD_BLOCKS: DashboardBlock[] = [
+  { id: "geografico", label: "Mentorias por Região" },
   { id: "mentorias", label: "Mentorias" },
   { id: "receita", label: "Receita & Mentorias Pagas" },
   { id: "publico", label: "Página Pública & Aquisição" },
