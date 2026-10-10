@@ -21,6 +21,7 @@ import {
   MapPin,
   Plus,
   RotateCcw,
+  Search,
   XCircle,
   Clock,
 } from "lucide-react";
@@ -215,6 +216,7 @@ export default function JobsPortal() {
     const p = new URLSearchParams(window.location.search).get("scope");
     return p === "international" || p === "national" ? p : "all";
   });
+  const [searchQuery, setSearchQuery] = useState("");
   const [onlyToday, setOnlyToday] = useState(true);
   const [onlySaved, setOnlySaved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -477,6 +479,7 @@ export default function JobsPortal() {
   }
 
   function resetFilters() {
+    setSearchQuery("");
     setActiveTab("all");
     setActiveType("all");
     setActiveScope("all");
@@ -493,6 +496,10 @@ export default function JobsPortal() {
 
   const filtered = jobs.filter((job) => {
     if (hiddenJobIds.has(job.id)) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!job.title.toLowerCase().includes(q)) return false;
+    }
     if (onlySaved && !hasAction(job.id, "liked")) return false;
     if (onlyToday && !isJobToday(job)) return false;
     if (activeTab !== "all" && job.level !== activeTab) return false;
@@ -514,6 +521,7 @@ export default function JobsPortal() {
   }, [filtered]);
 
   const hasNonDefaultFilters =
+    searchQuery.length > 0 ||
     selectedCategories.length > 0 ||
     activeTab !== "all" ||
     activeType !== "all" ||
@@ -637,6 +645,17 @@ export default function JobsPortal() {
         {/* ── Filters ── */}
         {hydrated && (
           <div className="flex flex-col gap-2">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar vaga pelo título..."
+                className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
             {/* Row 1: Hoje + Nível */}
             <div
               role="group"

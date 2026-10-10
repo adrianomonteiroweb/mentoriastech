@@ -11,8 +11,11 @@ import {
 } from "@/lib/brazil-ddd"
 
 export async function GET(request: NextRequest) {
-  const authError = await requireMentorAccess()
-  if (authError) return authError
+  try {
+    await requireMentorAccess()
+  } catch {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 })
+  }
 
   const { searchParams } = new URL(request.url)
   const monthParam = searchParams.get("month")
