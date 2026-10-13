@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { PublicNav } from "@/components/public-nav"
+import { PortalTheme } from "@/components/jobs/portal/portal-theme"
 import { SiteFooter } from "@/components/site-footer"
 import { SITE_URL } from "@/lib/site"
 
@@ -23,10 +24,17 @@ export default function JobsLayout({
   children: React.ReactNode
 }) {
   return (
-    <>
+    // data-portal="jobs" troca a paleta de TODO o portal (ver app/globals.css).
+    // Como as cores do projeto passam por variaveis CSS, cada componente shadcn
+    // aqui dentro herda o verde sem precisar saber disso.
+    //
+    // `min-h-screen bg-background` e necessario: sem um fundo proprio, o corpo
+    // da pagina continuaria pintado pela paleta do site por tras do conteudo.
+    <div data-portal="jobs" className="flex min-h-screen flex-col bg-background">
+      <PortalTheme />
       <PublicNav />
-      {children}
+      <div className="flex-1">{children}</div>
       <SiteFooter />
-    </>
+    </div>
   )
 }

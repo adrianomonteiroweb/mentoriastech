@@ -114,17 +114,10 @@ export const WORK_MODEL_LABELS: Record<string, string> = {
   onsite: "Presencial",
 }
 
-export const JOB_LEVEL_LABELS: Record<string, string> = {
-  internship: "Estagio",
-  junior: "Junior",
-  mid: "Pleno",
-  senior: "Senior",
-  staff: "Staff",
-  senior_staff: "Senior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
-  trainee: "Trainee",
-}
+// Reexporta a fonte unica. Esta copia estava SEM ACENTO ("Estagio",
+// "Junior", "Senior"), entao a mesma vaga aparecia escrita de um jeito
+// no portal e de outro aqui.
+export { JOB_LEVEL_LABELS } from "@/lib/job-labels"
 
 export const INTERVIEW_TYPE_LABELS: Record<string, string> = {
   rh: "RH",

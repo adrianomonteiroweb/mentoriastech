@@ -494,6 +494,24 @@ export const jobs = pgTable("jobs", {
     .notNull()
     .default("junior"),
   category: text("category").notNull().default("other"),
+  // Area em DOIS niveis (lib/job-areas.ts). Convive com `category`, que o admin
+  // e o painel ainda leem — a coluna antiga so sai quando a UI inteira migrar.
+  // Sem CHECK de valor no banco: o catalogo evolui em TS e nao pode exigir
+  // migracao a cada especialidade nova (ver drizzle/manual/job_areas.sql).
+  areaFamily: text("area_family"),
+  areaSpecialty: text("area_specialty"),
+  // 'title' | 'stack' | 'legacy' | 'fallback' — como a area foi obtida. Serve
+  // para medir a qualidade da inferencia sem readivinhar em cima do resultado.
+  areaSource: text("area_source"),
+  // Eixo de inclusao, acumulavel. NAO e area: enquanto `pcd` era categoria, uma
+  // vaga de frontend para PCD sumia do filtro "Desenvolvimento".
+  inclusionTags: text("inclusion_tags").array().notNull().default([]),
+  // `level` veio inferido do titulo em vez do bot? O bot grava 'junior' como
+  // default quando nao classifica, o que poluia o filtro de quem esta comecando.
+  levelInferred: boolean("level_inferred").notNull().default(false),
+  // Curtidas materializadas. Sem isso a listagem publica faz um GROUP BY da
+  // tabela inteira de job_actions a cada request so para contar.
+  likeCount: integer("like_count").notNull().default(0),
   salaryRange: text("salary_range"),
   applicationUrl: text("application_url"),
   // Empresa normalizada. `company` (texto livre) CONTINUA sendo escrito — o

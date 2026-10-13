@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import { JOB_LEVEL_SHORT_LABELS as LEVEL_LABELS } from "@/lib/job-labels"
 import { ExternalLink, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -32,17 +33,6 @@ type CompanyProfile = {
   levels: { level: string; count: number }[]
   locations: { label: string; country_code: string | null; count: number }[]
   recent_jobs: { id: string; title: string; created_at: string }[]
-}
-
-const LEVEL_LABELS: Record<string, string> = {
-  internship: "Estágio",
-  junior: "Júnior",
-  mid: "Pleno",
-  senior: "Sênior",
-  staff: "Staff",
-  senior_staff: "Senior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
 }
 
 /**

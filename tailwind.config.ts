@@ -48,6 +48,34 @@ const config: Config = {
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
+        // Tokens semanticos do Portal de Vagas (definidos em app/globals.css,
+        // dentro de [data-portal="jobs"]). Substituem a cor crua do Tailwind
+        // que estava espalhada pelos cards — varias sem variante dark:, que
+        // liam mal no tema claro.
+        //
+        // Fora do portal estas variaveis nao existem: usar `bg-job-remote-bg`
+        // em outra pagina nao pinta nada. E proposital, para a paleta do portal
+        // nao vazar para o resto do site.
+        job: {
+          remote: 'hsl(var(--job-remote))',
+          'remote-bg': 'hsl(var(--job-remote-bg))',
+          hybrid: 'hsl(var(--job-hybrid))',
+          'hybrid-bg': 'hsl(var(--job-hybrid-bg))',
+          onsite: 'hsl(var(--job-onsite))',
+          'onsite-bg': 'hsl(var(--job-onsite-bg))',
+          international: 'hsl(var(--job-international))',
+          'international-bg': 'hsl(var(--job-international-bg))',
+          highlight: 'hsl(var(--job-highlight))',
+          'highlight-bg': 'hsl(var(--job-highlight-bg))',
+          warning: 'hsl(var(--job-warning))',
+          'warning-bg': 'hsl(var(--job-warning-bg))',
+          like: 'hsl(var(--job-like))',
+          'like-bg': 'hsl(var(--job-like-bg))',
+          area: 'hsl(var(--job-area))',
+          'area-bg': 'hsl(var(--job-area-bg))',
+          new: 'hsl(var(--job-new))',
+          'new-bg': 'hsl(var(--job-new-bg))',
+        },
         ring: 'hsl(var(--ring))',
         chart: {
           '1': 'hsl(var(--chart-1))',

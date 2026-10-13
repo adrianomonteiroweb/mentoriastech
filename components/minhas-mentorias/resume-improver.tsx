@@ -1,6 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  JOB_LEVEL_LABELS,
+  JOB_TYPE_LABELS,
+  LANGUAGE_LEVEL_LABELS,
+} from "@/lib/job-labels"
 import Link from "next/link"
 import {
   ArrowDown,
@@ -98,36 +103,6 @@ const EVIDENCE_META: Record<
 
 type Phase = "input" | "analysis" | "trajectory" | "result"
 type JobSourceMode = "existing" | "new"
-
-const JOB_TYPE_LABELS: Record<string, string> = {
-  remote: "Remoto",
-  hybrid: "Hibrido",
-  onsite: "Presencial",
-}
-
-const JOB_LEVEL_LABELS: Record<string, string> = {
-  internship: "Estagio & Trainee",
-  junior: "Junior",
-  mid: "Pleno",
-  senior: "Senior",
-  staff: "Staff",
-  senior_staff: "Senior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
-}
-
-const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
-  a1: "A1",
-  a2: "A2",
-  b1: "B1",
-  b2: "B2",
-  c1: "C1",
-  c2: "C2",
-  basic: "Basico",
-  intermediate: "Intermediario",
-  advanced: "Avancado",
-  fluent: "Fluente",
-}
 
 function buildJobDescriptionFromJob(job: Job) {
   const lines = [
@@ -407,7 +382,9 @@ export function ResumeImprover({
     let active = true
 
     setJobsLoading(true)
-    fetch("/api/jobs")
+    // limit=50: este seletor e um dropdown, nao uma lista. Antes baixava TODAS
+    // as vagas aprovadas (~1500/dia) para preencher um <select>.
+    fetch("/api/jobs?limit=50&sort=recent")
       .then((res) => res.json())
       .then((json) => {
         if (!active) return
@@ -885,7 +862,7 @@ export function ResumeImprover({
                     </p>
                     <JobForm
                       submitEndpoint="/api/minhas-mentorias/resume/jobs"
-                      categorySourceEndpoint="/api/jobs"
+                      categorySourceEndpoint="/api/jobs/facets"
                       submitLabel="Salvar vaga e usar"
                       loadingLabel="Salvando vaga..."
                       successMessage="Vaga enviada para analise!"

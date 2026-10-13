@@ -6,6 +6,7 @@ import { buildSyncJobStacksStatement, resolveJobCompanyId } from "@/lib/db/job-t
 import { toJob } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
 import { normalizeCityKey, normalizeCountryCode, parseJobLocation } from "@/lib/job-location"
+import { inferInclusionTags, inferJobArea, inferJobLevel } from "@/lib/job-areas"
 import { canonicalizeStackTags } from "@/lib/job-stacks"
 import { jobShareSchema } from "@/lib/job-validation"
 import { requireRole } from "@/lib/utils/auth"
@@ -152,6 +153,29 @@ export async function POST(request: Request) {
 
     const stacks = canonicalizeStackTags(parsed.data.stack_tags)
 
+    // Area, inclusao e senioridade saem do titulo aqui mesmo: e CPU puro, sem
+    // ida ao banco, e e o que permite classificar as ~1500 vagas/dia sem pedir
+    // nada de novo ao bot (o payload dele e `.strict()`, e um campo novo
+    // derrubaria o insert com 400 — que o bot trata como falha sem retry).
+    const area = inferJobArea({
+      title: parsed.data.title,
+      stackTags: parsed.data.stack_tags,
+      legacyCategory: parsed.data.category,
+    })
+
+    const inclusionTags = inferInclusionTags({
+      title: parsed.data.title,
+      legacyCategory: parsed.data.category,
+      recommendationNote: parsed.data.recommendation_note,
+    })
+
+    // O default 'junior' daqui era o que mais poluia o filtro de nivel: toda
+    // vaga que o bot nao classificava entrava como junior, bem no filtro de
+    // quem esta comecando. Nivel EXPLICITO do bot continua ganhando sempre.
+    const inferredLevel = parsed.data.level
+      ? null
+      : inferJobLevel(parsed.data.title, area.specialty)
+
     // O id vem do cliente (padrao de lib/db/sim.ts) para que o insert da vaga e
     // o vinculo das stacks NAO tenham dependencia de dados entre si — so assim
     // as duas escritas cabem num db.batch, que e a unica atomicidade disponivel
@@ -180,7 +204,12 @@ export async function POST(request: Request) {
       category: parsed.data.category ?? "other",
       recommendationNote: parsed.data.recommendation_note,
       applicationUrl: parsed.data.application_url,
-      level: parsed.data.level ?? "junior",
+      level: parsed.data.level ?? inferredLevel ?? "junior",
+      levelInferred: !parsed.data.level && !!inferredLevel,
+      areaFamily: area.family,
+      areaSpecialty: area.specialty,
+      areaSource: area.source,
+      inclusionTags,
       isInternational: parsed.data.is_international,
       sourcePostedAt: getJobSourcePostedAt(parsed.data.active_hours),
       postedBy,

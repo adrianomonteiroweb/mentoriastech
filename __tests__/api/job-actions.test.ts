@@ -15,6 +15,13 @@ const mocks = vi.hoisted(() => {
   const deleteWhere = vi.fn()
   const deleteAction = vi.fn(() => ({ where: deleteWhere }))
 
+  // like_count e materializado em jobs a cada curtida (ver getLikeCount na
+  // rota): sem este mock o teste exercitaria o caminho de FALHA da
+  // materializacao, nao o normal.
+  const updateWhere = vi.fn()
+  const updateSet = vi.fn(() => ({ where: updateWhere }))
+  const update = vi.fn(() => ({ set: updateSet }))
+
   return {
     approvedFrom,
     approvedLimit,
@@ -27,6 +34,9 @@ const mocks = vi.hoisted(() => {
     requireAuth: vi.fn(),
     returning,
     select,
+    update,
+    updateSet,
+    updateWhere,
     values,
   }
 })
@@ -49,6 +59,7 @@ vi.mock("@/lib/db", () => ({
     delete: mocks.deleteAction,
     insert: mocks.insert,
     select: mocks.select,
+    update: mocks.update,
   },
   jobActions: {
     actionType: "job_actions.action_type",

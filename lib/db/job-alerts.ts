@@ -1,4 +1,5 @@
 import type { jobAlertSubscriptions } from "./schema"
+import { JOB_LEVEL_SHORT_LABELS } from "@/lib/job-labels"
 
 type JobAlertRow = typeof jobAlertSubscriptions.$inferSelect
 
@@ -7,12 +8,12 @@ export const LEVEL_VALUES = ["internship", "junior", "mid", "senior"] as const
 export type LevelValue = (typeof LEVEL_VALUES)[number]
 
 /** Rótulos pt-BR para a multi-seleção de níveis na UI. */
-export const LEVEL_OPTIONS: { value: LevelValue; label: string }[] = [
-  { value: "internship", label: "Estágio" },
-  { value: "junior", label: "Júnior" },
-  { value: "mid", label: "Pleno" },
-  { value: "senior", label: "Sênior" },
-]
+// Subconjunto PROPOSITAL: o mentorado so assina alerta para estes quatro
+// niveis. Os rotulos vem da fonte unica (lib/job-labels.ts) para nao divergirem
+// do resto da plataforma — a restricao e de valores, nao de nomenclatura.
+export const LEVEL_OPTIONS: { value: LevelValue; label: string }[] = (
+  ["internship", "junior", "mid", "senior"] as const
+).map((value) => ({ value, label: JOB_LEVEL_SHORT_LABELS[value] }))
 
 /** Modalidade das vagas que o mentorado quer receber. */
 export const WORK_MODEL_VALUES = ["all", "remote", "onsite_hybrid"] as const

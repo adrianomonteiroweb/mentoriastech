@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+// Rotulos vem da fonte unica: estes tres mapas estavam copiados aqui e ja
+// divergiam do portal e do painel (ver lib/job-labels.ts).
+import {
+  JOB_LEVEL_LABELS as LEVEL_LABELS,
+  JOB_TYPE_LABELS,
+  LANGUAGE_LEVEL_LABELS,
+} from "@/lib/job-labels";
 import {
   AlertTriangle,
   Building2,
@@ -42,36 +49,6 @@ export interface MatchJob {
   important_note: string | null;
   like_count: number;
 }
-
-const JOB_TYPE_LABELS: Record<string, string> = {
-  remote: "Remoto",
-  hybrid: "Híbrido",
-  onsite: "Presencial",
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  internship: "Estágio & Trainee",
-  junior: "Júnior",
-  mid: "Pleno",
-  senior: "Sênior",
-  staff: "Staff",
-  senior_staff: "Senior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
-};
-
-const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
-  a1: "A1",
-  a2: "A2",
-  b1: "B1",
-  b2: "B2",
-  c1: "C1",
-  c2: "C2",
-  basic: "Básico",
-  intermediate: "Intermediário",
-  advanced: "Avançado",
-  fluent: "Fluente",
-};
 
 interface JobsMatchProps {
   jobs: MatchJob[];
@@ -186,12 +163,12 @@ export function JobsMatch({
               {JOB_TYPE_LABELS[job.job_type] || job.job_type}
             </span>
             {job.category && job.category !== "other" && (
-              <span className="rounded-full bg-orange-400/15 px-2.5 py-1 text-xs font-medium text-orange-300">
+              <span className="rounded-full bg-job-area-bg px-2.5 py-1 text-xs font-medium text-job-area">
                 {getJobCategoryLabel(job.category)}
               </span>
             )}
             {job.is_international && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-violet-400/40 bg-violet-400/15 px-2.5 py-1 text-xs font-semibold text-violet-300">
+              <span className="inline-flex items-center gap-1 rounded-full border border-job-international/40 bg-job-international-bg px-2.5 py-1 text-xs font-semibold text-job-international">
                 <Globe className="h-3.5 w-3.5" />
                 Internacional
               </span>
@@ -241,12 +218,12 @@ export function JobsMatch({
                 const rows = parseSummaryRows(job.summary);
                 if (rows.length === 0) return null;
                 return (
-                  <details className="group/summary shrink-0 overflow-hidden rounded-lg border border-violet-500/20 bg-violet-500/5">
-                    <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-violet-600 select-none dark:text-violet-300 [&::-webkit-details-marker]:hidden">
+                  <details className="group/summary shrink-0 overflow-hidden rounded-lg border border-job-highlight/20 bg-job-highlight-bg">
+                    <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wide text-job-highlight select-none [&::-webkit-details-marker]:hidden">
                       Resumo da vaga
                       <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/summary:rotate-180" aria-hidden="true" />
                     </summary>
-                    <table className="w-full border-t border-violet-500/20 text-sm">
+                    <table className="w-full border-t border-job-highlight/20 text-sm">
                       <tbody>
                         {rows.map((row, i) => (
                           <tr
@@ -271,15 +248,15 @@ export function JobsMatch({
               })()}
 
             {job.important_note && (
-              <details className="group/note shrink-0 overflow-hidden rounded-lg border border-amber-500/20 bg-amber-500/5">
-                <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-amber-600 select-none dark:text-amber-300 [&::-webkit-details-marker]:hidden">
+              <details className="group/note shrink-0 overflow-hidden rounded-lg border border-job-warning/20 bg-job-warning-bg">
+                <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-job-warning select-none [&::-webkit-details-marker]:hidden">
                   <span className="flex items-center gap-1.5">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     Observação importante
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 transition-transform group-open/note:rotate-180" aria-hidden="true" />
                 </summary>
-                <div className="border-t border-amber-500/20 px-3 py-2">
+                <div className="border-t border-job-warning/20 px-3 py-2">
                   <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
                     {job.important_note}
                   </p>
@@ -358,7 +335,7 @@ export function JobsMatch({
             onClick={handleHide}
             aria-label="Esconder vaga"
             title="Esconder vaga"
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500 sm:h-14 sm:w-14"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive sm:h-14 sm:w-14"
           >
             <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
@@ -372,8 +349,8 @@ export function JobsMatch({
             className={cn(
               "inline-flex h-14 w-14 items-center justify-center rounded-full border shadow-sm transition-colors sm:h-16 sm:w-16",
               liked
-                ? "border-rose-500/40 bg-rose-500/15 text-rose-400"
-                : "border-border bg-card text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10",
+                ? "border-job-like/40 bg-job-like-bg text-job-like"
+                : "border-border bg-card text-job-like hover:border-job-like/40 hover:bg-job-like-bg",
             )}
           >
             <Heart className={cn("h-6 w-6 sm:h-7 sm:w-7", liked && "fill-current")} />

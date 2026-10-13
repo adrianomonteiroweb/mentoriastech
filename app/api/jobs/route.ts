@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { and, desc, eq, or, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { db, jobs, jobActions, profiles } from "@/lib/db"
 import { resolveJobTaxonomyColumns, syncJobStacks } from "@/lib/db/job-taxonomy"
 import { toJob, toProfile } from "@/lib/db/mappers"
@@ -10,10 +10,21 @@ import {
   resolveJobLikeVisitor,
   setJobLikeVisitorCookie,
 } from "@/lib/job-like-visitor"
+import { listJobs, parseJobListQuery } from "@/lib/db/job-listing"
 import { createJobSchema } from "@/lib/job-validation"
 import { getSession, requireAuth, requireRole } from "@/lib/utils/auth"
 
 // GET: listar vagas aprovadas (publico) ou vagas do usuario autenticado (?mine=true)
+//
+// O caminho publico filtra, ordena e PAGINA NO BANCO (lib/db/job-listing.ts).
+// Antes esta rota devolvia todas as vagas aprovadas num array so, com um
+// GROUP BY da tabela inteira de job_actions para contar curtidas, e o cliente
+// filtrava com Array.filter. Com ~1500 vagas/dia isso era megabytes por acesso.
+//
+// Resposta publica:
+//   { data, next_cursor, sort, user_actions, is_authenticated }
+//
+// `user_actions` cobre SO as vagas desta pagina — antes varria a tabela inteira.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -36,33 +47,8 @@ export async function GET(request: Request) {
       })
     }
 
-    const rows = await db
-      .select({ job: jobs, profile: profiles })
-      .from(jobs)
-      .leftJoin(profiles, eq(jobs.postedBy, profiles.id))
-      .where(eq(jobs.status, "approved"))
-      .orderBy(desc(jobs.createdAt))
-
-    // Contagem de curtidas por vaga (action_type = 'liked')
-    const likeRows = await db
-      .select({ jobId: jobActions.jobId, count: sql<number>`count(*)::int` })
-      .from(jobActions)
-      .where(eq(jobActions.actionType, "liked"))
-      .groupBy(jobActions.jobId)
-
-    const likeCounts = new Map(likeRows.map((r) => [r.jobId, r.count]))
-
-    // Ordena pelas mais curtidas; empate desfeito pela data (mais recente primeiro)
-    const data = rows
-      .map((row) => ({
-        ...toJob(row.job),
-        profiles: row.profile ? toProfile(row.profile) : null,
-        like_count: likeCounts.get(row.job.id) ?? 0,
-      }))
-      .sort((a, b) =>
-        b.like_count - a.like_count ||
-        (b.created_at || "").localeCompare(a.created_at || ""),
-      )
+    const query = parseJobListQuery(searchParams)
+    const { data, next_cursor, sort } = await listJobs(query)
 
     const cookieStore = await cookies()
     const visitor = resolveJobLikeVisitor(
@@ -71,7 +57,10 @@ export async function GET(request: Request) {
     const session = await getSession().catch(() => null)
 
     let userActions: { job_id: string; action_type: string }[] = []
+
     if (data.length > 0) {
+      const pageIds = data.map((job) => job.id)
+
       const viewerCondition = session
         ? or(
             eq(jobActions.userId, session.id),
@@ -85,7 +74,7 @@ export async function GET(request: Request) {
       const actionRows = await db
         .select({ jobId: jobActions.jobId, actionType: jobActions.actionType })
         .from(jobActions)
-        .where(viewerCondition)
+        .where(and(inArray(jobActions.jobId, pageIds), viewerCondition))
 
       userActions = Array.from(
         new Map(
@@ -99,6 +88,8 @@ export async function GET(request: Request) {
 
     const response = NextResponse.json({
       data,
+      next_cursor,
+      sort,
       user_actions: userActions,
       is_authenticated: !!session,
     })
@@ -150,6 +141,10 @@ export async function POST(request: Request) {
       company: parsed.data.company,
       location: parsed.data.location,
       isInternational: parsed.data.is_international,
+      title: parsed.data.title,
+      stackTags: parsed.data.stack_tags,
+      category: parsed.data.category,
+      level: parsed.data.level,
     }).catch((error) => {
       console.error("[jobs] falha na taxonomia ao criar vaga", {
         message: (error as Error).message,

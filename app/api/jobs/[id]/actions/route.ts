@@ -14,13 +14,38 @@ const actionSchema = z.object({
   action_type: z.enum(["applied", "link_issue", "closed", "liked"]),
 })
 
+/**
+ * Recontagem autoritativa das curtidas da vaga, que tambem MATERIALIZA o valor
+ * em `jobs.like_count`.
+ *
+ * A coluna existe porque a listagem publica nao pode fazer um GROUP BY da
+ * tabela inteira de job_actions a cada request so para contar. Aqui o escopo e
+ * uma vaga so (indexado por job_id), entao recontar e barato — e recontar, em
+ * vez de incrementar, mantem a coluna correta mesmo depois de delete em massa
+ * pelo admin ou de uma escrita que falhou pela metade.
+ *
+ * Falha na materializacao NAO derruba a acao: a curtida ja foi gravada em
+ * job_actions, que continua sendo a fonte da verdade, e o backfill reconcilia
+ * (`pnpm db:backfill:job-areas -- --only=likes`).
+ */
 async function getLikeCount(jobId: string) {
   const [result] = await db
     .select({ value: count() })
     .from(jobActions)
     .where(and(eq(jobActions.jobId, jobId), eq(jobActions.actionType, "liked")))
 
-  return result?.value ?? 0
+  const value = result?.value ?? 0
+
+  try {
+    await db.update(jobs).set({ likeCount: value }).where(eq(jobs.id, jobId))
+  } catch (error) {
+    console.error("[jobs/actions] falha ao materializar like_count", {
+      jobId,
+      message: (error as Error).message,
+    })
+  }
+
+  return value
 }
 
 async function getLikeVisitor() {

@@ -142,3 +142,153 @@
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* ---------------------------------------------------------------------------
+   PORTAL DE VAGAS — identidade visual propria.
+
+   O portal virou um produto a parte (volume proprio, publico proprio), entao
+   ganha a propria paleta: verde, mais clara e mais arredondada que o resto do
+   site, que e navy + azul.
+
+   COMO FUNCIONA: todas as cores do projeto ja passam por variaveis CSS
+   (tailwind.config.ts mapeia `bg-card`, `text-primary`, etc. para hsl(var(--x))).
+   Redefinindo as MESMAS variaveis dentro de [data-portal="jobs"], todo
+   componente shadcn dentro do portal herda a paleta nova automaticamente —
+   sem tocar em nenhum componente e sem risco para o resto do site.
+
+   ESPECIFICIDADE: `.dark [data-portal="jobs"]` (0,2,0) vence
+   `[data-portal="jobs"]` (0,1,0) no mesmo elemento, entao o modo escuro
+   funciona normal. E como a variavel e lida do ancestral mais proximo que a
+   define, o container do portal vence o `:root`/`.dark` do documento.
+--------------------------------------------------------------------------- */
+@layer base {
+  [data-portal="jobs"] {
+    /* Fundo levemente esverdeado com cards brancos — o contraste entre
+       pagina e card e o que da a leitura de "lista de cartoes". */
+    --background: 90 25% 96%;
+    --foreground: 150 18% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 150 18% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 18% 12%;
+
+    /* 34%, e nao o 42% original: branco sobre o verde dava contraste 3.52,
+       abaixo do minimo AA de 4.5 para texto normal — e este e o verde do
+       botao "Ver Vaga". Agora 4.87. */
+    --primary: 88 42% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 90 22% 92%;
+    --secondary-foreground: 150 20% 20%;
+    --muted: 90 18% 93%;
+    --muted-foreground: 150 10% 38%;
+    --accent: 88 35% 88%;
+    --accent-foreground: 88 45% 22%;
+
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 90 16% 86%;
+    --input: 90 16% 86%;
+    --ring: 88 42% 34%;
+
+    --chart-1: 88 42% 34%;
+    --chart-2: 170 40% 38%;
+    --chart-3: 45 70% 50%;
+    --chart-4: 255 35% 58%;
+    --chart-5: 20 65% 55%;
+
+    /* Mais arredondado que o site (0.875rem): e o que mais distingue o portal
+       a primeira vista, junto com o verde. */
+    --radius: 1.25rem;
+
+    /* Tokens semanticos do portal.
+       Existem porque os cards usavam cor crua do Tailwind (violet-300,
+       orange-300, green-500/10...), varias SEM variante dark: — o que lia mal
+       no tema claro. Como token, cada uma tem o par claro/escuro definido num
+       lugar so. */
+    --job-remote: 88 38% 33%;
+    --job-remote-bg: 88 40% 92%;
+    --job-hybrid: 38 75% 32%;
+    --job-hybrid-bg: 42 85% 92%;
+    --job-onsite: 210 55% 40%;
+    --job-onsite-bg: 210 70% 93%;
+
+    --job-international: 258 48% 48%;
+    --job-international-bg: 258 60% 94%;
+
+    --job-highlight: 255 40% 45%;
+    --job-highlight-bg: 255 50% 95%;
+
+    --job-warning: 32 80% 34%;
+    --job-warning-bg: 38 90% 93%;
+
+    --job-like: 350 65% 48%;
+    --job-like-bg: 350 75% 95%;
+
+    --job-area: 180 45% 30%;
+    --job-area-bg: 178 50% 92%;
+
+    --job-new: 88 45% 32%;
+    --job-new-bg: 88 50% 90%;
+  }
+
+  .dark [data-portal="jobs"] {
+    /* Escuro esverdeado, nao o navy do site: o portal continua reconhecivel
+       nos dois temas. */
+    --background: 150 14% 9%;
+    --foreground: 90 12% 95%;
+    --card: 150 12% 13%;
+    --card-foreground: 90 12% 95%;
+    --popover: 150 12% 13%;
+    --popover-foreground: 90 12% 95%;
+
+    --primary: 88 45% 55%;
+    --primary-foreground: 150 25% 8%;
+
+    --secondary: 150 10% 20%;
+    --secondary-foreground: 90 12% 92%;
+    --muted: 150 10% 20%;
+    --muted-foreground: 120 8% 68%;
+    --accent: 150 12% 24%;
+    --accent-foreground: 90 12% 95%;
+
+    --destructive: 0 70% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 10% 22%;
+    --input: 150 10% 22%;
+    --ring: 88 45% 55%;
+
+    --chart-1: 88 45% 55%;
+    --chart-2: 170 45% 50%;
+    --chart-3: 45 75% 60%;
+    --chart-4: 255 45% 68%;
+    --chart-5: 20 70% 62%;
+
+    --job-remote: 88 50% 65%;
+    --job-remote-bg: 88 30% 18%;
+    --job-hybrid: 42 80% 62%;
+    --job-hybrid-bg: 40 35% 18%;
+    --job-onsite: 205 70% 68%;
+    --job-onsite-bg: 208 35% 20%;
+
+    --job-international: 258 70% 76%;
+    --job-international-bg: 258 30% 22%;
+
+    --job-highlight: 255 65% 78%;
+    --job-highlight-bg: 255 28% 22%;
+
+    --job-warning: 40 85% 64%;
+    --job-warning-bg: 36 35% 19%;
+
+    --job-like: 350 75% 68%;
+    --job-like-bg: 350 30% 21%;
+
+    --job-area: 178 55% 60%;
+    --job-area-bg: 178 30% 18%;
+
+    --job-new: 88 50% 62%;
+    --job-new-bg: 88 28% 17%;
+  }
+}

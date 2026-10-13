@@ -17,6 +17,8 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:apply:job-taxonomy": "tsx scripts/apply-migration-0031-job-taxonomy.ts",
     "db:backfill:job-taxonomy": "tsx scripts/backfill-job-taxonomy.ts",
+    "db:apply:job-areas": "tsx scripts/apply-migration-job-areas.ts",
+    "db:backfill:job-areas": "tsx scripts/backfill-job-areas.ts",
     "db:stage:from-prod": "tsx scripts/create-stage-db.ts",
     "postinstall": "node scripts/copy-monaco.mjs"
   },

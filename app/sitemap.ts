@@ -47,6 +47,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   } catch {}
 
+  // Uma entrada por vaga. Ate aqui o sitemap tinha so /jobs e /jobs/insights:
+  // com ~1500 vagas/dia entrando, cada vaga vira uma pagina indexavel e
+  // elegivel ao bloco de vagas do Google (ver lib/job-posting-schema.ts).
+  //
+  // Dentro de try/catch como as rotas de conteudo: banco fora do ar nao pode
+  // derrubar o sitemap inteiro — melhor servir as rotas estaticas do que 500.
+  let jobRoutes: MetadataRoute.Sitemap = []
+  try {
+    const { listJobIdsForSitemap } = await import("@/lib/db/job-listing")
+    const jobs = await listJobIdsForSitemap()
+
+    jobRoutes = jobs.map((job) => ({
+      url: `${SITE_URL}/jobs/${job.id}`,
+      lastModified: job.updatedAt,
+      changeFrequency: "daily" as ChangeFreq,
+      priority: 0.6,
+    }))
+  } catch {}
+
   return [
     ...staticRoutes.map((route) => ({
       url: `${SITE_URL}${route.path}`,
@@ -55,5 +74,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: route.priority,
     })),
     ...contentRoutes,
+    ...jobRoutes,
   ]
 }

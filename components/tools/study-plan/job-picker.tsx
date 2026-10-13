@@ -1,6 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import {
+  JOB_LEVEL_LABELS,
+  JOB_TYPE_LABELS,
+  LANGUAGE_LEVEL_LABELS,
+} from "@/lib/job-labels"
 import { Briefcase, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,8 +24,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useJobSearch, type JobSearchItem } from "@/hooks/use-job-search"
 import { getJobCategoryLabel } from "@/lib/job-options"
-import type { Job } from "@/lib/types/database"
 
 export interface PickedJob {
   title: string
@@ -29,37 +34,7 @@ export interface PickedJob {
   level?: string
 }
 
-const JOB_TYPE_LABELS: Record<string, string> = {
-  remote: "Remoto",
-  hybrid: "Híbrido",
-  onsite: "Presencial",
-}
-
-const JOB_LEVEL_LABELS: Record<string, string> = {
-  internship: "Estágio & Trainee",
-  junior: "Júnior",
-  mid: "Pleno",
-  senior: "Sênior",
-  staff: "Staff",
-  senior_staff: "Sênior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
-}
-
-const LANGUAGE_LEVEL_LABELS: Record<string, string> = {
-  a1: "A1",
-  a2: "A2",
-  b1: "B1",
-  b2: "B2",
-  c1: "C1",
-  c2: "C2",
-  basic: "Básico",
-  intermediate: "Intermediário",
-  advanced: "Avançado",
-  fluent: "Fluente",
-}
-
-function buildDescription(job: Job): string {
+function buildDescription(job: JobSearchItem): string {
   const lines: (string | null)[] = [
     `Título: ${job.title}`,
     job.company ? `Empresa: ${job.company}` : null,
@@ -92,34 +67,11 @@ function buildDescription(job: Job): string {
 
 export function JobPicker({ onPick }: { onPick: (job: PickedJob) => void }) {
   const [open, setOpen] = useState(false)
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [loading, setLoading] = useState(false)
-  const [loaded, setLoaded] = useState(false)
+  // A busca acontece no banco. Antes este seletor baixava TODAS as vagas
+  // aprovadas para filtrar no cliente — insustentavel com ~1500 vagas/dia.
+  const { term, setTerm, jobs, loading } = useJobSearch({ enabled: open })
 
-  useEffect(() => {
-    if (!open || loaded) return
-    let active = true
-    setLoading(true)
-    fetch("/api/jobs")
-      .then((res) => res.json())
-      .then((json) => {
-        if (active) setJobs((json.data || []) as Job[])
-      })
-      .catch(() => {
-        if (active) setJobs([])
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-          setLoaded(true)
-        }
-      })
-    return () => {
-      active = false
-    }
-  }, [open, loaded])
-
-  function pick(job: Job) {
+  function pick(job: JobSearchItem) {
     onPick({
       title: job.title,
       description: buildDescription(job),
@@ -145,12 +97,14 @@ export function JobPicker({ onPick }: { onPick: (job: PickedJob) => void }) {
             link automaticamente.
           </DialogDescription>
         </DialogHeader>
-        <Command
-          filter={(value, search) =>
-            value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
-          }
-        >
-          <CommandInput placeholder="Buscar por cargo, empresa ou tecnologia…" />
+        {/* shouldFilter=false: quem filtra agora e o servidor, que casa titulo,
+            empresa E stack — o filtro do cliente so via o que ja estava na tela. */}
+        <Command shouldFilter={false}>
+          <CommandInput
+            value={term}
+            onValueChange={setTerm}
+            placeholder="Buscar por cargo, empresa ou tecnologia…"
+          />
           <CommandList>
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
@@ -159,7 +113,11 @@ export function JobPicker({ onPick }: { onPick: (job: PickedJob) => void }) {
               </div>
             ) : (
               <>
-                <CommandEmpty>Nenhuma vaga encontrada.</CommandEmpty>
+                <CommandEmpty>
+                  {term
+                    ? `Nenhuma vaga encontrada para "${term}".`
+                    : "Nenhuma vaga disponivel no momento."}
+                </CommandEmpty>
                 <CommandGroup>
                   {jobs.map((job) => (
                     <CommandItem

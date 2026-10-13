@@ -3,6 +3,11 @@ import { sql, type SQL } from "drizzle-orm"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { getJobCategoryLabel } from "@/lib/job-options"
+import {
+  JOB_LEVEL_ORDER,
+  JOB_LEVEL_SHORT_LABELS,
+  JOB_TYPE_LABELS,
+} from "@/lib/job-labels"
 import { getStackLabel } from "@/lib/job-stacks"
 import { COUNTRY_NAME_BY_CODE } from "@/lib/job-location"
 
@@ -21,35 +26,18 @@ import { COUNTRY_NAME_BY_CODE } from "@/lib/job-location"
 // banco, entao o fuso nomeado e mais curto e imune a horario de verao.
 // -----------------------------------------------------------------------------
 
+// Rotulos vem de lib/job-labels.ts (fonte unica). Reexportados com os nomes
+// que o painel ja usa, para nao mexer nos componentes de grafico.
+//
+// O painel usa a versao CURTA do nivel: "Estágio" cabe no eixo do grafico,
+// "Estágio & Trainee" nao. Antes isso era um segundo mapa escrito a mao, que e
+// exatamente de onde a divergencia nasceu.
+export { JOB_LEVEL_ORDER }
+export const JOB_LEVEL_LABELS = JOB_LEVEL_SHORT_LABELS
+export const WORK_MODEL_LABELS = JOB_TYPE_LABELS
+
 const TIMEZONE = "America/Sao_Paulo"
 
-export const JOB_LEVEL_ORDER = [
-  "internship",
-  "junior",
-  "mid",
-  "senior",
-  "staff",
-  "senior_staff",
-  "principal",
-  "distinguished",
-] as const
-
-export const JOB_LEVEL_LABELS: Record<string, string> = {
-  internship: "Estágio",
-  junior: "Júnior",
-  mid: "Pleno",
-  senior: "Sênior",
-  staff: "Staff",
-  senior_staff: "Senior Staff",
-  principal: "Principal",
-  distinguished: "Distinguished",
-}
-
-export const WORK_MODEL_LABELS: Record<string, string> = {
-  remote: "Remoto",
-  hybrid: "Híbrido",
-  onsite: "Presencial",
-}
 
 export const insightsQuerySchema = z.object({
   period: z.enum(["7d", "30d", "90d", "12m", "all"]).default("30d"),

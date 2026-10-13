@@ -120,6 +120,23 @@ export function JobForm({
     fetch(endpoint)
       .then((response) => response.json())
       .then((json) => {
+        // Duas formas de resposta:
+        //  - /api/jobs/facets -> { data: { categories: [{key,...}] } }, a
+        //    contagem distinta sobre a base INTEIRA;
+        //  - /api/admin/jobs e /api/jobs?mine=true -> { data: Job[] }, listas
+        //    curtas e sem paginacao, de onde as categorias saem por extracao.
+        //
+        // A rota publica /api/jobs NAO serve mais aqui: ela e paginada, e as
+        // categorias de uma pagina de 20 nao representam o catalogo.
+        const facetCategories = json?.data?.categories as
+          | { key: string }[]
+          | undefined
+
+        if (Array.isArray(facetCategories)) {
+          setSavedCategories(facetCategories.map((item) => item.key).filter(Boolean))
+          return
+        }
+
         const categories = Array.from(
           new Set(
             ((json.data || []) as Job[])

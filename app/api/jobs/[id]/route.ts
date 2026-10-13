@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db, jobs } from "@/lib/db"
+import { getPublicJob } from "@/lib/db/job-listing"
 import { resolveJobTaxonomyColumns, resyncJobStacks } from "@/lib/db/job-taxonomy"
 import { toJob } from "@/lib/db/mappers"
 import { getJobSourcePostedAt } from "@/lib/job-active-time"
@@ -27,6 +28,40 @@ const updateSchema = z.object({
   important_note: z.string().max(4000).optional(),
   active_hours: jobActiveHoursSchema.optional(),
 })
+
+// GET: uma vaga aprovada (publico).
+//
+// Nao existia ate aqui — a rota so tinha PUT e DELETE, e o portal carregava
+// tudo de /api/jobs. Com a pagina por vaga, o app e qualquer integracao
+// precisam buscar uma vaga sozinha.
+//
+// `getPublicJob` filtra status='approved' DENTRO da consulta: vaga pendente ou
+// rejeitada nao pode vazar por alguem adivinhar um UUID.
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await params
+    const job = await getPublicJob(id)
+
+    if (!job) {
+      return NextResponse.json({ error: "Vaga nao encontrada" }, { status: 404 })
+    }
+
+    return NextResponse.json(
+      { data: job },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
+        },
+      },
+    )
+  } catch (error) {
+    console.error("[jobs/:id] Error:", error)
+    return NextResponse.json({ error: "Erro ao carregar a vaga" }, { status: 500 })
+  }
+}
 
 export async function PUT(
   request: Request,
@@ -89,6 +124,10 @@ export async function PUT(
         company: parsed.data.company,
         location: parsed.data.location,
         isInternational: parsed.data.is_international,
+        title: parsed.data.title,
+        stackTags: parsed.data.stack_tags,
+        category: parsed.data.category,
+        level: parsed.data.level,
       }),
     )
 

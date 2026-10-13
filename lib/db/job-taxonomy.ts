@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { canonicalizeStackTags, type CanonicalStack } from "@/lib/job-stacks"
+import { inferInclusionTags, inferJobArea, inferJobLevel } from "@/lib/job-areas"
 import { resolveCompanyIdentity } from "@/lib/job-companies"
 import { parseJobLocation } from "@/lib/job-location"
 
@@ -222,6 +223,12 @@ export type JobTaxonomyColumns = {
   region?: string | null
   countryName?: string | null
   countryCode?: string | null
+  areaFamily?: string | null
+  areaSpecialty?: string | null
+  areaSource?: string | null
+  inclusionTags?: string[]
+  level?: string
+  levelInferred?: boolean
 }
 
 /**
@@ -238,6 +245,16 @@ export async function resolveJobTaxonomyColumns(input: {
   companyUrl?: string | null
   location?: string | null
   isInternational?: boolean
+  title?: string | null
+  stackTags?: readonly string[] | null
+  category?: string | null
+  recommendationNote?: string | null
+  /**
+   * Nivel que veio no payload. `undefined` = o chamador nao mandou nivel, entao
+   * a inferencia pelo titulo pode preencher. Qualquer valor EXPLICITO e
+   * respeitado: pessoa (ou bot) que disse o nivel manda mais que a heuristica.
+   */
+  level?: string | null
 }): Promise<JobTaxonomyColumns> {
   const columns: JobTaxonomyColumns = {}
 
@@ -261,6 +278,38 @@ export async function resolveJobTaxonomyColumns(input: {
     columns.region = parsed.region
     columns.countryName = parsed.countryName
     columns.countryCode = parsed.countryCode
+  }
+
+  // Area, inclusao e nivel: puro CPU, sem ida ao banco. Classificar aqui e o
+  // que mantem o portal honesto sem depender de mudanca no repo externo do bot
+  // — ele continua mandando o payload de sempre.
+  if (input.title !== undefined) {
+    const area = inferJobArea({
+      title: input.title,
+      stackTags: input.stackTags,
+      legacyCategory: input.category,
+    })
+
+    columns.areaFamily = area.family
+    columns.areaSpecialty = area.specialty
+    columns.areaSource = area.source
+
+    columns.inclusionTags = inferInclusionTags({
+      title: input.title,
+      legacyCategory: input.category,
+      recommendationNote: input.recommendationNote,
+    })
+
+    // So preenche quando o chamador NAO mandou nivel. O bot grava 'junior' como
+    // default quando nao classifica, e e exatamente esse caso que polui o filtro
+    // de quem esta comecando — mas um nivel explicito nunca e sobrescrito.
+    if (input.level === undefined || input.level === null) {
+      const inferred = inferJobLevel(input.title, area.specialty)
+      if (inferred) {
+        columns.level = inferred
+        columns.levelInferred = true
+      }
+    }
   }
 
   return columns
