@@ -493,6 +493,36 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
     setOriginFilter("all")
   }
 
+  function exportCSV() {
+    const headers = ["Nome", "Email", "WhatsApp", "LinkedIn", "Portfólio", "Status Profissional", "Senioridade", "Foco de Carreira", "Origem", "Mentorias Concluídas", "Data de Cadastro"]
+    const escape = (v: string) => {
+      if (v.includes(",") || v.includes('"') || v.includes("\n")) return `"${v.replace(/"/g, '""')}"`
+      return v
+    }
+    const rows = mentees.map((m) => [
+      m.full_name || "",
+      m.email || "",
+      m.whatsapp || "",
+      m.linkedin_url || "",
+      m.portfolio_url || "",
+      m.career_status ? CAREER_STATUS_LABEL[m.career_status] : "",
+      m.seniority ? SENIORITY_LABEL[m.seniority] : "",
+      m.career_focus || "",
+      m.origin_category ? ORIGIN_CATEGORY_LABEL[m.origin_category] : "",
+      String(m.booking_count ?? 0),
+      m.created_at ? new Date(m.created_at).toLocaleDateString("pt-BR") : "",
+    ].map(escape))
+
+    const csv = [headers.map(escape).join(","), ...rows.map((r) => r.join(","))].join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `mentorados-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
@@ -506,6 +536,10 @@ export function MenteesTable({ canManage = false, showSelectionProcesses = true 
               className="pl-9"
             />
           </div>
+          <Button variant="outline" onClick={exportCSV} disabled={loading || mentees.length === 0}>
+            <Download className="h-4 w-4 mr-1" />
+            Exportar CSV
+          </Button>
           {canManage && (
             <Button onClick={() => { setAddingMentee(true); setNewError(""); setNewForm({ full_name: "", email: "", whatsapp: "" }) }}>
               <Plus className="h-4 w-4 mr-1" />
