@@ -1,7 +1,7 @@
-import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db, jobAlertSubscriptions, profiles } from "@/lib/db"
+import { isValidJobsBotToken } from "@/lib/bot-token"
 
 // Rota de bot para o search-jobs-linkedin (repo `bots`): lista as inscrições
 // ATIVAS de vagas por WhatsApp, substituindo o antigo mentorados.csv. Acesso
@@ -11,28 +11,10 @@ import { db, jobAlertSubscriptions, profiles } from "@/lib/db"
 // Não cacheia: precisa refletir o estado atual das inscrições.
 export const dynamic = "force-dynamic"
 
-// Confere o Bearer contra JOBS_SHARE_BOT_TOKEN em tempo constante. Sem a env,
-// nega tudo (fail-closed).
-function isBotRequest(request: Request): boolean {
-  const expected = process.env.JOBS_SHARE_BOT_TOKEN
-  if (!expected) return false
-
-  const header = request.headers.get("authorization") || ""
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : ""
-  if (!provided) return false
-
-  const expectedBuf = Buffer.from(expected)
-  const providedBuf = Buffer.from(provided)
-  return (
-    expectedBuf.length === providedBuf.length &&
-    timingSafeEqual(expectedBuf, providedBuf)
-  )
-}
-
 // GET — inscrições ativas na forma que o bot consome. `whatsapp` é entregue
 // em E.164 (ex.: +5511987654321 ou +2389841098), sem DDI fixo.
 export async function GET(request: Request) {
-  if (!isBotRequest(request)) {
+  if (!(await isValidJobsBotToken(request))) {
     return NextResponse.json(
       { error: "Token inválido ou ausente" },
       { status: 401 },

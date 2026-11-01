@@ -1,4 +1,4 @@
-import { randomUUID, timingSafeEqual } from "crypto"
+import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db, jobs } from "@/lib/db"
@@ -10,25 +10,11 @@ import { inferInclusionTags, inferJobArea, inferJobLevel } from "@/lib/job-areas
 import { canonicalizeStackTags } from "@/lib/job-stacks"
 import { jobShareSchema } from "@/lib/job-validation"
 import { requireRole } from "@/lib/utils/auth"
+import { isValidJobsBotToken } from "@/lib/bot-token"
 
 // Limite de corpo: a indicacao e enxuta, mas o bot de busca pode enviar a
 // descricao completa da vaga (ate 10k chars) para enriquecer o banco de uma vez.
 const MAX_BODY_BYTES = 32 * 1024
-
-// Valida o Bearer token do bot com comparacao timing-safe. Sem env configurada,
-// o caminho bot fica desabilitado (retorna false).
-function isValidBotToken(request: Request): boolean {
-  const expected = process.env.JOBS_SHARE_BOT_TOKEN
-  if (!expected) return false
-
-  const header = request.headers.get("authorization") || ""
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : ""
-  if (!provided) return false
-
-  const a = Buffer.from(provided)
-  const b = Buffer.from(expected)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")
@@ -77,7 +63,7 @@ export async function POST(request: Request) {
 
     let postedBy: string
 
-    if (isValidBotToken(request)) {
+    if (await isValidJobsBotToken(request)) {
       const botProfileId = process.env.JOBS_BOT_PROFILE_ID
       if (!botProfileId) {
         console.error("[jobs/share] JOBS_BOT_PROFILE_ID nao configurado")

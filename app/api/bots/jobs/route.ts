@@ -1,8 +1,8 @@
-import { timingSafeEqual } from "crypto"
 import { NextResponse } from "next/server"
 import { and, eq, inArray, isNotNull } from "drizzle-orm"
 import { z } from "zod"
 import { db, jobs } from "@/lib/db"
+import { isValidJobsBotToken } from "@/lib/bot-token"
 
 // Rotas de bot para o verify-status-job (repo `bots`): listar as vagas aprovadas
 // com link e EXCLUIR as que o bot confirmou como fechadas na origem ("Não aceita
@@ -17,31 +17,12 @@ export const dynamic = "force-dynamic"
 // Autenticação — apenas o bot
 // ---------------------------------------------------------------------------
 
-// Confere o Bearer recebido contra o JOBS_SHARE_BOT_TOKEN em tempo constante
-// (timingSafeEqual não vaza o token pela latência da comparação). Sem o token no
-// ambiente, nega tudo (fail-closed). Mesmo esquema do app/api/jobs/share.
-function isBotRequest(request: Request): boolean {
-  const expected = process.env.JOBS_SHARE_BOT_TOKEN
-  if (!expected) return false
-
-  const header = request.headers.get("authorization") || ""
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : ""
-  if (!provided) return false
-
-  const expectedBuf = Buffer.from(expected)
-  const providedBuf = Buffer.from(provided)
-  return (
-    expectedBuf.length === providedBuf.length &&
-    timingSafeEqual(expectedBuf, providedBuf)
-  )
-}
-
 // Envolve um handler garantindo que só o bot autenticado chegue nele: sem token
 // válido, responde 401 antes de tocar no banco. Também centraliza o tratamento
 // de erro, deixando cada handler enxuto e focado na sua regra.
 function botOnly(handler: (request: Request) => Promise<NextResponse>) {
   return async (request: Request): Promise<NextResponse> => {
-    if (!isBotRequest(request)) {
+    if (!(await isValidJobsBotToken(request))) {
       return NextResponse.json(
         { error: "Token inválido ou ausente" },
         { status: 401 },

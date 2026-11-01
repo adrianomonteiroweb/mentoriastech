@@ -184,8 +184,9 @@ PAGARME_WEBHOOK_USER            # Usuário Basic Auth do webhook (configurado no
 PAGARME_WEBHOOK_PASSWORD        # Senha Basic Auth do webhook
 
 # Bot de indicação de vagas (POST público em /api/jobs/share)
-JOBS_SHARE_BOT_TOKEN            # Segredo Bearer que o bot envia em Authorization (gerar aleatório, >=32 bytes).
-                                # Sem esta var o caminho bot fica desabilitado (só o fluxo autenticado funciona).
+JOBS_SHARE_BOT_TOKEN            # Opcional (fallback legado). O token Bearer dos bots é gerenciado em Admin →
+                                # Configurações ("Token do bot de vagas", salvo em site_private_settings).
+                                # Só é usado enquanto nenhum token tiver sido salvo pelo painel.
 JOBS_BOT_PROFILE_ID            # UUID do perfil "bot" (autor das vagas indicadas pelo bot)
 ```
 

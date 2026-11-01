@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Save, Trash2 } from "lucide-react"
 import { GoogleCalendarSettings } from "@/components/dashboard/admin/google-calendar-settings"
+import { JobsBotTokenSettings } from "@/components/dashboard/admin/jobs-bot-token-settings"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   normalizeMentorshipChecklistConfig,
@@ -181,6 +182,8 @@ export default function AdminSettingsPage() {
       <DashboardHeader title="Configuracoes" description="Ajustes gerais da plataforma" />
       <div className="flex flex-col gap-6 p-4 md:p-6 max-w-2xl">
         <GoogleCalendarSettings />
+
+        <JobsBotTokenSettings />
 
         <Card>
           <CardHeader>
