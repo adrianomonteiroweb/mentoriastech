@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Loader2, Plus, Save, Trash2 } from "lucide-react"
 import { GoogleCalendarSettings } from "@/components/dashboard/admin/google-calendar-settings"
 import { JobsBotTokenSettings } from "@/components/dashboard/admin/jobs-bot-token-settings"
+import { BookingsBotTokenSettings } from "@/components/dashboard/admin/bookings-bot-token-settings"
 import {
   MENTORSHIP_CHECKLIST_SETTING_KEY,
   normalizeMentorshipChecklistConfig,
@@ -184,6 +185,8 @@ export default function AdminSettingsPage() {
         <GoogleCalendarSettings />
 
         <JobsBotTokenSettings />
+
+        <BookingsBotTokenSettings />
 
         <Card>
           <CardHeader>

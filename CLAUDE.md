@@ -188,6 +188,11 @@ JOBS_SHARE_BOT_TOKEN            # Opcional (fallback legado). O token Bearer dos
                                 # Configurações ("Token do bot de vagas", salvo em site_private_settings).
                                 # Só é usado enquanto nenhum token tiver sido salvo pelo painel.
 JOBS_BOT_PROFILE_ID            # UUID do perfil "bot" (autor das vagas indicadas pelo bot)
+
+# Bot de confirmação de mentorias (GET em /api/bots/scheduled-bookings)
+BOOKINGS_BOT_TOKEN              # Opcional (fallback legado). O token Bearer é gerenciado em Admin →
+                                # Configurações ("Token do bot de mentorias", salvo em site_private_settings).
+                                # Só é usado enquanto nenhum token tiver sido salvo pelo painel.
 ```
 
 ## Roles de Usuário
